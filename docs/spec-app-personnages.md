@@ -1,6 +1,6 @@
-﻿# Spécification — Application de Gestion de Personnages WFRP4
+# Spécification — Application de Gestion de Personnages WFRP4
 
-> **Version** : 0.2 — Approche utilisateur  
+> **Version** : 0.4 — Architecture cible : Blazor WebAssembly + MudBlazor + ASP.NET Core + EF Core  
 > **Date** : Mars 2026  
 > **Source** : Warhammer Fantasy Roleplay 4e Édition — Livre de Base (FR)
 
@@ -9,14 +9,17 @@
 ## Table des Matières
 
 1. [Contexte Fonctionnel](#1-contexte-fonctionnel)
-2. [Modèle de Rôles Utilisateur](#2-modèle-de-rôles-utilisateur)
-3. [C4 — Niveau 1 : Contexte Système](#3-c4--niveau-1--contexte-système)
-4. [C4 — Niveau 2 : Conteneurs](#4-c4--niveau-2--conteneurs)
-5. [C4 — Niveau 3 : Composants](#5-c4--niveau-3--composants)
-6. [Modèle de Données SQL](#6-modèle-de-données-sql)
-7. [Contrôle d'Accès](#7-contrôle-daccès)
-8. [Contraintes et Règles Métier](#8-contraintes-et-règles-métier)
-9. [Cas d'Utilisation Principaux](#9-cas-dutilisation-principaux)
+2. [Stack Technique](#2-stack-technique)
+3. [Modèle de Rôles Utilisateur](#3-modèle-de-rôles-utilisateur)
+4. [C4 — Niveau 1 : Contexte Système](#4-c4--niveau-1--contexte-système)
+5. [C4 — Niveau 2 : Conteneurs](#5-c4--niveau-2--conteneurs)
+6. [C4 — Niveau 3 : Composants](#6-c4--niveau-3--composants)
+7. [Structure Solution .NET](#7-structure-solution-net)
+8. [Modèle de Données — EF Core](#8-modèle-de-données--ef-core)
+9. [Intégration Keycloak](#9-intégration-keycloak)
+10. [Contrôle d'Accès](#10-contrôle-daccès)
+11. [Contraintes et Règles Métier](#11-contraintes-et-règles-métier)
+12. [Cas d'Utilisation Principaux](#12-cas-dutilisation-principaux)
 
 ---
 
@@ -24,11 +27,14 @@
 
 L'application permet à des utilisateurs authentifiés de **créer, gérer et faire évoluer** des personnages conformément aux règles du Livre de Base WFRP4. Chaque personnage appartient à un utilisateur et peut être **partagé en lecture** avec un Maître de Jeu.
 
+L'authentification est **déléguée à Keycloak** (OIDC/OAuth2). L'application ne stocke ni mot de passe, ni session.
+
 ### Périmètre v1
 
 | Fonctionnalité | Inclus |
 |---|---|
-| Inscription / connexion utilisateur | ✅ |
+| Authentification via Keycloak (OIDC) | ✅ |
+| Gestion des comptes / rôles via Keycloak Admin | ✅ |
 | Création de personnage (9 étapes) — par le propriétaire | ✅ |
 | Gestion des caractéristiques et avances | ✅ |
 | Gestion des compétences et avances | ✅ |
@@ -37,395 +43,551 @@ L'application permet à des utilisateurs authentifiés de **créer, gérer et fa
 | Calcul XP (dépense / solde) | ✅ |
 | Référentiel : espèces, classes, carrières | ✅ |
 | Référentiel : compétences et talents | ✅ |
-| Partage lecture MJ | ✅ |
+| Partage lecture / XP avec un MJ | ✅ |
 | Export feuille de personnage (PDF) | ❌ v2 |
 | Gestion de campagne / groupe | ❌ v2 |
 | Gestion du combat / blessures en temps réel | ❌ v2 |
 
 ---
 
-## 2. Modèle de Rôles Utilisateur
+## 2. Stack Technique
+
+| Couche | Technologie | Rôle |
+|---|---|---|
+| **Frontend** | Blazor WebAssembly (.NET 9) | SPA compilée en WASM, exécutée dans le navigateur |
+| **UI Components** | MudBlazor | Bibliothèque Material Design pour Blazor |
+| **Auth Frontend** | `Microsoft.AspNetCore.Components.WebAssembly.Authentication` | Flux OIDC Authorization Code + PKCE intégré |
+| **API** | ASP.NET Core 9 Web API | API REST, hébergement du WASM en mode Hosted |
+| **ORM** | Entity Framework Core 9 | Modèle entités, migrations, accès PostgreSQL |
+| **Base de données** | PostgreSQL 16 | Stockage principal |
+| **Auth serveur** | `Microsoft.AspNetCore.Authentication.JwtBearer` | Validation JWT Keycloak (JWKS) |
+| **IAM** | Keycloak 25+ | OIDC/OAuth2, gestion des comptes et des rôles |
+| **Seed** | Console App .NET / Script EF Core Data Seeding | Import référentiels WFRP4 |
+
+### Mode déploiement
+
+Le projet suit le pattern **ASP.NET Core Blazor Hosted** :
+- L'API ASP.NET Core **sert statiquement** le bundle WASM Blazor.
+- Un seul déploiement (conteneur ou IIS) héberge les deux.
+- La communication Frontend → API se fait via `HttpClient` injecté, pointant sur la même origine.
+
+---
+
+## 3. Modèle de Rôles Utilisateur
+
+Les rôles sont définis dans le **Realm Keycloak** `wfrp4` et portés dans le claim `realm_access.roles` du JWT.
 
 ```mermaid
 flowchart LR
-    JOUEUR["🧑 JOUEUR\n— Crée ses personnages\n— Gère ses avances\n— Voit uniquement ses personnages"]
-    MJ["🎲 MAITRE_JEU\n— Voit les personnages\n  partagés avec lui\n— Ajoute de l'XP\n— Ne modifie pas la fiche"]
-    ADMIN["⚙️ ADMIN\n— Gère les utilisateurs\n— Gère les référentiels\n— Accès complet"]
+    subgraph Joueur
+        J["wfrp4-joueur"]
+    end
+    subgraph MJ
+        M["wfrp4-maitre-jeu"]
+    end
+    subgraph Admin
+        A["wfrp4-admin"]
+    end
 
-    JOUEUR -->|"peut partager son\npersonnage en lecture"| MJ
-    ADMIN -->|"peut endosser"| JOUEUR
-    ADMIN -->|"peut endosser"| MJ
+    J -- "partage lecture/XP" --> M
+    A -. "peut endosser" .-> J
+    A -. "peut endosser" .-> M
 ```
 
-| Rôle | Code | Description |
+**Détails des rôles :**
+
+| Rôle Keycloak | Policy ASP.NET Core | Droits |
 |---|---|---|
-| Joueur | `JOUEUR` | Propriétaire de ses personnages |
-| Maître de Jeu | `MAITRE_JEU` | Lecture + octroi XP sur personnages partagés |
-| Administrateur | `ADMIN` | Accès total, gestion des référentiels |
+| `wfrp4-joueur` | `Policy("Joueur")` | Crée ses personnages, gère ses avances, voit uniquement ses personnages |
+| `wfrp4-maitre-jeu` | `Policy("MaitreJeu")` | Voit les personnages partagés, ajoute de l'XP, lecture seule sur la fiche |
+| `wfrp4-admin` | `Policy("Admin")` | Accès complet, gère les référentiels, gestion des rôles via Keycloak |
 
 ---
 
-## 3. C4 — Niveau 1 : Contexte Système
+## 4. C4 — Niveau 1 : Contexte Système
 
 ```mermaid
-C4Context
-  title Contexte système — Application de Personnages WFRP4
+flowchart TB
+    J(("Joueur"))
+    M(("MJ"))
+    A(("Admin"))
 
-  Person(joueur, "Joueur (JOUEUR)", "Inscrit, connecté. Crée et fait évoluer ses personnages.")
-  Person(mj, "Maître de Jeu (MAITRE_JEU)", "Inscrit, connecté. Consulte les personnages partagés, octroie de l'XP.")
-  Person(admin, "Administrateur (ADMIN)", "Gère les utilisateurs et les référentiels WFRP4.")
+    APP["Application WFRP4\nBlazor WASM + ASP.NET Core API"]
 
-  System(app, "Application Personnages WFRP4", "Création, suivi et progression des personnages WFRP4. Authentification, autorisation par propriétaire.")
+    KC["Keycloak\nOIDC/OAuth2 — Realm wfrp4"]
+    PDF["Livre de Base WFRP4\nSource des référentiels"]
 
-  System_Ext(livreBase, "Livre de Base WFRP4 (PDF)", "Source officielle des règles — référentiels espèces, carrières, compétences, talents.")
-  System_Ext(idp, "Fournisseur d'Identité", "Auth locale (JWT) ou OAuth2 (optionnel v2)")
+    J -->|HTTPS| APP
+    M -->|HTTPS| APP
+    A -->|HTTPS| APP
+    A -->|Admin Console| KC
+    J -->|OIDC PKCE| KC
+    M -->|OIDC PKCE| KC
+    APP -->|"Vérifie JWT (JWKS)"| KC
+    APP -.->|"Seed EF Core"| PDF
 
-  Rel(joueur, app, "Crée et gère ses personnages", "HTTPS")
-  Rel(mj, app, "Consulte les fiches partagées, octroie XP", "HTTPS")
-  Rel(admin, app, "Administre", "HTTPS")
-  Rel(app, idp, "Authentifie les utilisateurs", "JWT / OAuth2")
-  Rel(app, livreBase, "Référentiel initialisé depuis", "Import manuel")
+    style APP fill:#4a90d9,color:#fff
+    style KC fill:#e67e22,color:#fff
+    style PDF fill:#95a5a6,color:#fff
 ```
 
 ---
 
-## 4. C4 — Niveau 2 : Conteneurs
+## 5. C4 — Niveau 2 : Conteneurs
 
 ```mermaid
-C4Container
-  title Conteneurs — Application de Personnages WFRP4
+flowchart TB
+    J(("Joueur"))
+    M(("MJ"))
+    A(("Admin"))
+    KC["Keycloak\nRealm wfrp4"]
 
-  Person(joueur, "Joueur")
-  Person(mj, "MJ")
-  Person(admin, "Admin")
+    subgraph APP["Application Personnages WFRP4"]
+        WASM["Blazor WASM\n.NET 9 / MudBlazor"]
+        API["ASP.NET Core API\n.NET 9 / EF Core 9"]
+        DB[("PostgreSQL 16")]
+        SEED["Seed Console App"]
+    end
 
-  Container_Boundary(app, "Application Personnages WFRP4") {
+    J -->|HTTPS| WASM
+    M -->|HTTPS| WASM
+    A -->|HTTPS| WASM
+    WASM -->|"OIDC PKCE"| KC
+    WASM -->|"REST + Bearer token"| API
+    API -->|"Vérifie JWT JWKS"| KC
+    API -->|"EF Core / SQL"| DB
+    SEED -.->|"Migrations + seed"| DB
 
-    Container(spa, "SPA Frontend", "React / Vue 3", "Interface de création et gestion. Login, tableau de bord utilisateur, formulaire 9 étapes, fiche de personnage.")
-
-    Container(api, "API REST", "Node.js / FastAPI", "Endpoints sécurisés : auth, personnages (scoped par owner), référentiels, XP. Middleware d'autorisation.")
-
-    ContainerDb(db, "Base de Données", "PostgreSQL", "Utilisateurs, personnages (FK utilisateur), référentiels WFRP4, historique XP, partages.")
-
-    Container(seed, "Script de Seed", "Python", "Import des référentiels WFRP4 depuis les extraits PDF.")
-  }
-
-  Rel(joueur, spa, "Utilise", "HTTPS")
-  Rel(mj, spa, "Utilise", "HTTPS")
-  Rel(admin, spa, "Administre", "HTTPS")
-  Rel(spa, api, "Appels REST authentifiés", "JSON + Bearer JWT")
-  Rel(api, db, "Lit / Écrit (scoped)", "SQL")
-  Rel(seed, db, "Peuple les référentiels", "SQL INSERT")
+    style WASM fill:#3498db,color:#fff
+    style API fill:#2ecc71,color:#fff
+    style DB fill:#9b59b6,color:#fff
+    style KC fill:#e67e22,color:#fff
 ```
 
 ---
 
-## 5. C4 — Niveau 3 : Composants
+## 6. C4 — Niveau 3 : Composants
 
-### 5.1 Frontend (SPA)
+### 6.1 Blazor WebAssembly (Frontend)
 
 ```mermaid
-C4Component
-  title Composants — SPA Frontend
+flowchart TB
+    KC["Keycloak"]
 
-  Container_Boundary(spa, "SPA Frontend") {
+    subgraph WASM["Blazor WebAssembly"]
+        direction TB
+        AUTH["OidcAuthStateProvider"]
+        HANDLER["AuthMessageHandler"]
+        CLIENT["Wfrp4ApiClient"]
 
-    Component(auth, "Module Auth", "Vue / React Component", "Formulaires Login / Inscription. Stockage token JWT. Redirection selon rôle.")
+        subgraph Pages
+            DASH["Dashboard.razor"]
+            WIZ["CreationWizard.razor"]
+            FICHE["FichePersonnage.razor"]
+            REF["Referentiels.razor"]
+        end
 
-    Component(dashboard, "Tableau de Bord", "Vue / React Component", "Liste des personnages de l'utilisateur connecté. Accès aux personnages partagés (MJ).")
+        subgraph Dialogs
+            AVA["AvancementDialog"]
+            PAR["PartageDialog"]
+        end
+    end
 
-    Component(wizard, "Assistant de Création", "Vue / React Component", "9 étapes guidées. Associe automatiquement le personnage à l'utilisateur connecté.")
+    AUTH -->|"OIDC PKCE"| KC
+    HANDLER -->|"token"| AUTH
+    CLIENT -->|"via handler"| HANDLER
+    DASH -->|"GET personnages"| CLIENT
+    WIZ -->|"POST personnage"| CLIENT
+    FICHE -->|"GET/PUT personnage"| CLIENT
+    REF -->|"GET référentiels"| CLIENT
+    AVA -->|"POST avance"| CLIENT
+    PAR -->|"POST/DEL partage"| CLIENT
 
-    Component(fichePC, "Fiche de Personnage", "Vue / React Component", "Affichage et édition. Lecture seule pour le MJ. Édition complète pour le propriétaire.")
-
-    Component(avancement, "Module Avancement", "Vue / React Component", "Dépense XP : caractéristiques, compétences, talents. Octroi XP (MJ uniquement).")
-
-    Component(partage, "Gestion du Partage", "Vue / React Component", "Propriétaire invite un MJ par identifiant. Révocation de l'accès.")
-
-    Component(referentiels, "Référentiels", "Vue / React Component", "Consultation : espèces, carrières, compétences, talents. Édition ADMIN uniquement.")
-
-    Component(apiClient, "Client API", "Axios / Fetch", "Couche d'accès à l'API. Injecte le token JWT sur chaque requête.")
-  }
-
-  Rel(auth, apiClient, "POST /auth/login, /auth/register")
-  Rel(dashboard, apiClient, "GET /personnages (mes personnages)")
-  Rel(wizard, apiClient, "POST /personnages")
-  Rel(fichePC, apiClient, "GET/PUT /personnages/:id")
-  Rel(avancement, apiClient, "POST /personnages/:id/avances")
-  Rel(partage, apiClient, "POST/DELETE /personnages/:id/partages")
-  Rel(referentiels, apiClient, "GET /especes, /classes, /carrieres...")
+    style AUTH fill:#e74c3c,color:#fff
+    style CLIENT fill:#3498db,color:#fff
 ```
 
-### 5.2 API REST
+**Composants détaillés :**
+
+| Composant | Technologie | Rôle |
+|---|---|---|
+| `OidcAuthStateProvider` | MS WebAssembly.Authentication | Flux OIDC PKCE, stockage tokens, AuthenticationState |
+| `AuthMessageHandler` | DelegatingHandler | Injecte Bearer token dans les requêtes HttpClient |
+| `MainLayout + NavMenu` | MudBlazor MudLayout | Shell, navigation, profil connecté |
+| `Dashboard.razor` | MudGrid / MudCard | Liste personnages, accès fiches partagées (MJ) |
+| `CreationWizard.razor` | MudStepper | 9 étapes guidées, validation par étape |
+| `FichePersonnage.razor` | MudTabs / MudDataGrid | Fiche complète, édition inline, mode lecture MJ |
+| `AvancementDialog.razor` | MudDialog | Dépense XP, coût temps réel, validation carrière |
+| `PartageDialog.razor` | MudDialog | Invite MJ, permissions, révocation |
+| `Referentiels.razor` | MudDataGrid | Consultation référentiels, édition admin |
+| `Wfrp4ApiClient.cs` | HttpClient typé | Routes typées, sérialisation JSON |
+
+### 6.2 ASP.NET Core Web API
 
 ```mermaid
-C4Component
-  title Composants — API REST
+flowchart TB
+    KC["Keycloak JWKS"]
+    DB[("PostgreSQL")]
 
-  Container_Boundary(api, "API REST") {
+    subgraph API["ASP.NET Core Web API"]
+        direction TB
+        JWT["JwtBearer Middleware"]
+        POL["Authorization Policies"]
+        ACL["PersonnageOwnerFilter"]
 
-    Component(ctrlAuth, "AuthController", "REST", "POST /auth/register, /auth/login → JWT signé. POST /auth/refresh.")
+        subgraph Controllers
+            C_PC["PersonnagesController"]
+            C_XP["AvancementsController"]
+            C_PA["PartagesController"]
+            C_RE["ReferentielsController"]
+        end
 
-    Component(ctrlPersonnage, "PersonnageController", "REST", "CRUD /personnages — filtre automatique par utilisateur_id. Le MJ voit seulement les personnages partagés.")
+        subgraph Services
+            S_PC["PersonnageService"]
+            S_XP["XPService"]
+        end
 
-    Component(ctrlPartage, "PartageController", "REST", "POST /personnages/:id/partages — crée un accès MJ. DELETE révoque.")
+        CTX["Wfrp4DbContext"]
+    end
 
-    Component(ctrlXP, "AvancementController", "REST", "POST /personnages/:id/avances (propriétaire). POST /personnages/:id/xp (MJ — octroi seulement).")
+    JWT -->|"JWKS cache"| KC
+    POL -->|"ClaimsPrincipal"| JWT
+    C_PC --> ACL
+    C_XP --> ACL
+    C_PA --> ACL
+    C_PC -->|"délègue"| S_PC
+    C_XP -->|"délègue"| S_XP
+    S_PC --> CTX
+    S_XP --> CTX
+    C_RE --> CTX
+    CTX -->|"EF Core / SQL"| DB
 
-    Component(ctrlRef, "ReferentielController", "REST", "GET /especes, /classes, /carrieres, /competences, /talents — public en lecture, ADMIN en écriture.")
+    style JWT fill:#e74c3c,color:#fff
+    style CTX fill:#9b59b6,color:#fff
+```
 
-    Component(ctrlAdmin, "AdminController", "REST", "GET/PUT /admin/utilisateurs — ADMIN seulement.")
+**Composants détaillés :**
 
-    Component(authMiddleware, "AuthMiddleware", "Middleware", "Vérifie le JWT. Injecte utilisateur_id + rôle dans le contexte de la requête.")
+| Composant | Rôle |
+|---|---|
+| `JwtBearer Middleware` | Valide JWT Keycloak (Authority realm URL, Audience wfrp4-api, signature JWKS). Injecte ClaimsPrincipal. |
+| `Authorization Policies` | Policies : Joueur (`wfrp4-joueur`), MaitreJeu (`wfrp4-maitre-jeu`), Admin (`wfrp4-admin`). Claim mapping depuis `realm_access.roles`. |
+| `PersonnageOwnerFilter` | IAsyncActionFilter. Vérifie `personnage.keycloak_id == sub` ou partage valide. Retourne 403 sinon. |
+| `PersonnagesController` | CRUD `/api/personnages`. Filtre automatique par `keycloak_id`. `[Authorize(Policy=Joueur)]` |
+| `PartagesController` | POST/DELETE `/api/personnages/{id}/partages`. Ownership filter. |
+| `AvancementsController` | POST `/api/personnages/{id}/avances` (Joueur). POST `.../xp` (MJ, Permission=XP). |
+| `ReferentielsController` | GET `/api/especes`, `/api/carrieres`, `/api/competences`, `/api/talents`. Écriture `[Authorize(Policy=Admin)]`. |
+| `PersonnageService` | Calculs dérivés WFRP4. Validation avances selon plan de carrière courante. |
+| `XPService` | Calcul coût XP selon tableaux officiels (p. 47). Validation solde disponible. |
+| `Wfrp4DbContext` | DbSet Personnage, Espece, Carriere, etc. Migrations code-first. PostgreSQL (Npgsql). |
 
-    Component(aclMiddleware, "ACLMiddleware", "Middleware", "Vérifie ownership (personnage.utilisateur_id == requête.utilisateur_id) ou partage valide.")
+---
 
-    Component(svcPersonnage, "PersonnageService", "Métier", "Calculs dérivés. Validation des avances selon carrière courante.")
+## 7. Structure Solution .NET
 
-    Component(svcXP, "XPService", "Métier", "Calcul et validation du coût XP selon tableaux WFRP4.")
-
-    Component(repo, "Repository", "ORM", "Accès base de données avec scope utilisateur systématique.")
-  }
-
-  Rel(ctrlAuth, repo, "Crée / lit UTILISATEUR")
-  Rel(ctrlPersonnage, authMiddleware, "Passe par")
-  Rel(ctrlPersonnage, aclMiddleware, "Passe par")
-  Rel(ctrlPersonnage, svcPersonnage, "Délègue")
-  Rel(ctrlXP, aclMiddleware, "Passe par")
-  Rel(ctrlXP, svcXP, "Valide et enregistre")
-  Rel(ctrlPartage, aclMiddleware, "Passe par (propriétaire requis)")
-  Rel(svcPersonnage, repo, "Persiste")
-  Rel(svcXP, repo, "Lit / Écrit HISTORIQUE_XP")
-  Rel(ctrlRef, repo, "Lit référentiels")
-  Rel(ctrlAdmin, repo, "Gère UTILISATEUR")
+```
+Wfrp4.sln
+├── src/
+│   ├── Wfrp4.Client/                  # Blazor WebAssembly (.NET 9)
+│   │   ├── Pages/
+│   │   │   ├── Dashboard.razor
+│   │   │   ├── CreationWizard.razor
+│   │   │   ├── FichePersonnage.razor
+│   │   │   └── Referentiels.razor
+│   │   ├── Components/
+│   │   │   ├── AvancementDialog.razor
+│   │   │   └── PartageDialog.razor
+│   │   ├── Services/
+│   │   │   └── Wfrp4ApiClient.cs
+│   │   ├── Layout/
+│   │   │   ├── MainLayout.razor
+│   │   │   └── NavMenu.razor
+│   │   └── Program.cs
+│   │
+│   ├── Wfrp4.Server/                  # ASP.NET Core Web API (.NET 9)
+│   │   ├── Controllers/
+│   │   │   ├── PersonnagesController.cs
+│   │   │   ├── AvancementsController.cs
+│   │   │   ├── PartagesController.cs
+│   │   │   └── ReferentielsController.cs
+│   │   ├── Filters/
+│   │   │   └── PersonnageOwnerFilter.cs
+│   │   ├── Services/
+│   │   │   ├── PersonnageService.cs
+│   │   │   └── XPService.cs
+│   │   └── Program.cs
+│   │
+│   ├── Wfrp4.Infrastructure/          # EF Core, PostgreSQL
+│   │   ├── Data/
+│   │   │   ├── Wfrp4DbContext.cs
+│   │   │   ├── Configurations/
+│   │   │   │   ├── PersonnageConfiguration.cs
+│   │   │   │   ├── EspeceConfiguration.cs
+│   │   │   │   └── ...
+│   │   │   └── Migrations/
+│   │   └── Repositories/
+│   │       └── PersonnageRepository.cs
+│   │
+│   └── Wfrp4.Shared/                  # DTOs, contrats API
+│       ├── DTOs/
+│       │   ├── PersonnageDto.cs
+│       │   ├── AvanceRequest.cs
+│       │   └── XPGrantRequest.cs
+│       └── Models/
+│
+├── tools/
+│   └── Wfrp4.Seed/                    # Console App — seed référentiels
+│       └── Program.cs
+│
+└── tests/
+    ├── Wfrp4.Server.Tests/
+    └── Wfrp4.Infrastructure.Tests/
 ```
 
 ---
 
-## 6. Modèle de Données SQL
+## 8. Modèle de Données — EF Core
 
-### 6.1 Diagramme ERD
+### 8.1 Entités principales
+
+```csharp
+// Clé naturelle de l'utilisateur — sub Keycloak
+// Pas d'entité Utilisateur : le sub est stocké directement dans Personnage
+
+public class Personnage
+{
+    public int Id { get; set; }
+    public string KeycloakId { get; set; } = null!;   // sub JWT — INDEX
+    public string Nom { get; set; } = null!;
+
+    public int EspeceId { get; set; }
+    public Espece Espece { get; set; } = null!;
+
+    public int? CarriereCouranteId { get; set; }
+    public NiveauCarriere? CarriereCourante { get; set; }
+
+    public int XpTotal { get; set; }
+    public int XpDepense { get; set; }
+
+    // Attributs dérivés stockés (recalculés à la création)
+    public int BlessuresMax { get; set; }
+    public int Destin { get; set; }
+    public int Fortune { get; set; }
+    public int Resilience { get; set; }
+    public int Resolution { get; set; }
+    public int Mouvement { get; set; }
+
+    // Détails
+    public string? Motivation { get; set; }
+    public string? StatutSocial { get; set; }
+    public string? Age { get; set; }
+    public string? CouleurYeux { get; set; }
+    public string? CouleurCheveux { get; set; }
+    public int? TailleCm { get; set; }
+    public bool EstActif { get; set; } = true;
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+
+    // Navigation
+    public ICollection<PersonnageCaracteristique> Caracteristiques { get; set; } = [];
+    public ICollection<PersonnageCompetence> Competences { get; set; } = [];
+    public ICollection<PersonnageTalent> Talents { get; set; } = [];
+    public ICollection<HistoriqueXP> HistoriqueXP { get; set; } = [];
+    public ICollection<PersonnageCarriere> Carrieres { get; set; } = [];
+    public ICollection<PersonnagePartage> Partages { get; set; } = [];
+}
+
+public class PersonnagePartage
+{
+    public int Id { get; set; }
+    public int PersonnageId { get; set; }
+    public string MjKeycloakId { get; set; } = null!;   // sub du MJ
+    public PermissionPartage Permission { get; set; }    // LECTURE | XP
+    public DateTime CreatedAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+}
+
+public class HistoriqueXP
+{
+    public int Id { get; set; }
+    public int PersonnageId { get; set; }
+    public string AuteurKeycloakId { get; set; } = null!;
+    public int Montant { get; set; }   // positif = gain, négatif = dépense
+    public TypeXP Type { get; set; }   // GAIN | CARAC | COMPETENCE | TALENT | CARRIERE
+    public string? Cible { get; set; }
+    public string? Notes { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+```
+
+### 8.2 Configuration EF Core (exemple)
+
+```csharp
+public class PersonnageConfiguration : IEntityTypeConfiguration<Personnage>
+{
+    public void Configure(EntityTypeBuilder<Personnage> builder)
+    {
+        builder.HasIndex(p => p.KeycloakId);
+
+        builder.HasOne(p => p.Espece)
+               .WithMany()
+               .HasForeignKey(p => p.EspeceId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(p => p.Caracteristiques)
+               .WithOne()
+               .HasForeignKey(pc => pc.PersonnageId)
+               .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(p => p.UpdatedAt)
+               .ValueGeneratedOnAddOrUpdate();
+    }
+}
+```
+
+### 8.3 Diagramme ERD
 
 ```mermaid
 erDiagram
+    PERSONNAGE {
+        int Id PK
+        varchar KeycloakId "sub JWT"
+        varchar Nom
+        int EspeceId FK
+        int CarriereCouranteId FK
+        int XpTotal
+        int XpDepense
+        int BlessuresMax
+        int Destin
+        int Fortune
+        int Resilience
+        int Resolution
+        int Mouvement
+        boolean EstActif
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
 
-  UTILISATEUR {
-    int       id              PK
-    varchar   email           UK
-    varchar   nom_affichage
-    varchar   mot_de_passe_hash   "bcrypt, jamais stocké en clair"
-    varchar   role                "JOUEUR | MAITRE_JEU | ADMIN"
-    boolean   est_actif           "default true"
-    timestamp created_at
-    timestamp updated_at
-    timestamp derniere_connexion
-  }
+    PERSONNAGE_PARTAGE {
+        int Id PK
+        int PersonnageId FK
+        varchar MjKeycloakId "sub MJ"
+        varchar Permission "LECTURE ou XP"
+        datetime CreatedAt
+        datetime ExpiresAt
+    }
 
-  PERSONNAGE_PARTAGE {
-    int       id              PK
-    int       personnage_id   FK
-    int       mj_utilisateur_id  FK  "-> UTILISATEUR (rôle MAITRE_JEU)"
-    varchar   permission         "LECTURE | XP"  
-    timestamp created_at
-    timestamp expires_at         "NULL = permanent"
-  }
+    HISTORIQUE_XP {
+        int Id PK
+        int PersonnageId FK
+        varchar AuteurKeycloakId
+        int Montant
+        varchar Type "GAIN CARAC COMP TALENT"
+        varchar Cible
+        text Notes
+        datetime CreatedAt
+    }
 
-  ESPECE {
-    int      id             PK
-    varchar  code           UK
-    varchar  nom
-    int      mouvement_base
-    json     carac_initiales    "{ CC, CT, F, E, I, Ag, Dex, Int, FM, Soc }"
-    text     description
-  }
+    PERSONNAGE_CARACTERISTIQUE {
+        int PersonnageId FK
+        varchar Code "CC CT F E I Ag Dex Int FM Soc"
+        int ValeurInitiale
+        int Avances
+    }
 
-  CLASSE {
-    int      id   PK
-    varchar  code UK
-    varchar  nom
-    text     description
-  }
+    PERSONNAGE_COMPETENCE {
+        int PersonnageId FK
+        int CompetenceId FK
+        int Avances
+        int SpecialisationId FK
+    }
 
-  CARRIERE {
-    int      id        PK
-    varchar  code      UK
-    varchar  nom
-    int      classe_id FK
-  }
+    PERSONNAGE_TALENT {
+        int PersonnageId FK
+        int TalentId FK
+        int Fois
+    }
 
-  NIVEAU_CARRIERE {
-    int      id                 PK
-    int      carriere_id        FK
-    int      niveau                  "1 à 4"
-    varchar  intitule                "ex: Apprenti Apothicaire"
-    varchar  statut                  "BRONZE | ARGENT | OR | PLATINE"
-    int      statut_numerique        "1 à 5"
-    json     avances_carac           "marqueurs h/laiton/argent/or par carac"
-    text     competence_revenu
-  }
+    PERSONNAGE_CARRIERE {
+        int Id PK
+        int PersonnageId FK
+        int NiveauCarriereId FK
+        boolean EstCourante
+        datetime DateEntree
+        datetime DateSortie
+    }
 
-  NIVEAU_CARRIERE_COMPETENCE {
-    int      niveau_carriere_id FK
-    int      competence_id      FK
-  }
+    ESPECE {
+        int Id PK
+        varchar Code UK
+        varchar Nom
+        int MouvementBase
+        json CaracInitiales
+        text Description
+    }
 
-  NIVEAU_CARRIERE_TALENT {
-    int      niveau_carriere_id FK
-    int      talent_id          FK
-  }
+    CLASSE {
+        int Id PK
+        varchar Code UK
+        varchar Nom
+    }
 
-  NIVEAU_CARRIERE_DOTATION {
-    int      id                 PK
-    int      niveau_carriere_id FK
-    varchar  description
-  }
+    CARRIERE {
+        int Id PK
+        varchar Code UK
+        varchar Nom
+        int ClasseId FK
+    }
 
-  COMPETENCE {
-    int      id                 PK
-    varchar  code               UK
-    varchar  nom
-    varchar  caracteristique        "CC|CT|F|E|I|Ag|Dex|Int|FM|Soc"
-    boolean  est_avancee
-    boolean  est_groupee
-    varchar  groupe_parent
-    text     description
-  }
+    NIVEAU_CARRIERE {
+        int Id PK
+        int CarriereId FK
+        int Niveau
+        varchar Intitule
+        varchar Statut "BRONZE ARGENT OR"
+        int StatutNumerique
+        json AvancesCarac
+        text CompetenceRevenu
+    }
 
-  SPECIALISATION_COMPETENCE {
-    int      id            PK
-    int      competence_id FK
-    varchar  nom
-  }
+    COMPETENCE {
+        int Id PK
+        varchar Code UK
+        varchar Nom
+        varchar Caracteristique
+        boolean EstAvancee
+        boolean EstGroupee
+        text Description
+    }
 
-  TALENT {
-    int      id          PK
-    varchar  code        UK
-    varchar  nom
-    int      max_fois        "NULL = illimité"
-    boolean  empilable
-    text     description
-    text     effet
-  }
+    TALENT {
+        int Id PK
+        varchar Code UK
+        varchar Nom
+        int MaxFois
+        boolean Empilable
+        text Description
+        text Effet
+    }
 
-  ESPECE_COMPETENCE {
-    int      espece_id         FK
-    int      competence_id     FK
-    int      avances_initiales     "default 0"
-  }
-
-  ESPECE_TALENT {
-    int      espece_id FK
-    int      talent_id  FK
-  }
-
-  PERSONNAGE {
-    int      id                     PK
-    int      utilisateur_id         FK  "propriétaire — NOT NULL"
-    varchar  nom
-    int      espece_id              FK
-    int      carriere_courante_id   FK  "-> NIVEAU_CARRIERE"
-    int      xp_total
-    int      xp_depense
-    int      blessures_max
-    int      destin
-    int      fortune
-    int      resilience
-    int      resolution
-    int      mouvement
-    varchar  motivation
-    varchar  statut_social
-    text     description_physique
-    varchar  age
-    varchar  couleur_yeux
-    varchar  couleur_cheveux
-    int      taille_cm
-    varchar  signes_distinctifs
-    boolean  est_actif               "default true"
-    timestamp created_at
-    timestamp updated_at
-  }
-
-  PERSONNAGE_CARACTERISTIQUE {
-    int      personnage_id FK
-    varchar  code               "CC|CT|F|E|I|Ag|Dex|Int|FM|Soc"
-    int      valeur_initiale
-    int      avances
-  }
-
-  PERSONNAGE_COMPETENCE {
-    int      personnage_id     FK
-    int      competence_id     FK
-    int      avances
-    int      specialisation_id FK  "NULL si pas de spécialisation"
-  }
-
-  PERSONNAGE_TALENT {
-    int      personnage_id FK
-    int      talent_id     FK
-    int      fois
-  }
-
-  HISTORIQUE_XP {
-    int       id             PK
-    int       personnage_id  FK
-    int       auteur_id      FK  "-> UTILISATEUR (propriétaire ou MJ)"
-    int       montant            "positif=gagné, négatif=dépensé"
-    varchar   type               "GAIN | CARAC | COMPETENCE | TALENT | CARRIERE"
-    varchar   cible
-    text      notes
-    timestamp created_at
-  }
-
-  PERSONNAGE_CARRIERE {
-    int       id                   PK
-    int       personnage_id        FK
-    int       niveau_carriere_id   FK
-    boolean   est_courante
-    timestamp date_entree
-    timestamp date_sortie
-  }
-
-  UTILISATEUR          ||--o{ PERSONNAGE              : "possède"
-  UTILISATEUR          ||--o{ PERSONNAGE_PARTAGE      : "est MJ de"
-  PERSONNAGE           ||--o{ PERSONNAGE_PARTAGE      : "partagé via"
-  UTILISATEUR          ||--o{ HISTORIQUE_XP           : "auteur de"
-  ESPECE               ||--o{ PERSONNAGE              : "espèce de"
-  NIVEAU_CARRIERE      ||--o{ PERSONNAGE              : "carrière courante"
-  CLASSE               ||--o{ CARRIERE                : "contient"
-  CARRIERE             ||--o{ NIVEAU_CARRIERE         : "comprend"
-  NIVEAU_CARRIERE      ||--o{ NIVEAU_CARRIERE_COMPETENCE : "donne accès à"
-  COMPETENCE           ||--o{ NIVEAU_CARRIERE_COMPETENCE : "listée dans"
-  NIVEAU_CARRIERE      ||--o{ NIVEAU_CARRIERE_TALENT  : "donne accès à"
-  TALENT               ||--o{ NIVEAU_CARRIERE_TALENT  : "listé dans"
-  NIVEAU_CARRIERE      ||--o{ NIVEAU_CARRIERE_DOTATION : "fournit"
-  ESPECE               ||--o{ ESPECE_COMPETENCE       : "donne"
-  COMPETENCE           ||--o{ ESPECE_COMPETENCE       : "reçue par espèce"
-  ESPECE               ||--o{ ESPECE_TALENT           : "donne"
-  TALENT               ||--o{ ESPECE_TALENT           : "reçu par espèce"
-  COMPETENCE           ||--o{ SPECIALISATION_COMPETENCE : "se spécialise en"
-  PERSONNAGE           ||--o{ PERSONNAGE_CARACTERISTIQUE : "possède"
-  PERSONNAGE           ||--o{ PERSONNAGE_COMPETENCE   : "maîtrise"
-  COMPETENCE           ||--o{ PERSONNAGE_COMPETENCE   : "pratiquée par"
-  PERSONNAGE           ||--o{ PERSONNAGE_TALENT       : "possède"
-  TALENT               ||--o{ PERSONNAGE_TALENT       : "maîtrisé par"
-  PERSONNAGE           ||--o{ HISTORIQUE_XP           : "accumule"
-  PERSONNAGE           ||--o{ PERSONNAGE_CARRIERE     : "a suivi"
-  NIVEAU_CARRIERE      ||--o{ PERSONNAGE_CARRIERE     : "occupé par"
+    ESPECE             ||--o{ PERSONNAGE                 : "espece"
+    NIVEAU_CARRIERE    ||--o{ PERSONNAGE                 : "carriere courante"
+    PERSONNAGE         ||--o{ PERSONNAGE_PARTAGE         : "partages"
+    PERSONNAGE         ||--o{ HISTORIQUE_XP              : "historique"
+    PERSONNAGE         ||--o{ PERSONNAGE_CARACTERISTIQUE : "caracteristiques"
+    PERSONNAGE         ||--o{ PERSONNAGE_COMPETENCE      : "competences"
+    PERSONNAGE         ||--o{ PERSONNAGE_TALENT          : "talents"
+    PERSONNAGE         ||--o{ PERSONNAGE_CARRIERE        : "carrieres"
+    CLASSE             ||--o{ CARRIERE                   : "classe"
+    CARRIERE           ||--o{ NIVEAU_CARRIERE            : "niveaux"
+    COMPETENCE         ||--o{ PERSONNAGE_COMPETENCE      : "competence"
+    TALENT             ||--o{ PERSONNAGE_TALENT          : "talent"
+    NIVEAU_CARRIERE    ||--o{ PERSONNAGE_CARRIERE        : "niveau"
 ```
 
-### 6.2 Table `UTILISATEUR` — détails
+### 8.4 Coût XP (source : Livre de Base p. 47)
 
-| Colonne | Contrainte | Note sécurité |
-|---|---|---|
-| `email` | UNIQUE, NOT NULL | Normalisé en minuscule avant stockage |
-| `mot_de_passe_hash` | NOT NULL | bcrypt (cost ≥ 12), jamais loggué |
-| `role` | ENUM, default `JOUEUR` | Seul un ADMIN peut changer le rôle |
-| `est_actif` | default `true` | Soft-delete : désactivation sans suppression |
-| `derniere_connexion` | nullable | Mise à jour à chaque login réussi |
-
-### 6.3 Tableaux de coût XP (source : Livre de Base p. 47)
-
-| Avances | Coût/avance Caractéristique | Coût/avance Compétence |
+| Avances | Coût Caractéristique | Coût Compétence |
 |---|---|---|
 | 0 – 5 | 25 XP | 10 XP |
 | 6 – 10 | 30 XP | 15 XP |
@@ -438,135 +600,190 @@ erDiagram
 | 41 – 45 | 190 XP | 140 XP |
 | 46 – 50 | 230 XP | 180 XP |
 
-### 6.4 Attributs dérivés (calculés, non stockés)
+---
 
-| Attribut | Formule |
+## 9. Intégration Keycloak
+
+### 9.1 Configuration Realm `wfrp4`
+
+| Paramètre | Valeur |
 |---|---|
-| Valeur Caractéristique | `valeur_initiale + avances` |
-| Bonus de Caractéristique | `floor(valeur / 10)` |
-| Blessures | `E_bonus + F_bonus + FM_bonus` (selon espèce) |
-| XP restant | `xp_total - xp_depense` |
+| Realm | `wfrp4` |
+| Client SPA | `wfrp4-blazor` — Public, Authorization Code + PKCE |
+| Client API | `wfrp4-api` — Bearer-only |
+| Rôles Realm | `wfrp4-joueur`, `wfrp4-maitre-jeu`, `wfrp4-admin` |
+| Token lifetime | access_token: 5 min / refresh_token: 30 min |
+| Claim ID | `sub` (UUID stable) |
+
+### 9.2 Configuration Blazor WebAssembly (`Program.cs`)
+
+```csharp
+builder.Services.AddOidcAuthentication(options =>
+{
+    options.ProviderOptions.Authority = "https://keycloak.example.com/realms/wfrp4";
+    options.ProviderOptions.ClientId = "wfrp4-blazor";
+    options.ProviderOptions.ResponseType = "code";
+    options.ProviderOptions.DefaultScopes.Add("openid");
+    options.ProviderOptions.DefaultScopes.Add("profile");
+    options.ProviderOptions.DefaultScopes.Add("email");
+});
+
+builder.Services.AddHttpClient<Wfrp4ApiClient>(
+    client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
+    .AddHttpMessageHandler<AuthorizationMessageHandler>();
+```
+
+### 9.3 Configuration ASP.NET Core (`Program.cs`)
+
+```csharp
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = "https://keycloak.example.com/realms/wfrp4";
+        options.Audience = "wfrp4-api";
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Joueur",    p => p.RequireRole("wfrp4-joueur"));
+    options.AddPolicy("MaitreJeu", p => p.RequireRole("wfrp4-maitre-jeu"));
+    options.AddPolicy("Admin",     p => p.RequireRole("wfrp4-admin"));
+});
+```
+
+> **Note** : La résolution des rôles Keycloak depuis `realm_access.roles` nécessite un `IClaimsTransformation` ou un mapper dans `TokenValidationParameters` pour aplatir les claims imbriqués.
+
+### 9.4 Flux d'authentification
+
+```mermaid
+sequenceDiagram
+    actor U as Utilisateur
+    participant WASM as Blazor WASM
+    participant KC as Keycloak
+    participant API as ASP.NET Core API
+
+    U->>WASM: Accède à l'application
+    WASM->>KC: Redirect AuthCode + PKCE
+    KC-->>U: Page de login
+    U->>KC: Identifiants
+    KC-->>WASM: Code via callback
+    WASM->>KC: POST token + verifier PKCE
+    KC-->>WASM: access_token 5min + refresh_token 30min
+    WASM->>API: GET /api/personnages + Bearer token
+    API->>API: Valide signature JWKS
+    API->>API: Extrait sub + roles
+    API-->>WASM: 200 List PersonnageDto
+```
 
 ---
 
-## 7. Contrôle d'Accès
+## 10. Contrôle d'Accès
 
-### Matrice de permissions sur `PERSONNAGE`
+### Matrice de permissions
 
-| Action | JOUEUR (propriétaire) | JOUEUR (autre) | MAITRE_JEU (partagé) | MAITRE_JEU (non partagé) | ADMIN |
-|---|---|---|---|---|---|
-| Créer | ✅ | — | — | — | ✅ |
+| Action | Joueur (proprio) | Joueur (autre) | MJ (partagé) | MJ (non partagé) | Admin |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Créer personnage | ✅ | — | — | — | ✅ |
 | Lire fiche | ✅ | ❌ | ✅ | ❌ | ✅ |
 | Modifier fiche | ✅ | ❌ | ❌ | ❌ | ✅ |
 | Dépenser XP | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Octroyer XP | ❌ | ❌ | ✅ (`permission=XP`) | ❌ | ✅ |
+| Octroyer XP | ❌ | ❌ | ✅ | ❌ | ✅ |
 | Partager | ✅ | ❌ | ❌ | ❌ | ✅ |
 | Supprimer | ✅ | ❌ | ❌ | ❌ | ✅ |
 
-### Règles d'implémentation
-
-- L'`AuthMiddleware` vérifie et décode le JWT à chaque requête.
-- L'`ACLMiddleware` charge `PERSONNAGE.utilisateur_id` et vérifie que l'appelant est le propriétaire **ou** qu'il existe un enregistrement valide dans `PERSONNAGE_PARTAGE`.
-- La colonne `PERSONNAGE.utilisateur_id` est indexée et jamais nullable.
-- Aucune route de lecture de personnage ne retourne de résultats hors périmètre de l'utilisateur connecté (pas de fuite de données par énumération).
-- Le mot de passe n'est jamais renvoyé dans aucune réponse API.
-
 ---
 
-## 8. Contraintes et Règles Métier
+## 11. Contraintes et Règles Métier
 
 ### Avancement
 
-- Un personnage ne peut avancer **que les caractéristiques de son niveau de carrière** (et niveaux inférieurs si multicarrière).
-- Un personnage ne peut avancer **que les compétences listées** à son niveau de carrière ou inférieur.
-- Un talent acheté plusieurs fois augmente son effet empilable uniquement si `empilable = true` et `fois < max_fois`.
+- Un personnage ne peut avancer **que les caractéristiques de son niveau de carrière** (et niveaux inférieurs).
+- Un personnage ne peut avancer **que les compétences listées** à son niveau ou inférieur.
+- Talent empilable : `Fois < MaxFois` (ou `MaxFois == null` = illimité).
 
 ### Changement de carrière
 
-- Vers une carrière de **même classe** : accès libre.
-- Vers une carrière de **classe différente** : nécessite de compléter le niveau actuel — règle p. 48.
-- L'historique des carrières est conservé dans `PERSONNAGE_CARRIERE`.
-
-### Espèces
-
-- Chaque espèce a des caractéristiques initiales dans `ESPECE.carac_initiales`.
-- Certaines espèces ont des talents obligatoires (`ESPECE_TALENT`) et des compétences avec avances initiales (`ESPECE_COMPETENCE.avances_initiales`).
+- Même classe : accès libre.
+- Classe différente : niveau actuel doit être complété (p. 48 Livre de Base).
+- Historique conservé dans `PersonnageCarriere`.
 
 ### XP
 
-- `xp_depense` = somme des lignes négatives de `HISTORIQUE_XP`.
-- `xp_restant` = calculé, jamais stocké.
-- Chaque ligne `HISTORIQUE_XP` enregistre l'`auteur_id` (joueur ou MJ).
+- `XpDepense` = somme des montants négatifs de `HistoriqueXP`.
+- `XpRestant = XpTotal - XpDepense` — calculé à la volée, jamais persisté.
+- Chaque ligne `HistoriqueXP` trace l'`AuteurKeycloakId`.
 
 ---
 
-## 9. Cas d'Utilisation Principaux
+## 12. Cas d'Utilisation Principaux
 
-### UC-00 — Inscription et Connexion
-
-```
-1. Utilisateur s'inscrit (email, mot de passe, pseudo)
-2. Système hache le mot de passe (bcrypt)
-3. Système crée UTILISATEUR avec role=JOUEUR
-4. À la connexion : vérification du hash → émission d'un JWT (exp: 24h)
-5. Le frontend stocke le JWT (mémoire ou httpOnly cookie)
-```
-
-### UC-01 — Création d'un personnage (9 étapes)
+### UC-00 — Authentification (Keycloak)
 
 ```
-1. Utilisateur connecté (JOUEUR) démarre l'assistant
-2. Choisir ou tirer l'espèce (aléatoire +20 XP)
-3. Choisir ou tirer la classe et la carrière
-4. Tirer les caractéristiques (2d10 + base espèce)
-5. Copier compétences et talents d'espèce et de carrière
-6. Appliquer les dotations de classe et de carrière
-7. Renseigner nom, âge, apparence
-8. Définir la motivation
-9. POST /personnages — le système associe utilisateur_id = JWT.sub
+Inscription : console Keycloak Admin (ou self-registration realm)
+              → assignation rôle wfrp4-joueur | wfrp4-maitre-jeu
+
+Connexion :
+  1. Clic "Se connecter" dans Blazor
+  2. Redirect Keycloak (OIDC PKCE via AddOidcAuthentication)
+  3. Login Keycloak → retour /authentication/login-callback
+  4. Échange code → access_token stocké en mémoire WASM
+
+Déconnexion :
+  1. Appel Keycloak /logout (SSO logout)
+  2. Tokens mémoire effacés
 ```
 
-### UC-02 — Dépenser de l'XP (propriétaire)
+### UC-01 — Création d'un personnage
 
 ```
-1. Joueur sélectionne : Caractéristique | Compétence | Talent
-2. ACLMiddleware : vérifie personnage.utilisateur_id == JWT.sub
-3. Système vérifie la cible dans le plan d'avancement de la carrière courante
-4. Système calcule le coût selon tableau officiel
-5. Système vérifie xp_restant >= coût
-6. Système enregistre l'avance + HISTORIQUE_XP (auteur_id = JWT.sub)
+1. Joueur (wfrp4-joueur) ouvre CreationWizard.razor (MudStepper 9 étapes)
+2. Étape 1 : sélection espèce → GET /api/especes
+3. Étape 2 : sélection classe/carrière → GET /api/carrieres
+4. Étapes 3-9 : formulaires avec validation MudBlazor
+5. Soumission → POST /api/personnages
+6. API : KeycloakId = User.FindFirst("sub").Value
+7. PersonnageService calcule blessures, destin, résolution
+8. SaveChanges → redirection vers FichePersonnage.razor
 ```
 
-### UC-03 — Partager un personnage avec un MJ
+### UC-02 — Dépenser de l'XP
 
 ```
-1. Propriétaire saisit l'email du MJ
-2. Système vérifie que l'utilisateur cible a le rôle MAITRE_JEU
-3. Système crée PERSONNAGE_PARTAGE (permission=LECTURE ou XP)
-4. Le MJ voit le personnage dans son tableau de bord
+1. Joueur ouvre AvancementDialog sur FichePersonnage
+2. Sélectionne : Caractéristique | Compétence | Talent
+3. Blazor affiche le coût estimé (XPService côté client)
+4. Confirmation → POST /api/personnages/{id}/avances
+5. API vérifie ownership (PersonnageOwnerFilter)
+6. XPService vérifie plan de carrière + coût + solde
+7. Insère HistoriqueXP + met à jour XpDepense
 ```
 
-### UC-04 — Octroi d'XP par le MJ
+### UC-03 — Partager avec un MJ
 
 ```
-1. MJ consulte un personnage partagé
-2. ACLMiddleware : vérifie PERSONNAGE_PARTAGE (mj_utilisateur_id == JWT.sub, permission=XP)
-3. MJ saisit le montant et la raison
-4. Système insère dans HISTORIQUE_XP (type=GAIN, auteur_id=MJ, montant=positif)
-5. Système met à jour PERSONNAGE.xp_total
+1. Joueur ouvre PartageDialog
+2. Saisit email ou username du MJ
+3. POST /api/personnages/{id}/partages
+4. API résout le sub via Keycloak Admin API
+5. Vérifie rôle wfrp4-maitre-jeu du sub cible
+6. Insère PersonnagePartage
 ```
 
-### UC-05 — Changer de carrière (propriétaire)
+### UC-04 — Octroyer de l'XP (MJ)
 
 ```
-1. Joueur choisit une nouvelle carrière
-2. ACLMiddleware : vérifie ownership
-3. Système vérifie compatibilité (même classe ou niveau complété)
-4. Système crée PERSONNAGE_CARRIERE (est_courante=true, ancienne=false)
-5. Système met à jour PERSONNAGE.carriere_courante_id
-6. Insère dans HISTORIQUE_XP si coût applicable
+1. MJ consulte FichePersonnage (mode lecture, personnage partagé)
+2. Clique "Octroyer XP"
+3. POST /api/personnages/{id}/xp
+4. API vérifie Permission=XP dans PersonnagePartage
+5. Insère HistoriqueXP (Montant positif, AuteurKeycloakId = MJ sub)
+6. XpTotal mis à jour
 ```
-
----
-
-*Prochain jalon : DDL complet (CREATE TABLE avec contraintes) + contrat OpenAPI/Swagger.*
