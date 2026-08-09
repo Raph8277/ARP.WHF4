@@ -1,0 +1,76 @@
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>Ajouter une compétence</TitleContent>
+    <DialogContent>
+        @if (_competences == null)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        }
+        else
+        {
+            <MudSelect T="int?" Label="Compétence" @bind-Value="_selectedId" Required="true">
+                @foreach (var c in _competencesDisponibles)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Nom (@c.Caracteristique)</MudSelectItem>
+                }
+            </MudSelect>
+            @if (_competencesDisponibles.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">Toutes les compétences sont déjà acquises.</MudAlert>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirmer" Disabled="@(_submitting || _selectedId == null)">
+            Ajouter
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int PersonnageId { get; set; }
+    [Parameter] public List<int> CompetencesExistantes { get; set; } = [];
+
+    private List<Wfrp4.Shared.DTOs.CompetenceDto>? _competences;
+    private List<Wfrp4.Shared.DTOs.CompetenceDto> _competencesDisponibles = [];
+    private int? _selectedId;
+    private bool _submitting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _competences = await Api.GetCompetencesAsync() ?? [];
+        _competencesDisponibles = _competences
+            .Where(c => !CompetencesExistantes.Contains(c.Id))
+            .OrderBy(c => c.Nom)
+            .ToList();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Confirmer()
+    {
+        if (_selectedId == null) return;
+        _submitting = true;
+        try
+        {
+            await Api.AjouterCompetenceAsync(PersonnageId, new Wfrp4.Shared.DTOs.AjoutCompetenceRequest
+            {
+                CompetenceId = _selectedId.Value,
+            });
+            Snackbar.Add("Compétence ajoutée.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

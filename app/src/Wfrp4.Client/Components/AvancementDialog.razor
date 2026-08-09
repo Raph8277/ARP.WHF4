@@ -1,0 +1,60 @@
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        @(_isCompetence ? $"Avancer {Libelle}" : $"Avancer {CodeCaracteristique}")
+    </TitleContent>
+    <DialogContent>
+        <MudText>
+            Dépenser de l'XP pour avancer
+            <strong>@(_isCompetence ? Libelle : CodeCaracteristique)</strong>
+            de 1 point.
+        </MudText>
+        <MudText Class="mt-2" Color="Color.Info">Cette action consomme de l'XP selon le tableau officiel (p. 47).</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirmer" Disabled="_submitting">
+            Confirmer
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public int PersonnageId { get; set; }
+    [Parameter] public string CodeCaracteristique { get; set; } = null!;
+    [Parameter] public int? CompetenceId { get; set; }
+    [Parameter] public string? Libelle { get; set; }
+
+    private bool _submitting;
+    private bool _isCompetence => CompetenceId.HasValue;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Confirmer()
+    {
+        _submitting = true;
+        try
+        {
+            await Api.AvancerAsync(PersonnageId, new AvanceRequest
+            {
+                Type = _isCompetence ? TypeXP.Competence : TypeXP.Caracteristique,
+                CodeCaracteristique = _isCompetence ? null : CodeCaracteristique,
+                CompetenceId = CompetenceId,
+            });
+            Snackbar.Add($"{(_isCompetence ? Libelle : CodeCaracteristique)} avancé !", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

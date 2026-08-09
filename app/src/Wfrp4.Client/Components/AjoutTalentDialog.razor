@@ -1,0 +1,66 @@
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>Ajouter un talent</TitleContent>
+    <DialogContent>
+        @if (_talents == null)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        }
+        else
+        {
+            <MudSelect T="int?" Label="Talent" @bind-Value="_selectedId" Required="true">
+                @foreach (var t in _talents)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)t.Id)">@t.Nom</MudSelectItem>
+                }
+            </MudSelect>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirmer" Disabled="@(_submitting || _selectedId == null)">
+            Ajouter
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int PersonnageId { get; set; }
+
+    private List<Wfrp4.Shared.DTOs.TalentDto>? _talents;
+    private int? _selectedId;
+    private bool _submitting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _talents = (await Api.GetTalentsAsync() ?? []).OrderBy(t => t.Nom).ToList();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Confirmer()
+    {
+        if (_selectedId == null) return;
+        _submitting = true;
+        try
+        {
+            await Api.AjouterTalentAsync(PersonnageId, new Wfrp4.Shared.DTOs.AjoutTalentRequest
+            {
+                TalentId = _selectedId.Value,
+            });
+            Snackbar.Add("Talent ajouté.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

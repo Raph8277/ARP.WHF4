@@ -1,0 +1,19 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.sln.docstates
+
+## IDE
+.vs/
+.vscode/
+*.swp
+
+## Build
+publish/
+out/
+
+## NuGet
+*.nupkg
+project.lock.json

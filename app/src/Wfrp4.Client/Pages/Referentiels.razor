@@ -1,0 +1,378 @@
+@page "/referentiels"
+@attribute [Authorize]
+@inject Wfrp4ApiClient Api
+
+<PageTitle>Référentiels — WFRP4</PageTitle>
+
+<section class="old-world-hero old-world-hero--reference mb-6">
+    <div>
+        <MudText Class="old-world-kicker">Codex impérial</MudText>
+        <MudText Typo="Typo.h2" Class="old-world-hero__title">Référentiels WFRP4</MudText>
+        <MudText Class="old-world-hero__text">Parcourez les espèces, carrières, compétences et talents qui structurent vos dossiers de personnages.</MudText>
+    </div>
+</section>
+
+<MudPaper Class="old-world-panel pa-4">
+<MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="old-world-tabs">
+
+    @* ── Onglet Guide ── *@
+    <MudTabPanel Text="Guide" Icon="@Icons.Material.Filled.Help">
+        <div class="old-world-tab-body guide-content">
+
+            <MudText Typo="Typo.h4" Class="mb-1" Style="font-family: var(--wfrp4-font-heading)">Bienvenue dans le Vieux Monde</MudText>
+            <MudText Typo="Typo.body1" Class="mb-4">
+                Ce guide vous accompagne dans la compréhension des mécaniques de gestion de personnage.
+                Il résume les règles essentielles du Livre de Base pour créer, faire progresser et jouer votre aventurier.
+            </MudText>
+
+            @* ── Création de personnage ── *@
+            <MudExpansionPanels MultiExpansion="true" Class="guide-panels mb-4">
+                <MudExpansionPanel Text="Création de personnage" IsInitiallyExpanded="true">
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        La création se déroule en <strong>8 étapes</strong> guidées :
+                    </MudText>
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mb-3">
+                        <thead>
+                            <tr><th>Étape</th><th>Choix</th><th>Ce qui se passe</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>1. Espèce</strong></td><td>Humain, Nain, Halfling, Haut Elfe, Elfe des Bois</td><td>Détermine le mouvement de base et les bonus aux caractéristiques</td></tr>
+                            <tr><td><strong>2. Classe</strong></td><td>8 classes (Académiques, Guerriers, Paysans…)</td><td>Filtre les carrières accessibles</td></tr>
+                            <tr><td><strong>3. Carrière</strong></td><td>64 carrières possibles</td><td>Définit votre premier métier et votre statut social de départ</td></tr>
+                            <tr><td><strong>4. Caractéristiques</strong></td><td>10 caractéristiques (CC, CT, F, E…)</td><td>Tirage 2d10 + bonus d'espèce ou saisie manuelle</td></tr>
+                            <tr><td><strong>5. Compétences</strong></td><td>Compétences de carrière niveau 1</td><td>Sélectionnez et attribuez des avances initiales</td></tr>
+                            <tr><td><strong>6. Talents</strong></td><td>Talents de carrière niveau 1</td><td>Sélectionnez vos talents de départ</td></tr>
+                            <tr><td><strong>7. Détails</strong></td><td>Nom, âge, apparence, motivation</td><td>Forge l'identité narrative du personnage</td></tr>
+                            <tr><td><strong>8. Résumé</strong></td><td>—</td><td>Vérification et validation</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        <strong>Bonus XP au tirage :</strong> accepter tous les dés sans modification octroie <strong>+50 XP</strong>.
+                        Modifier après tirage réduit le bonus à <strong>+25 XP</strong>. La saisie manuelle donne <strong>0 XP</strong>.
+                    </MudAlert>
+                </MudExpansionPanel>
+
+                @* ── Système de carrières ── *@
+                <MudExpansionPanel Text="Système de carrières">
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Chaque carrière comporte <strong>4 niveaux</strong> de progression.
+                        Monter de niveau débloque de nouvelles compétences, talents et améliore votre statut social.
+                    </MudText>
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Exemple : Prêtre Guerrier</MudText>
+                    <div class="career-progression mb-3">
+                        <div class="career-progression__level career-progression__level--active">
+                            <div class="d-flex align-center gap-2">
+                                <MudText Typo="Typo.body2"><strong>Noviciat</strong></MudText>
+                                <StatutBadge Tier="StatutTier.Bronze" Rang="2" />
+                            </div>
+                            <MudText Typo="Typo.caption">Niveau 1</MudText>
+                        </div>
+                        <div class="career-progression__level">
+                            <div class="d-flex align-center gap-2">
+                                <MudText Typo="Typo.body2"><strong>Initié</strong></MudText>
+                                <StatutBadge Tier="StatutTier.Argent" Rang="1" />
+                            </div>
+                            <MudText Typo="Typo.caption">Niveau 2</MudText>
+                        </div>
+                        <div class="career-progression__level">
+                            <div class="d-flex align-center gap-2">
+                                <MudText Typo="Typo.body2"><strong>Prêtre Guerrier</strong></MudText>
+                                <StatutBadge Tier="StatutTier.Argent" Rang="2" />
+                            </div>
+                            <MudText Typo="Typo.caption">Niveau 3</MudText>
+                        </div>
+                        <div class="career-progression__level">
+                            <div class="d-flex align-center gap-2">
+                                <MudText Typo="Typo.body2"><strong>Grand Prêtre</strong></MudText>
+                                <StatutBadge Tier="StatutTier.Or" Rang="1" />
+                            </div>
+                            <MudText Typo="Typo.caption">Niveau 4</MudText>
+                        </div>
+                    </div>
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Coût XP de changement de carrière</MudText>
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                        <thead>
+                            <tr><th>Situation</th><th>Coût XP</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Passer au niveau suivant (carrière complétée)</td><td><strong>100 XP</strong></td></tr>
+                            <tr><td>Passer au niveau suivant (carrière incomplète)</td><td><strong>200 XP</strong></td></tr>
+                            <tr><td>Changer de classe (surcoût)</td><td><strong>+100 XP</strong></td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudExpansionPanel>
+
+                @* ── Statut social ── *@
+                <MudExpansionPanel Text="Statut social">
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Le statut social de votre personnage est déterminé par sa carrière courante.
+                        Il se compose d'un <strong>palier</strong> (Bronze, Argent, Or) et d'un <strong>rang</strong> (1 à 5).
+                    </MudText>
+
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Les trois paliers</MudText>
+                    <MudGrid Class="mb-4">
+                        <MudItem xs="12" sm="4">
+                            <MudPaper Class="old-world-stat-card pa-3">
+                                <div class="d-flex align-center gap-2 mb-2">
+                                    <StatutBadge Tier="StatutTier.Bronze" Rang="3" />
+                                </div>
+                                <MudText Typo="Typo.body2">
+                                    La majorité du peuple : paysans, miliciens, serveurs, fossoyeurs.
+                                    Vie modeste mais honnête.
+                                </MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudPaper Class="old-world-stat-card pa-3">
+                                <div class="d-flex align-center gap-2 mb-2">
+                                    <StatutBadge Tier="StatutTier.Argent" Rang="2" />
+                                </div>
+                                <MudText Typo="Typo.body2">
+                                    Artisans prospères, marchands, officiers.
+                                    Confort matériel et respect social.
+                                </MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudPaper Class="old-world-stat-card pa-3">
+                                <div class="d-flex align-center gap-2 mb-2">
+                                    <StatutBadge Tier="StatutTier.Or" Rang="1" />
+                                </div>
+                                <MudText Typo="Typo.body2">
+                                    Noblesse, grands marchands, hauts dignitaires.
+                                    Pouvoir, richesse et influence.
+                                </MudText>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Revenus hebdomadaires</MudText>
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mb-3">
+                        <thead>
+                            <tr><th>Palier</th><th>Monnaie</th><th>Formule</th><th>Exemple (Rang 3)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><StatutBadge Tier="StatutTier.Bronze" Rang="3" /></td>
+                                <td>Sous de cuivre</td>
+                                <td>2d10 × rang</td>
+                                <td>6 à 60 sous</td>
+                            </tr>
+                            <tr>
+                                <td><StatutBadge Tier="StatutTier.Argent" Rang="3" /></td>
+                                <td>Pistoles d'argent</td>
+                                <td>1d10 × rang</td>
+                                <td>3 à 30 pistoles</td>
+                            </tr>
+                            <tr>
+                                <td><StatutBadge Tier="StatutTier.Or" Rang="3" /></td>
+                                <td>Couronnes d'or</td>
+                                <td>1 × rang</td>
+                                <td>3 couronnes</td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Modificateurs d'interactions sociales</MudText>
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                        <thead>
+                            <tr><th>Situation</th><th>Modificateur</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Statut supérieur à l'interlocuteur — <em>Charme</em></td><td class="guide-bonus">+10</td></tr>
+                            <tr><td>Statut supérieur à l'interlocuteur — <em>Intimidation</em></td><td class="guide-bonus">+10</td></tr>
+                            <tr><td>Statut supérieur à l'interlocuteur — <em>Commandement</em></td><td class="guide-bonus">+10</td></tr>
+                            <tr><td>Statut inférieur à l'interlocuteur — <em>Charme</em></td><td class="guide-malus">−10</td></tr>
+                            <tr><td>Statut inférieur à l'interlocuteur — <em>Commérages</em></td><td class="guide-malus">−10</td></tr>
+                            <tr><td>Statut Or face à Bronze — <em>Commandement</em></td><td class="guide-bonus">+20</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudExpansionPanel>
+
+                @* ── Coûts XP ── *@
+                <MudExpansionPanel Text="Coûts en XP">
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Les coûts augmentent par paliers de 5 avances. Le tableau ci-dessous résume les coûts selon le Livre de Base (p. 47).
+                    </MudText>
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mb-3">
+                        <thead>
+                            <tr><th>Avances</th><th>Caractéristique</th><th>Compétence</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>0 → 5</td><td>25 XP</td><td>10 XP</td></tr>
+                            <tr><td>6 → 10</td><td>30 XP</td><td>15 XP</td></tr>
+                            <tr><td>11 → 15</td><td>40 XP</td><td>20 XP</td></tr>
+                            <tr><td>16 → 20</td><td>50 XP</td><td>30 XP</td></tr>
+                            <tr><td>21 → 25</td><td>70 XP</td><td>40 XP</td></tr>
+                            <tr><td>26 → 30</td><td>90 XP</td><td>60 XP</td></tr>
+                            <tr><td>31 → 35</td><td>120 XP</td><td>80 XP</td></tr>
+                            <tr><td>36 → 40</td><td>150 XP</td><td>110 XP</td></tr>
+                            <tr><td>41 → 45</td><td>190 XP</td><td>140 XP</td></tr>
+                            <tr><td>46 → 50</td><td>230 XP</td><td>180 XP</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Talents</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-1">
+                        Acquérir ou empiler un talent coûte <strong>100 + (nombre de fois déjà possédé × 100) XP</strong>.
+                    </MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        1ère fois : 100 XP · 2ème fois : 200 XP · 3ème fois : 300 XP…
+                    </MudText>
+                </MudExpansionPanel>
+
+                @* ── Glossaire ── *@
+                <MudExpansionPanel Text="Glossaire rapide">
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                        <tbody>
+                            <tr><td style="width:160px"><strong>Carrière</strong></td><td>Métier ou vocation du personnage, parmi 64 possibles réparties en 8 classes.</td></tr>
+                            <tr><td><strong>Classe</strong></td><td>Grande famille de carrières (Académiques, Guerriers, Paysans, Roublards…). Changer de classe coûte +100 XP.</td></tr>
+                            <tr><td><strong>Niveau</strong></td><td>Échelon 1 à 4 dans une carrière. Chaque niveau a un intitulé, un statut social et des compétences/talents dédiés.</td></tr>
+                            <tr><td><strong>Statut social</strong></td><td>Palier (Bronze/Argent/Or) + rang (1-5) déterminant la position sociale et les revenus.</td></tr>
+                            <tr><td><strong>Avances</strong></td><td>Points investis dans une caractéristique ou compétence via la dépense d'XP.</td></tr>
+                            <tr><td><strong>XP</strong></td><td>Points d'expérience octroyés par le Maître de Jeu, dépensés pour progresser.</td></tr>
+                            <tr><td><strong>Compétence de base</strong></td><td>Accessible à tous les personnages, même sans avances (test à la valeur de la caractéristique associée).</td></tr>
+                            <tr><td><strong>Compétence avancée</strong></td><td>Nécessite au moins 1 avance pour être utilisable.</td></tr>
+                            <tr><td><strong>Talent</strong></td><td>Capacité spéciale offrant un avantage permanent ou situationnel.</td></tr>
+                            <tr><td><strong>Sous / Pistoles / Couronnes</strong></td><td>Monnaies de l'Empire. 12 sous = 1 pistole, 20 pistoles = 1 couronne.</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+
+        </div>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Espèces">
+        @if (_especes != null)
+        {
+            <div class="old-world-tab-body">
+            <MudDataGrid Items="@_especes" Dense="true" Hover="true" Filterable="true">
+                <Columns>
+                    <PropertyColumn Property="x => x.Nom" Title="Nom" />
+                    <PropertyColumn Property="x => x.Code" Title="Code" />
+                    <PropertyColumn Property="x => x.MouvementBase" Title="Mouvement" />
+                </Columns>
+            </MudDataGrid>
+            </div>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Carrières">
+        @if (_carrieres != null)
+        {
+            <div class="old-world-tab-body">
+            <MudDataGrid Items="@_carrieres" Dense="true" Hover="true" Filterable="true">
+                <Columns>
+                    <PropertyColumn Property="x => x.ClasseNom" Title="Classe" />
+                    <PropertyColumn Property="x => x.Nom" Title="Carrière" />
+                    <PropertyColumn Property="x => x.Code" Title="Code" />
+                    <TemplateColumn Title="Espèces autorisées">
+                        <CellTemplate>
+                            @if (context.Item.EspecesAutorisees.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2">Toutes</MudText>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">@string.Join(", ", context.Item.EspecesAutorisees)</MudText>
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+            </div>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Compétences">
+        @if (_competences != null)
+        {
+            <div class="old-world-tab-body">
+            <MudDataGrid Items="@_competences" Dense="true" Hover="true" Filterable="true">
+                <Columns>
+                    <PropertyColumn Property="x => x.Nom" Title="Nom" />
+                    <PropertyColumn Property="x => x.Caracteristique" Title="Carac." />
+                    <PropertyColumn Property="x => x.EstAvancee" Title="Avancée" />
+                    <PropertyColumn Property="x => x.EstGroupee" Title="Groupée" />
+                </Columns>
+            </MudDataGrid>
+            </div>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Talents">
+        @if (_talents != null)
+        {
+            <div class="old-world-tab-body">
+            <MudDataGrid Items="@_talents" Dense="true" Hover="true" Filterable="true">
+                <Columns>
+                    <PropertyColumn Property="x => x.Nom" Title="Nom" />
+                    <PropertyColumn Property="x => x.MaxFois" Title="Max" />
+                    <PropertyColumn Property="x => x.Empilable" Title="Empilable" />
+                    <PropertyColumn Property="x => x.Effet" Title="Effet" />
+                </Columns>
+            </MudDataGrid>
+            </div>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Armes">
+        @if (_armes != null)
+        {
+            <div class="old-world-tab-body">
+            <MudDataGrid Items="@_armes" Dense="true" Hover="true" Filterable="true" Groupable="true">
+                <Columns>
+                    <PropertyColumn Property="x => x.TypeArme" Title="Type" Groupable="true" />
+                    <PropertyColumn Property="x => x.Groupe" Title="Groupe" Groupable="true" />
+                    <PropertyColumn Property="x => x.Nom" Title="Nom" />
+                    <PropertyColumn Property="x => x.Prix" Title="Prix" />
+                    <PropertyColumn Property="x => x.Encombrement" Title="Enc" />
+                    <PropertyColumn Property="x => x.Dommage" Title="Dommage" />
+                    <PropertyColumn Property="x => x.Disponibilite" Title="Disponibilité" />
+                    <TemplateColumn Title="Long./Portée">
+                        <CellTemplate>
+                            <MudText Typo="Typo.body2">@(context.Item.Longueur ?? context.Item.Portee ?? "–")</MudText>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.Qualites" Title="Qualités" />
+                    <PropertyColumn Property="x => x.Defauts" Title="Défauts" />
+                    <TemplateColumn Title="2M">
+                        <CellTemplate>
+                            @if (context.Item.DeuxMains)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" />
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+            </div>
+        }
+    </MudTabPanel>
+</MudTabs>
+</MudPaper>
+
+@code {
+    private List<EspeceDto>? _especes;
+    private List<CarriereDto>? _carrieres;
+    private List<CompetenceDto>? _competences;
+    private List<TalentDto>? _talents;
+    private List<ArmeReferenceDto>? _armes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var t1 = Api.GetEspecesAsync();
+        var t2 = Api.GetCarrieresAsync();
+        var t3 = Api.GetCompetencesAsync();
+        var t4 = Api.GetTalentsAsync();
+        var t5 = Api.GetArmesAsync();
+
+        await Task.WhenAll(t1, t2, t3, t4, t5);
+
+        _especes = t1.Result;
+        _carrieres = t2.Result;
+        _competences = t3.Result;
+        _talents = t4.Result;
+        _armes = t5.Result;
+    }
+}

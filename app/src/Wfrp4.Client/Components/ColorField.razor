@@ -1,0 +1,47 @@
+@using MudBlazor.Utilities
+@inject IDialogService DialogService
+
+<div class="color-field @(Disabled ? "color-field--disabled" : "")" @onclick="OpenPicker">
+    <span class="color-field__swatch" style="background-color:@Value"></span>
+    <div class="color-field__meta">
+        <span class="color-field__label">@Label</span>
+        <code class="color-field__hex">@Value</code>
+    </div>
+    @if (!Disabled)
+    {
+        <MudIcon Icon="@Icons.Material.Filled.ColorLens" Size="Size.Small" Class="color-field__edit" />
+    }
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "#000000";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    private async Task OpenPicker()
+    {
+        if (Disabled) return;
+
+        var parameters = new DialogParameters<ColorPickerDialog>
+        {
+            { x => x.Label, Label },
+            { x => x.InitialColor, Value }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.ExtraSmall,
+            FullWidth = false
+        };
+
+        var dialog = await DialogService.ShowAsync<ColorPickerDialog>(Label, parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled && result.Data is string hex)
+        {
+            await ValueChanged.InvokeAsync(hex);
+        }
+    }
+}
