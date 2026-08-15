@@ -45,6 +45,12 @@ public class PersonnageDetailDto
     public int SousCuivre { get; set; }
 
     public string? Motivation { get; set; }
+    public string? AmbitionCourtTerme { get; set; }
+    public string? AmbitionLongTerme { get; set; }
+    public string? GroupeNom { get; set; }
+    public string? GroupeMembres { get; set; }
+    public string? Psychologie { get; set; }
+    public string? CorruptionMutations { get; set; }
     public StatutTier? StatutTier { get; set; }
     public int? StatutNumerique { get; set; }
     public int? Age { get; set; }

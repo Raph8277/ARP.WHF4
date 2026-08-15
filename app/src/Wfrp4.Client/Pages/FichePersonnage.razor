@@ -4,6 +4,7 @@
 @inject Wfrp4ApiClient Api
 @inject IDialogService Dialog
 @inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
 <PageTitle>@(_personnage?.Nom ?? "Chargement...") — WFRP4</PageTitle>
 
@@ -32,6 +33,9 @@ else
             </div>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="OuvrirFichePdf">
+                Fiche PDF
+            </MudButton>
             @if (_personnage.PeutModifier)
             {
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="BasculerEdition">
@@ -700,12 +704,20 @@ else
                 CouronnesOr = _personnage.CouronnesOr,
                 PistolesArgent = _personnage.PistolesArgent,
                 SousCuivre = _personnage.SousCuivre,
+                AmbitionCourtTerme = _personnage.AmbitionCourtTerme,
+                AmbitionLongTerme = _personnage.AmbitionLongTerme,
+                GroupeNom = _personnage.GroupeNom,
+                GroupeMembres = _personnage.GroupeMembres,
+                Psychologie = _personnage.Psychologie,
+                CorruptionMutations = _personnage.CorruptionMutations,
             };
         }
         _loading = false;
     }
 
     private void BasculerEdition() => _editionActive = !_editionActive;
+
+    private void OuvrirFichePdf() => Navigation.NavigateTo($"/personnage/{Id}/fiche-pdf");
 
     private async Task SauvegarderEdition()
     {

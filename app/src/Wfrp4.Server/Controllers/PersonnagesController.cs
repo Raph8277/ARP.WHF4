@@ -155,6 +155,12 @@ public class PersonnagesController : ControllerBase
             PistolesArgent = personnage.PistolesArgent,
             SousCuivre = personnage.SousCuivre,
             Motivation = personnage.Motivation,
+            AmbitionCourtTerme = personnage.AmbitionCourtTerme,
+            AmbitionLongTerme = personnage.AmbitionLongTerme,
+            GroupeNom = personnage.GroupeNom,
+            GroupeMembres = personnage.GroupeMembres,
+            Psychologie = personnage.Psychologie,
+            CorruptionMutations = personnage.CorruptionMutations,
             StatutTier = personnage.CarriereCourante?.Statut,
             StatutNumerique = personnage.CarriereCourante?.StatutNumerique,
             Age = personnage.Age,
@@ -240,6 +246,14 @@ public class PersonnagesController : ControllerBase
             personnage.CarriereCourante.StatutNumerique);
 
         return Ok(revenus);
+    }
+
+    [HttpGet("{id}/fiche-pdf")]
+    [ServiceFilter(typeof(PersonnageOwnerFilter))]
+    public async Task<IActionResult> ExporterFichePdf(int id, [FromServices] CharacterSheetPdfService pdfService, CancellationToken ct)
+    {
+        var result = await pdfService.GenerateAsync(id, User, ct);
+        return File(result.Content, "application/pdf", result.FileName);
     }
 
     [HttpPut("{id}")]

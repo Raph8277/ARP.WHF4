@@ -45,6 +45,13 @@ public class Wfrp4ApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<byte[]> ExporterFichePdfAsync(int id)
+    {
+        var response = await _http.GetAsync($"api/personnages/{id}/fiche-pdf");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
     // --- Avances ---
     public async Task AvancerAsync(int personnageId, AvanceRequest request)
     {

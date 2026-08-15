@@ -153,6 +153,12 @@ public class PersonnageService
         personnage.CouronnesOr = request.CouronnesOr;
         personnage.PistolesArgent = request.PistolesArgent;
         personnage.SousCuivre = request.SousCuivre;
+        personnage.AmbitionCourtTerme = request.AmbitionCourtTerme;
+        personnage.AmbitionLongTerme = request.AmbitionLongTerme;
+        personnage.GroupeNom = request.GroupeNom;
+        personnage.GroupeMembres = request.GroupeMembres;
+        personnage.Psychologie = request.Psychologie;
+        personnage.CorruptionMutations = request.CorruptionMutations;
         personnage.UpdatedAt = DateTime.UtcNow;
 
         CalculerAttributsDerives(personnage, personnage.Espece);

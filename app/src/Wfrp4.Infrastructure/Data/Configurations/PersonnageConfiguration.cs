@@ -16,6 +16,12 @@ public class PersonnageConfiguration : IEntityTypeConfiguration<Personnage>
         builder.Property(p => p.CouleurYeux).HasMaxLength(50);
         builder.Property(p => p.CouleurCheveux).HasMaxLength(50);
         builder.Property(p => p.Motivation).HasMaxLength(500);
+        builder.Property(p => p.AmbitionCourtTerme).HasMaxLength(500);
+        builder.Property(p => p.AmbitionLongTerme).HasMaxLength(500);
+        builder.Property(p => p.GroupeNom).HasMaxLength(200);
+        builder.Property(p => p.GroupeMembres).HasMaxLength(500);
+        builder.Property(p => p.Psychologie).HasMaxLength(1000);
+        builder.Property(p => p.CorruptionMutations).HasMaxLength(1000);
 
         builder.HasOne(p => p.Espece)
                .WithMany()

@@ -1,0 +1,335 @@
+@page "/personnage/{Id:int}/fiche-pdf"
+@attribute [Authorize]
+@using Wfrp4.Shared.Models
+@inject Wfrp4ApiClient Api
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>Fiche PDF - @(_personnage?.Nom ?? "Chargement...") - WFRP4</PageTitle>
+
+@if (_loading)
+{
+    <div class="old-world-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else if (_personnage == null)
+{
+    <MudAlert Severity="Severity.Error">Personnage introuvable.</MudAlert>
+}
+else
+{
+    <section class="old-world-hero old-world-hero--sheet mb-4">
+        <div class="d-flex flex-wrap align-center justify-space-between gap-4">
+            <div>
+                <MudText Class="old-world-kicker">Document imprimable</MudText>
+                <MudText Typo="Typo.h2" Class="old-world-hero__title mb-2">Fiche PDF</MudText>
+                <MudText Typo="Typo.subtitle1" Class="old-world-hero__text">
+                    @_personnage.Nom - @_personnage.EspeceNom - @(_personnage.CarriereCouranteIntitule ?? "Sans carriere")
+                </MudText>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="RetourFiche">
+                    Retour
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SauvegarderChampsPdf" Disabled="@(!PeutModifierPdf || _enregistrement)">
+                    Enregistrer les champs PDF
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Visibility"
+                           OnClick="PrevisualiserPdf" Disabled="_previsualisationEnCours">
+                    Previsualiser
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                           OnClick="ExporterPdf" Disabled="_exportEnCours">
+                    Exporter PDF
+                </MudButton>
+            </div>
+        </div>
+    </section>
+
+    <MudGrid>
+        <MudItem xs="12" lg="7">
+            <MudPaper Class="old-world-panel pa-4 mb-4">
+                <MudText Class="old-world-kicker">Preparation de la fiche</MudText>
+                <MudText Typo="Typo.h4" Class="mb-3">Donnees reprises automatiquement</MudText>
+
+                <MudSimpleTable Dense="true" Hover="true" Class="old-world-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Identite</strong></td>
+                            <td>@_personnage.Nom, @_personnage.EspeceNom, @(_personnage.ClasseNom ?? "Classe non renseignee")</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Carriere</strong></td>
+                            <td>
+                                <div class="d-flex align-center gap-2">
+                                    @(_personnage.CarriereCouranteIntitule ?? "Sans carriere")
+                                    @if (_personnage.StatutTier.HasValue)
+                                    {
+                                        <StatutBadge Tier="@_personnage.StatutTier.Value" Rang="@(_personnage.StatutNumerique ?? 0)" />
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Experience</strong></td>
+                            <td>@_personnage.XpRestant actuelle, @_personnage.XpDepense depensee, @_personnage.XpTotal totale</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Caracteristiques</strong></td>
+                            <td>@_personnage.Caracteristiques.Count valeurs initiales, avances et courantes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Competences</strong></td>
+                            <td>@_personnage.Competences.Count competence(s)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Talents</strong></td>
+                            <td>@_personnage.Talents.Count talent(s)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Equipement</strong></td>
+                            <td>@Objets.Count possession(s), @Armes.Count arme(s)</td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+
+            <MudPaper Class="old-world-panel pa-4">
+                <MudText Class="old-world-kicker">Champs a completer</MudText>
+                <MudText Typo="Typo.h4" Class="mb-3">Edition PDF</MudText>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+                    @if (PeutModifierPdf)
+                    {
+                        <span>Ces champs sont editables et seront enregistres sur le personnage pour le futur export PDF.</span>
+                    }
+                    else
+                    {
+                        <span>Vous pouvez consulter ces champs, mais seul le proprietaire peut les modifier.</span>
+                    }
+                </MudAlert>
+
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_ambitionCourtTerme" Label="Ambition a court terme" Lines="2" Disabled="@(!PeutModifierPdf)" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_ambitionLongTerme" Label="Ambition a long terme" Lines="2" Disabled="@(!PeutModifierPdf)" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_groupeNom" Label="Nom du groupe" Disabled="@(!PeutModifierPdf)" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_groupeMembres" Label="Membres du groupe" Disabled="@(!PeutModifierPdf)" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_psychologie" Label="Psychologie" Lines="3" Disabled="@(!PeutModifierPdf)" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_corruptionMutations" Label="Corruption et mutations" Lines="3" Disabled="@(!PeutModifierPdf)" />
+                    </MudItem>
+                </MudGrid>
+
+                @if (PeutModifierPdf)
+                {
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SauvegarderChampsPdf" Disabled="_enregistrement">
+                            Enregistrer
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" OnClick="InitialiserEdition" Disabled="_enregistrement">
+                            Annuler
+                        </MudButton>
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" lg="5">
+            <MudPaper Class="old-world-panel pa-4 mb-4">
+                <MudText Class="old-world-kicker">Couverture du modele</MudText>
+                <MudText Typo="Typo.h4" Class="mb-3">Statut</MudText>
+
+                <MudList T="string" Dense="true">
+                    <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                        Page 1 - identite, carriere, caracteristiques, XP
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                        Page 1 - competences, talents, mouvement
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Pending" IconColor="Color.Warning">
+                        Page 1 - ambitions et groupe
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Pending" IconColor="Color.Warning">
+                        Page 2 - armure, richesses, psychologie, corruption
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Pending" IconColor="Color.Warning">
+                        Page 2 - sorts, prieres et export PDF final
+                    </MudListItem>
+                </MudList>
+            </MudPaper>
+
+            <MudPaper Class="old-world-panel pa-4">
+                <MudText Class="old-world-kicker">Prochaine etape</MudText>
+                <MudText Typo="Typo.h4" Class="mb-3">Moteur PDF</MudText>
+                <MudText Typo="Typo.body2">
+                    Le point d'entree est pret. La suite consiste a ajouter l'API serveur
+                    <code>GET /api/personnages/{id}/fiche-pdf</code>, le service de rendu par overlay,
+                    puis la previsualisation.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private PersonnageDetailDto? _personnage;
+    private bool _loading = true;
+    private bool _enregistrement;
+    private bool _previsualisationEnCours;
+    private bool _exportEnCours;
+    private string? _ambitionCourtTerme;
+    private string? _ambitionLongTerme;
+    private string? _groupeNom;
+    private string? _groupeMembres;
+    private string? _psychologie;
+    private string? _corruptionMutations;
+
+    private List<PossessionDto> Objets => _personnage?.Possessions
+        .Where(p => p.Type == TypePossession.Objet)
+        .ToList() ?? [];
+
+    private List<PossessionDto> Armes => _personnage?.Possessions
+        .Where(p => p.Type == TypePossession.Arme)
+        .ToList() ?? [];
+
+    private bool PeutModifierPdf => _personnage?.PeutModifier == true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _personnage = await Api.GetPersonnageAsync(Id);
+        InitialiserEdition();
+        _loading = false;
+    }
+
+    private void RetourFiche() => Navigation.NavigateTo($"/personnage/{Id}");
+
+    private void InitialiserEdition()
+    {
+        if (_personnage == null)
+            return;
+
+        _ambitionCourtTerme = _personnage.AmbitionCourtTerme;
+        _ambitionLongTerme = _personnage.AmbitionLongTerme;
+        _groupeNom = _personnage.GroupeNom;
+        _groupeMembres = _personnage.GroupeMembres;
+        _psychologie = _personnage.Psychologie;
+        _corruptionMutations = _personnage.CorruptionMutations;
+    }
+
+    private async Task SauvegarderChampsPdf()
+    {
+        if (_personnage == null)
+            return;
+
+        _enregistrement = true;
+        try
+        {
+            _personnage = await Api.MettreAJourPersonnageAsync(Id, new UpdatePersonnageRequest
+            {
+                Nom = _personnage.Nom,
+                Motivation = _personnage.Motivation,
+                Age = _personnage.Age,
+                CouleurYeux = _personnage.CouleurYeux,
+                CouleurCheveux = _personnage.CouleurCheveux,
+                TailleCm = _personnage.TailleCm,
+                EstActif = _personnage.EstActif,
+                CouronnesOr = _personnage.CouronnesOr,
+                PistolesArgent = _personnage.PistolesArgent,
+                SousCuivre = _personnage.SousCuivre,
+                AmbitionCourtTerme = _ambitionCourtTerme,
+                AmbitionLongTerme = _ambitionLongTerme,
+                GroupeNom = _groupeNom,
+                GroupeMembres = _groupeMembres,
+                Psychologie = _psychologie,
+                CorruptionMutations = _corruptionMutations,
+            });
+            InitialiserEdition();
+            Snackbar.Add("Champs PDF enregistres.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _enregistrement = false;
+        }
+    }
+
+    private async Task ExporterPdf()
+    {
+        if (_personnage == null)
+            return;
+
+        _exportEnCours = true;
+        try
+        {
+            var content = await Api.ExporterFichePdfAsync(Id);
+            var fileName = $"fiche-{Slug(_personnage.Nom)}.pdf";
+            const string saveFileScript = "window.saveWfrp4File = window.saveWfrp4File || ((fileName, contentType, base64Data) => {"
+                + "const link = document.createElement('a');"
+                + "link.download = fileName;"
+                + "link.href = 'data:' + contentType + ';base64,' + base64Data;"
+                + "document.body.appendChild(link);"
+                + "link.click();"
+                + "document.body.removeChild(link);"
+                + "});";
+            await JS.InvokeVoidAsync("eval", saveFileScript);
+            await JS.InvokeVoidAsync("saveWfrp4File", fileName, "application/pdf", Convert.ToBase64String(content));
+            Snackbar.Add("PDF genere.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Generation PDF impossible : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _exportEnCours = false;
+        }
+    }
+
+    private async Task PrevisualiserPdf()
+    {
+        if (_personnage == null)
+            return;
+
+        _previsualisationEnCours = true;
+        try
+        {
+            var content = await Api.ExporterFichePdfAsync(Id);
+            await JS.InvokeVoidAsync("openWfrp4Pdf", "application/pdf", Convert.ToBase64String(content));
+            Snackbar.Add("Previsualisation ouverte.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Previsualisation PDF impossible : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _previsualisationEnCours = false;
+        }
+    }
+
+    private static string Slug(string value)
+    {
+        var chars = value.ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray();
+        return string.Join('-', new string(chars).Split('-', StringSplitOptions.RemoveEmptyEntries));
+    }
+}

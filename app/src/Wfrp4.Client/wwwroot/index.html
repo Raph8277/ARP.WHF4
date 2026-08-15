@@ -26,6 +26,29 @@
 
     <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script>
+        window.saveWfrp4File = (fileName, contentType, base64Data) => {
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = `data:${contentType};base64,${base64Data}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.openWfrp4Pdf = (contentType, base64Data) => {
+            const binary = atob(base64Data);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i += 1) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+
+            const blob = new Blob([bytes], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank', 'noopener');
+            window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+        };
+    </script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 </html>

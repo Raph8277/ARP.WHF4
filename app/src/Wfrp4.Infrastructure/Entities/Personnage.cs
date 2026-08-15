@@ -29,6 +29,12 @@ public class Personnage
     public int SousCuivre { get; set; }
 
     public string? Motivation { get; set; }
+    public string? AmbitionCourtTerme { get; set; }
+    public string? AmbitionLongTerme { get; set; }
+    public string? GroupeNom { get; set; }
+    public string? GroupeMembres { get; set; }
+    public string? Psychologie { get; set; }
+    public string? CorruptionMutations { get; set; }
     [Obsolete("Utiliser CarriereCourante.Statut + CarriereCourante.StatutNumerique")]
     public string? StatutSocial { get; set; }
     public int? Age { get; set; }

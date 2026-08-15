@@ -12,4 +12,10 @@ public class UpdatePersonnageRequest
     public int CouronnesOr { get; set; }
     public int PistolesArgent { get; set; }
     public int SousCuivre { get; set; }
+    public string? AmbitionCourtTerme { get; set; }
+    public string? AmbitionLongTerme { get; set; }
+    public string? GroupeNom { get; set; }
+    public string? GroupeMembres { get; set; }
+    public string? Psychologie { get; set; }
+    public string? CorruptionMutations { get; set; }
 }
