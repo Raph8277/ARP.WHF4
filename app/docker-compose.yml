@@ -56,6 +56,8 @@ services:
       Keycloak__AdminClientSecret: "${WFRP4_KEYCLOAK_ADMIN_SECRET:-dev-admin-secret-change-me}"
     ports:
       - "5080:8081"
+    volumes:
+      - ./src/Wfrp4.Server/PdfTemplates:/app/PdfTemplates
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

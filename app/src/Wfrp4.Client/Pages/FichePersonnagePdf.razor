@@ -46,6 +46,14 @@ else
                            OnClick="ExporterPdf" Disabled="_exportEnCours">
                     Exporter PDF
                 </MudButton>
+                <AuthorizeView Roles="wfrp4-admin">
+                    <Authorized>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.DashboardCustomize"
+                                   OnClick="OuvrirDesignerPdf">
+                            Designer
+                        </MudButton>
+                    </Authorized>
+                </AuthorizeView>
             </div>
         </div>
     </section>
@@ -160,26 +168,49 @@ else
                     <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
                         Page 1 - competences, talents, mouvement
                     </MudListItem>
-                    <MudListItem Icon="@Icons.Material.Filled.Pending" IconColor="Color.Warning">
+                    <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
                         Page 1 - ambitions et groupe
                     </MudListItem>
-                    <MudListItem Icon="@Icons.Material.Filled.Pending" IconColor="Color.Warning">
+                    <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
                         Page 2 - armure, richesses, psychologie, corruption
                     </MudListItem>
-                    <MudListItem Icon="@Icons.Material.Filled.Pending" IconColor="Color.Warning">
+                    <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
                         Page 2 - sorts, prieres et export PDF final
                     </MudListItem>
                 </MudList>
             </MudPaper>
 
             <MudPaper Class="old-world-panel pa-4">
-                <MudText Class="old-world-kicker">Prochaine etape</MudText>
+                <MudText Class="old-world-kicker">Generation active</MudText>
                 <MudText Typo="Typo.h4" Class="mb-3">Moteur PDF</MudText>
                 <MudText Typo="Typo.body2">
-                    Le point d'entree est pret. La suite consiste a ajouter l'API serveur
-                    <code>GET /api/personnages/{id}/fiche-pdf</code>, le service de rendu par overlay,
-                    puis la previsualisation.
+                    La fiche officielle est generee par overlay serveur via
+                    <code>GET /api/personnages/{id}/fiche-pdf</code>. La previsualisation ouvre le PDF
+                    dans un nouvel onglet et l'export le telecharge.
                 </MudText>
+            </MudPaper>
+
+            <MudPaper Class="old-world-panel pa-4 mt-4">
+                <div class="d-flex flex-wrap align-center justify-space-between gap-2 mb-3">
+                    <div>
+                        <MudText Class="old-world-kicker">Calibration</MudText>
+                        <MudText Typo="Typo.h4">Designer PDF pleine page</MudText>
+                    </div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.DashboardCustomize"
+                               OnClick="OuvrirDesignerPdf">
+                        Ouvrir le designer
+                    </MudButton>
+                </div>
+
+                <MudText Typo="Typo.body2" Class="mb-3">
+                    L'ajustement visuel des champs se fait maintenant dans une page dediee avec la fiche en fond,
+                    les composants deplacables a la souris et le panneau de proprietes.
+                </MudText>
+
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.OpenInNew"
+                           OnClick="OuvrirDesignerPdf">
+                    Aller a l'atelier PDF
+                </MudButton>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -219,6 +250,8 @@ else
     }
 
     private void RetourFiche() => Navigation.NavigateTo($"/personnage/{Id}");
+
+    private void OuvrirDesignerPdf() => Navigation.NavigateTo($"/admin/pdf-designer?personnageId={Id}");
 
     private void InitialiserEdition()
     {
@@ -283,15 +316,6 @@ else
         {
             var content = await Api.ExporterFichePdfAsync(Id);
             var fileName = $"fiche-{Slug(_personnage.Nom)}.pdf";
-            const string saveFileScript = "window.saveWfrp4File = window.saveWfrp4File || ((fileName, contentType, base64Data) => {"
-                + "const link = document.createElement('a');"
-                + "link.download = fileName;"
-                + "link.href = 'data:' + contentType + ';base64,' + base64Data;"
-                + "document.body.appendChild(link);"
-                + "link.click();"
-                + "document.body.removeChild(link);"
-                + "});";
-            await JS.InvokeVoidAsync("eval", saveFileScript);
             await JS.InvokeVoidAsync("saveWfrp4File", fileName, "application/pdf", Convert.ToBase64String(content));
             Snackbar.Add("PDF genere.", Severity.Success);
         }

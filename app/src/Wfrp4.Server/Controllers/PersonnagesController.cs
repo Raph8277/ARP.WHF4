@@ -256,6 +256,64 @@ public class PersonnagesController : ControllerBase
         return File(result.Content, "application/pdf", result.FileName);
     }
 
+    [HttpPost("{id}/fiche-pdf/preview")]
+    [ServiceFilter(typeof(PersonnageOwnerFilter))]
+    public async Task<IActionResult> PrevisualiserFichePdf(
+        int id,
+        PdfSheetLayoutDto layout,
+        [FromServices] CharacterSheetPdfService pdfService,
+        CancellationToken ct)
+    {
+        var result = await pdfService.GeneratePreviewAsync(id, User, layout, ct);
+        return File(result.Content, "application/pdf", result.FileName);
+    }
+
+    [HttpGet("fiche-pdf/layout")]
+    public async Task<ActionResult<PdfSheetLayoutDto>> GetFichePdfLayout([FromServices] CharacterSheetPdfService pdfService, CancellationToken ct)
+    {
+        return Ok(await pdfService.GetLayoutAsync(ct));
+    }
+
+    [HttpGet("fiche-pdf/template/{page:int}")]
+    public async Task<IActionResult> GetFichePdfTemplate(
+        int page,
+        [FromServices] CharacterSheetPdfService pdfService,
+        CancellationToken ct)
+    {
+        if (page is not 1 and not 2)
+            return BadRequest(new { Error = "La page doit etre 1 ou 2." });
+
+        return File(await pdfService.GetTemplatePageAsync(page, ct), "image/jpeg");
+    }
+
+    [HttpGet("fiche-pdf/layouts")]
+    public async Task<ActionResult<IReadOnlyList<PdfSheetLayoutSummaryDto>>> GetFichePdfLayouts(
+        [FromServices] CharacterSheetPdfService pdfService,
+        CancellationToken ct)
+    {
+        return Ok(await pdfService.GetLayoutSummariesAsync(ct));
+    }
+
+    [HttpGet("fiche-pdf/layouts/{key}")]
+    public async Task<ActionResult<PdfSheetLayoutDto>> GetFichePdfLayoutByKey(
+        string key,
+        [FromServices] CharacterSheetPdfService pdfService,
+        CancellationToken ct)
+    {
+        return Ok(await pdfService.GetNamedLayoutAsync(key, ct));
+    }
+
+    [HttpPut("fiche-pdf/layout")]
+    [Authorize(Roles = "wfrp4-admin")]
+    public async Task<IActionResult> SaveFichePdfLayout(
+        PdfSheetLayoutDto layout,
+        [FromServices] CharacterSheetPdfService pdfService,
+        CancellationToken ct)
+    {
+        await pdfService.SaveLayoutAsync(layout, ct);
+        return NoContent();
+    }
+
     [HttpPut("{id}")]
     [ServiceFilter(typeof(PersonnageOwnerFilter))]
     public async Task<ActionResult<PersonnageDetailDto>> MettreAJourPersonnage(int id, UpdatePersonnageRequest request)

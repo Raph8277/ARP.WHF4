@@ -242,6 +242,217 @@
         </div>
     </MudTabPanel>
 
+    <MudTabPanel Text="Guides de jeu" Icon="@Icons.Material.Filled.SportsKabaddi">
+        <div class="old-world-tab-body guide-content">
+            <MudText Typo="Typo.h4" Class="mb-1" Style="font-family: var(--wfrp4-font-heading)">Aides de jeu rapides</MudText>
+            <MudText Typo="Typo.body1" Class="mb-4">
+                Des procedures de table pour resoudre les scenes courantes sans fouiller les referentiels en pleine partie.
+                Ces fiches sont des pense-betes pratiques : le MJ garde toujours le dernier mot selon la fiction.
+            </MudText>
+
+            <MudExpansionPanels MultiExpansion="true" Class="guide-panels mb-4">
+                <MudExpansionPanel Text="Deroulement d'un combat" IsInitiallyExpanded="true">
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mb-3">
+                        <thead>
+                            <tr><th>Etape</th><th>Action a la table</th><th>Points d'attention</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>1. Situation</strong></td><td>Decrire la scene, les distances, la lumiere, les couverts et les intentions visibles.</td><td>Clarifier qui est surpris, arme, engage, cache ou hors de portee.</td></tr>
+                            <tr><td><strong>2. Initiative</strong></td><td>Ordonner les tours selon l'Initiative ou la methode retenue par le MJ.</td><td>Les adversaires similaires peuvent agir par groupe pour accelerer.</td></tr>
+                            <tr><td><strong>3. Tour</strong></td><td>Choisir mouvement, action principale, reaction possible et details narratifs.</td><td>Demander l'objectif avant le jet : blesser, repousser, desarmer, fuir, proteger.</td></tr>
+                            <tr><td><strong>4. Resolution</strong></td><td>Effectuer le test approprie, souvent oppose en melee.</td><td>Comparer les niveaux de reussite, puis appliquer degats, avantages ou effets.</td></tr>
+                            <tr><td><strong>5. Consequences</strong></td><td>Mettre a jour blessures, etats, avantage, munitions, position et moral.</td><td>Terminer par une description courte qui relance le joueur suivant.</td></tr>
+                            <tr><td><strong>6. Fin de round</strong></td><td>Verifier fuites, redditions, renforts, dangers du decor et objectifs atteints.</td><td>Un combat n'a pas besoin d'aller jusqu'au dernier point de blessure.</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        Astuce MJ : annoncez toujours l'enjeu avant le jet. "Si tu rates, il te bloque dans l'escalier" donne un combat plus lisible qu'un simple echec.
+                    </MudAlert>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Actions courantes en combat">
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                        <thead>
+                            <tr><th>Intention</th><th>Test typique</th><th>Resolution pratique</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Frapper au corps a corps</td><td>Melee ou Corps a corps oppose</td><td>Comparer les reussites, calculer les degats, puis appliquer armure/endurance selon vos regles.</td></tr>
+                            <tr><td>Tirer</td><td>Capacite de Tir, arme appropriee</td><td>Verifier portee, ligne de vue, couvert, mouvement et rechargement.</td></tr>
+                            <tr><td>Esquiver ou parer</td><td>Esquive, Melee ou competence defensive adaptee</td><td>Une defense doit avoir du sens dans la fiction : espace, arme, conscience du danger.</td></tr>
+                            <tr><td>Charger</td><td>Mouvement puis attaque</td><td>Accorder l'effet seulement si la trajectoire est libre et l'engagement franc.</td></tr>
+                            <tr><td>Se desengager</td><td>Athletisme, Esquive ou test oppose</td><td>En cas d'echec, l'ennemi garde la pression ou obtient une ouverture.</td></tr>
+                            <tr><td>Aider un allie</td><td>Commandement, Intimidation, Melee, Soin...</td><td>Donner un bonus, une relance narrative ou supprimer une complication selon l'action.</td></tr>
+                            <tr><td>Utiliser le decor</td><td>Athletisme, Escalade, Force, Initiative</td><td>Renverser une table, pousser dans l'escalier, fermer une porte : toujours convertir en avantage concret.</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Utilisation des competences">
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Une competence sert quand l'issue est incertaine et interessante. Si l'action est simple, accordez-la.
+                        Si l'echec ne change rien, ne demandez pas de jet.
+                    </MudText>
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mb-3">
+                        <thead>
+                            <tr><th>Type de test</th><th>Quand l'utiliser</th><th>Lecture du resultat</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Simple</strong></td><td>Un personnage agit contre une difficulte fixe.</td><td>Reussite/echec, puis qualite selon la marge.</td></tr>
+                            <tr><td><strong>Oppose</strong></td><td>Deux forces s'affrontent directement.</td><td>Comparer les niveaux de reussite ; le meilleur resultat gagne l'echange.</td></tr>
+                            <tr><td><strong>Etendu</strong></td><td>Une action prend du temps : enquete, crochetage, rituel, poursuite.</td><td>Accumuler des progres, avec complications possibles a chaque echec.</td></tr>
+                            <tr><td><strong>Groupe</strong></td><td>Tout le groupe participe : discretion, voyage, negociation collective.</td><td>Faire jeter le meneur, les autres aident ou risquent d'ajouter des complications.</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                        <thead>
+                            <tr><th>Difficulte narrative</th><th>Exemple</th><th>Effet conseille</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Facile</td><td>Bonne lumiere, outils adaptes, temps disponible</td><td class="guide-bonus">Bonus ou consequence douce</td></tr>
+                            <tr><td>Standard</td><td>Situation aventureuse normale</td><td>Jet sans ajustement particulier</td></tr>
+                            <tr><td>Difficile</td><td>Stress, pluie, obscurite, foule, urgence</td><td class="guide-malus">Malus ou complication supplementaire</td></tr>
+                            <tr><td>Extreme</td><td>Action presque impossible, danger immediat</td><td>Demander un plan solide avant d'autoriser le jet</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Utilisation des talents">
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Les talents ne sont pas seulement des bonus chiffres : ce sont des permissions fictionnelles.
+                        Quand un joueur propose une action, cherchez d'abord si un talent peut rendre l'action possible, plus sure ou plus spectaculaire.
+                    </MudText>
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                        <thead>
+                            <tr><th>Moment</th><th>Question a poser</th><th>Application</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Avant le jet</td><td>Un talent change-t-il l'approche possible ?</td><td>Autoriser une action, reduire une difficulte, ouvrir une option.</td></tr>
+                            <tr><td>Pendant le jet</td><td>Un talent modifie-t-il la competence, la relance ou la marge ?</td><td>Appliquer le bonus, la relance ou l'effet exact note sur le talent.</td></tr>
+                            <tr><td>Apres le jet</td><td>Un talent transforme-t-il les consequences ?</td><td>Limiter une perte, creer un detail favorable, convertir un succes en resultat plus fort.</td></tr>
+                            <tr><td>Entre les scenes</td><td>Un talent donne-t-il de l'influence ou des ressources ?</td><td>Accorder contacts, revenus, informations, reputation ou preparation.</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                        Evitez l'empilement automatique de tous les talents. Demandez au joueur lequel il met en avant et comment il se voit dans la scene.
+                    </MudAlert>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Exemples de tirages">
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Les exemples ci-dessous montrent comment passer d'une intention narrative a un resultat lisible.
+                        Les niveaux de reussite peuvent varier selon votre table ; gardez surtout la logique : seuil, jet, marge, consequence.
+                    </MudText>
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mb-3">
+                        <thead>
+                            <tr><th>Situation</th><th>Tirage</th><th>Lecture</th><th>Resultat en jeu</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Test simple</strong><br />Kavillas cherche une piste dans la boue avec Perception 46.</td>
+                                <td>Le MJ donne +10 car les traces sont fraiches : seuil 56. Jet : 34.</td>
+                                <td class="guide-bonus">Reussite nette : 34 est inferieur a 56.</td>
+                                <td>Il trouve les traces et comprend qu'au moins deux personnes sont passees, dont une blessee.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Test rate utile</strong><br />Un voleur tente de crocheter une serrure avec Crochetage 38.</td>
+                                <td>Pluie, urgence : -10. Seuil 28. Jet : 61.</td>
+                                <td class="guide-malus">Echec important.</td>
+                                <td>La porte reste fermee ; le voleur peut recommencer, mais un garde entend le metal racler.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Test oppose</strong><br />Un PJ ment a un collecteur de taxes.</td>
+                                <td>Baratin 52, jet 41. Le collecteur oppose Intuition 45, jet 62.</td>
+                                <td class="guide-bonus">Le PJ reussit, le collecteur echoue.</td>
+                                <td>Le mensonge passe. Le collecteur reste soupconneux, mais laisse le groupe avancer.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Combat melee</strong><br />Une guerriere CC 48 attaque un brigand CC 35.</td>
+                                <td>Guerriere : 31. Brigand : 44.</td>
+                                <td class="guide-bonus">La guerriere reussit, le brigand rate sa defense.</td>
+                                <td>L'attaque touche. Le MJ applique les degats, puis decrit le brigand repousse contre la table.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Combat serre</strong><br />Un nain CC 42 frappe un soldat CC 41.</td>
+                                <td>Nain : 39. Soldat : 28.</td>
+                                <td>Les deux reussissent ; comparer la qualite de reussite.</td>
+                                <td>Si le soldat obtient une meilleure marge, il pare et reprend l'initiative narrative.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Tir a distance</strong><br />Un archer CT 44 vise un cultiste derriere une charrette.</td>
+                                <td>Couvert et agitation : -20. Seuil 24. Jet : 19.</td>
+                                <td class="guide-bonus">Reussite malgre la difficulte.</td>
+                                <td>La fleche touche ; le couvert peut reduire l'effet selon la decision du MJ.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Competence etendue</strong><br />Le groupe cherche un passage dans les egouts avant l'aube.</td>
+                                <td>Objectif : 5 progres. Tests de Survie/Navigation toutes les 20 minutes : 2, puis 1, puis echec.</td>
+                                <td>3 progres obtenus, mais complication.</td>
+                                <td>Ils avancent, mais tombent sur une grille verrouillee ou une patrouille de rats geants.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Aide d'un allie</strong><br />Un joueur distrait le garde pendant qu'un autre se faufile.</td>
+                                <td>Charme 50 reussi par l'aide ; Discretion 43 du second joueur.</td>
+                                <td>L'aide justifie un bonus ou annule une complication.</td>
+                                <td>Le test de Discretion devient plus favorable, car le garde regarde ailleurs au bon moment.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Talent en action</strong><br />Un personnage avec un talent social negocie avec un artisan mefiant.</td>
+                                <td>Le joueur explique comment il utilise sa reputation et son talent avant de lancer Charme.</td>
+                                <td>Le talent donne une permission ou un bonus si la fiction le soutient.</td>
+                                <td>L'artisan accepte de parler en prive, meme s'il ne livre pas tout gratuitement.</td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        Reflexe utile : sur un echec, ne bloquez pas toujours l'histoire. Faites avancer avec un cout : bruit, temps perdu, dette, blessure, indice incomplet ou nouvel ennemi.
+                    </MudAlert>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Blessures, soins et recuperation">
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                        <thead>
+                            <tr><th>Moment</th><th>Verification</th><th>Decision MJ</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Apres une attaque</td><td>Degats restants, armure, endurance, etat de la cible</td><td>Appliquer blessures, critique ou consequence narrative.</td></tr>
+                            <tr><td>Personnage en danger</td><td>Est-il encore capable d'agir ? Sa position empire-t-elle ?</td><td>Proposer fuite, reddition, secours ou prix a payer.</td></tr>
+                            <tr><td>Soin rapide</td><td>Temps, materiel, securite et competence du soigneur</td><td>Stabiliser d'abord, recuperer ensuite.</td></tr>
+                            <tr><td>Repos</td><td>Lieu sur, nourriture, chaleur, hygiene, stress</td><td>Un bon repos soigne plus que dormir dans un fosse sous la pluie.</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Etats, avantage et pression">
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mb-3">
+                        <thead>
+                            <tr><th>Outil</th><th>A quoi ca sert</th><th>Bon usage</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Avantage</td><td>Representer l'elan, la position dominante et la confiance.</td><td>Le donner quand une action change vraiment le rapport de force.</td></tr>
+                            <tr><td>Etats</td><td>Rendre visibles les problemes : fatigue, peur, feu, poison, saignement...</td><td>Les annoncer clairement et rappeler comment s'en debarrasser.</td></tr>
+                            <tr><td>Pression</td><td>Eviter les combats statiques.</td><td>Ajouter incendie, garde qui arrive, otage, terrain qui s'effondre, foule paniquee.</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        Un bon etat est une invitation a agir : "tu es a terre, que fais-tu ?" vaut mieux qu'une penalite oubliee.
+                    </MudAlert>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Checklist du MJ">
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                        <tbody>
+                            <tr><td style="width:220px"><strong>Avant une scene</strong></td><td>Objectif, opposition, danger, enjeu d'echec, element du decor exploitable.</td></tr>
+                            <tr><td><strong>Avant un jet</strong></td><td>Intention claire, competence choisie, difficulte, consequence annoncee.</td></tr>
+                            <tr><td><strong>Apres un jet</strong></td><td>Resultat concret, cout ou benefice, nouvelle situation visible.</td></tr>
+                            <tr><td><strong>En combat</strong></td><td>Tour actif, adversaire menace, position, etats, avantage, objectif de chaque camp.</td></tr>
+                            <tr><td><strong>Fin de scene</strong></td><td>XP/eventuelle recompense, blessures, pistes, relations, objets gagnes ou perdus.</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </div>
+    </MudTabPanel>
+
     <MudTabPanel Text="Espèces">
         @if (_especes != null)
         {

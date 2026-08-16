@@ -1,9 +1,11 @@
 using System.Globalization;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Wfrp4.Infrastructure.Data;
 using Wfrp4.Infrastructure.Entities;
+using Wfrp4.Shared.DTOs;
 using Wfrp4.Shared.Models;
 
 namespace Wfrp4.Server.Services;
@@ -26,7 +28,169 @@ public class CharacterSheetPdfService
 
     public async Task<(byte[] Content, string FileName)> GenerateAsync(int personnageId, ClaimsPrincipal user, CancellationToken ct)
     {
-        var personnage = await _db.Personnages
+        var personnage = await LoadPersonnageAsync(personnageId, ct);
+
+        var page1Template = await LoadTemplateAsync("wfrp4-character-sheet-1.jpg", ct);
+        var page2Template = await LoadTemplateAsync("wfrp4-character-sheet-2.jpg", ct);
+        var layout = await LoadLayoutAsync(ct);
+        var embeddedFonts = await LoadEmbeddedFontsAsync(layout, ct);
+        var pdf = BuildPdf(personnage, page1Template, page2Template, layout, embeddedFonts);
+
+        return (pdf, $"fiche-{Slug(personnage.Nom)}.pdf");
+    }
+
+    public async Task<(byte[] Content, string FileName)> GeneratePreviewAsync(
+        int personnageId,
+        ClaimsPrincipal user,
+        PdfSheetLayoutDto layout,
+        CancellationToken ct)
+    {
+        var personnage = await LoadPersonnageAsync(personnageId, ct);
+        var page1Template = await LoadTemplateAsync("wfrp4-character-sheet-1.jpg", ct);
+        var page2Template = await LoadTemplateAsync("wfrp4-character-sheet-2.jpg", ct);
+        var mergedLayout = NormalizeLayout(layout);
+        var embeddedFonts = await LoadEmbeddedFontsAsync(mergedLayout, ct);
+        var pdf = BuildPdf(personnage, page1Template, page2Template, mergedLayout, embeddedFonts);
+
+        return (pdf, $"fiche-{Slug(personnage.Nom)}-preview.pdf");
+    }
+
+    public async Task<PdfSheetLayoutDto> GetLayoutAsync(CancellationToken ct) => await LoadLayoutAsync(ct);
+
+    public async Task<byte[]> GetTemplatePageAsync(int page, CancellationToken ct)
+    {
+        var fileName = page == 2 ? "wfrp4-character-sheet-2.jpg" : "wfrp4-character-sheet-1.jpg";
+        return await LoadTemplateAsync(fileName, ct);
+    }
+
+    public async Task<IReadOnlyList<PdfSheetLayoutSummaryDto>> GetLayoutSummariesAsync(CancellationToken ct)
+    {
+        var active = await LoadLayoutAsync(ct);
+        var summaries = new Dictionary<string, PdfSheetLayoutSummaryDto>(StringComparer.OrdinalIgnoreCase)
+        {
+            [LayoutKey(active.LayoutName)] = new()
+            {
+                Key = LayoutKey(active.LayoutName),
+                Name = active.LayoutName,
+                IsActive = true,
+            },
+        };
+
+        var directory = LayoutDirectory();
+        if (Directory.Exists(directory))
+        {
+            foreach (var file in Directory.EnumerateFiles(directory, "*.json"))
+            {
+                try
+                {
+                    await using var stream = File.OpenRead(file);
+                    var layout = await JsonSerializer.DeserializeAsync<PdfSheetLayoutDto>(
+                        stream,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
+                        ct);
+                    var name = NormalizeLayoutName(layout?.LayoutName);
+                    var key = LayoutKey(name);
+                    summaries[key] = new PdfSheetLayoutSummaryDto
+                    {
+                        Key = key,
+                        Name = name,
+                        IsActive = string.Equals(key, LayoutKey(active.LayoutName), StringComparison.OrdinalIgnoreCase),
+                    };
+                }
+                catch (JsonException)
+                {
+                }
+            }
+        }
+
+        return summaries.Values
+            .OrderByDescending(s => s.IsActive)
+            .ThenBy(s => s.Name)
+            .ToList();
+    }
+
+    public async Task<PdfSheetLayoutDto> GetNamedLayoutAsync(string key, CancellationToken ct)
+    {
+        var path = NamedLayoutPath(key);
+        if (!File.Exists(path))
+            return await LoadLayoutAsync(ct);
+
+        await using var stream = File.OpenRead(path);
+        var layout = await JsonSerializer.DeserializeAsync<PdfSheetLayoutDto>(
+            stream,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
+            ct);
+
+        return NormalizeLayout(layout);
+    }
+
+    public async Task SaveLayoutAsync(PdfSheetLayoutDto layout, CancellationToken ct)
+    {
+        var normalized = NormalizeLayout(layout);
+        var json = JsonSerializer.Serialize(normalized, new JsonSerializerOptions { WriteIndented = true });
+        Directory.CreateDirectory(LayoutDirectory());
+        await File.WriteAllTextAsync(NamedLayoutPath(LayoutKey(normalized.LayoutName)), json, Encoding.UTF8, ct);
+        await File.WriteAllTextAsync(LayoutPath(), json, Encoding.UTF8, ct);
+    }
+
+    private static PdfSheetLayoutDto NormalizeLayout(PdfSheetLayoutDto? layout)
+    {
+        layout ??= DefaultLayout();
+        var defaultFont = NormalizeFont(layout.DefaultFont);
+        var defaults = DefaultLayout().Fields.ToDictionary(f => f.Key, StringComparer.OrdinalIgnoreCase);
+        var fields = layout.Fields
+            .Where(f => defaults.ContainsKey(f.Key))
+            .Select(f =>
+            {
+                var known = defaults[f.Key];
+                return new PdfSheetFieldLayoutDto
+                {
+                    Key = known.Key,
+                    Label = known.Label,
+                    Page = known.Page,
+                    X = Math.Clamp(f.X, 0, TemplatePixelWidth),
+                    Y = Math.Clamp(f.Y, 0, TemplatePixelHeight),
+                    Size = Math.Clamp(f.Size, 4, 20),
+                    MaxWidth = Math.Clamp(f.MaxWidth, 20, TemplatePixelWidth),
+                    Align = NormalizeAlign(f.Align),
+                    Font = NormalizeOptionalFont(f.Font),
+                    IsBold = f.IsBold,
+                    IsItalic = f.IsItalic,
+                };
+            })
+            .OrderBy(f => f.Page)
+            .ThenBy(f => f.Y)
+            .ThenBy(f => f.X)
+            .ToList();
+
+        var merged = MergeLayout(fields);
+        return new PdfSheetLayoutDto
+        {
+            LayoutName = NormalizeLayoutName(layout.LayoutName),
+            DefaultFont = defaultFont,
+            RenderCharacteristicAdvances = layout.RenderCharacteristicAdvances,
+            RenderCharacteristicCurrent = layout.RenderCharacteristicCurrent,
+            Fields = merged,
+        };
+    }
+
+    private string TemplatePath(string fileName) =>
+        Path.Combine(_environment.ContentRootPath, "PdfTemplates", fileName);
+
+    private string LayoutPath() =>
+        Path.Combine(_environment.ContentRootPath, "PdfTemplates", "wfrp4-character-sheet-layout.json");
+
+    private string LayoutDirectory() =>
+        Path.Combine(_environment.ContentRootPath, "PdfTemplates", "Layouts");
+
+    private string NamedLayoutPath(string key) =>
+        Path.Combine(LayoutDirectory(), $"{LayoutKey(key)}.json");
+
+    private string FontPath(string fileName) =>
+        Path.Combine(_environment.ContentRootPath, "PdfTemplates", "Fonts", fileName);
+
+    private async Task<Personnage> LoadPersonnageAsync(int personnageId, CancellationToken ct) =>
+        await _db.Personnages
             .AsNoTracking()
             .Include(p => p.Espece)
             .Include(p => p.CarriereCourante).ThenInclude(n => n!.Carriere).ThenInclude(c => c.Classe)
@@ -38,18 +202,73 @@ public class CharacterSheetPdfService
             .FirstOrDefaultAsync(p => p.Id == personnageId, ct)
             ?? throw new InvalidOperationException("Personnage introuvable.");
 
-        var page1Template = await File.ReadAllBytesAsync(TemplatePath("wfrp4-character-sheet-1.jpg"), ct);
-        var page2Template = await File.ReadAllBytesAsync(TemplatePath("wfrp4-character-sheet-2.jpg"), ct);
-        var pdf = BuildPdf(personnage, page1Template, page2Template);
+    private async Task<byte[]> LoadTemplateAsync(string fileName, CancellationToken ct)
+    {
+        var path = TemplatePath(fileName);
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"Modele PDF officiel introuvable : {fileName}.", path);
 
-        return (pdf, $"fiche-{Slug(personnage.Nom)}.pdf");
+        return await File.ReadAllBytesAsync(path, ct);
     }
 
-    private string TemplatePath(string fileName) =>
-        Path.Combine(_environment.ContentRootPath, "PdfTemplates", fileName);
-
-    private static byte[] BuildPdf(Personnage p, byte[] page1Template, byte[] page2Template)
+    private async Task<IReadOnlyDictionary<string, EmbeddedPdfFont>> LoadEmbeddedFontsAsync(PdfSheetLayoutDto layout, CancellationToken ct)
     {
+        var requestedFonts = layout.Fields
+            .Select(f => f.Font)
+            .Append(layout.DefaultFont)
+            .Where(f => !string.IsNullOrWhiteSpace(f))
+            .Select(NormalizeFont)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var fonts = new Dictionary<string, EmbeddedPdfFont>(StringComparer.OrdinalIgnoreCase);
+        if (requestedFonts.Contains("Cinzel Decorative"))
+        {
+            var path = FontPath("CinzelDecorative-Regular.ttf");
+            if (File.Exists(path))
+            {
+                fonts["Cinzel Decorative"] = new EmbeddedPdfFont(
+                    "Cinzel Decorative",
+                    "CinzelDecorative",
+                    "F4",
+                    await File.ReadAllBytesAsync(path, ct));
+            }
+        }
+
+        return fonts;
+    }
+
+    private async Task<PdfSheetLayoutDto> LoadLayoutAsync(CancellationToken ct)
+    {
+        var defaults = DefaultLayout();
+        var path = LayoutPath();
+        if (!File.Exists(path))
+            return defaults;
+
+        try
+        {
+            await using var stream = File.OpenRead(path);
+            var layout = await JsonSerializer.DeserializeAsync<PdfSheetLayoutDto>(
+                stream,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
+                ct);
+
+            return NormalizeLayout(layout);
+        }
+        catch (JsonException)
+        {
+            return defaults;
+        }
+    }
+
+    private static byte[] BuildPdf(
+        Personnage p,
+        byte[] page1Template,
+        byte[] page2Template,
+        PdfSheetLayoutDto layout,
+        IReadOnlyDictionary<string, EmbeddedPdfFont> embeddedFonts)
+    {
+        var fields = layout.Fields.ToDictionary(f => f.Key, StringComparer.OrdinalIgnoreCase);
+        var defaultFont = NormalizeFont(layout.DefaultFont);
         var firstCareer = p.Carrieres.OrderBy(c => c.DateEntree).FirstOrDefault();
         var currentLevel = p.CarriereCourante ?? firstCareer?.NiveauCarriere;
         var className = currentLevel?.Carriere?.Classe?.Nom ?? string.Empty;
@@ -58,62 +277,75 @@ public class CharacterSheetPdfService
         var status = currentLevel is null ? string.Empty : $"{currentLevel.Statut} {currentLevel.StatutNumerique}";
         var caracs = p.Caracteristiques.ToDictionary(c => c.Code, StringComparer.OrdinalIgnoreCase);
 
-        var page1 = new PdfCanvas();
+        var page1 = new PdfCanvas(embeddedFonts);
         page1.TemplateImage();
 
-        page1.TextPx(152, 209, 8, p.Nom, 360);
-        page1.TextPx(690, 209, 8, p.Espece.Nom, 180);
-        page1.TextPx(965, 209, 8, className, 160);
-        page1.TextPx(166, 239, 8, careerName, 350);
-        page1.TextPx(714, 239, 8, echelonName, 160);
-        page1.TextPx(965, 269, 8, status, 160);
-        page1.TextPx(136, 299, 8, p.Age?.ToString(CultureInfo.InvariantCulture) ?? string.Empty, 90);
-        page1.TextPx(430, 299, 8, p.TailleCm.HasValue ? $"{p.TailleCm} cm" : string.Empty, 140);
-        page1.TextPx(710, 299, 8, p.CouleurCheveux ?? string.Empty, 150);
-        page1.TextPx(955, 299, 8, p.CouleurYeux ?? string.Empty, 170);
+        DrawField(page1, fields, "identity.name", p.Nom, defaultFont);
+        DrawField(page1, fields, "identity.race", p.Espece.Nom, defaultFont);
+        DrawField(page1, fields, "identity.class", className, defaultFont);
+        DrawField(page1, fields, "identity.career", careerName, defaultFont);
+        DrawField(page1, fields, "identity.echelon", echelonName, defaultFont);
+        DrawField(page1, fields, "identity.status", status, defaultFont);
+        DrawField(page1, fields, "identity.age", p.Age?.ToString(CultureInfo.InvariantCulture) ?? string.Empty, defaultFont);
+        DrawField(page1, fields, "identity.height", p.TailleCm.HasValue ? $"{p.TailleCm} cm" : string.Empty, defaultFont);
+        DrawField(page1, fields, "identity.hair", p.CouleurCheveux ?? string.Empty, defaultFont);
+        DrawField(page1, fields, "identity.eyes", p.CouleurYeux ?? string.Empty, defaultFont);
 
         var codes = new[] { "CC", "CT", "F", "E", "I", "Ag", "Dex", "Int", "FM", "Soc" };
-        var caracXs = new[] { 196, 235, 274, 314, 356, 396, 435, 475, 515, 554 };
-        for (var i = 0; i < codes.Length; i++)
+        foreach (var code in codes)
         {
-            if (!caracs.TryGetValue(codes[i], out var c))
+            if (!caracs.TryGetValue(code, out var c))
                 continue;
-            page1.TextCenteredPx(caracXs[i], 428, 8, c.ValeurInitiale.ToString(CultureInfo.InvariantCulture));
-            page1.TextCenteredPx(caracXs[i], 473, 8, c.Avances.ToString(CultureInfo.InvariantCulture));
-            page1.TextCenteredPx(caracXs[i], 518, 8, (c.ValeurInitiale + c.Avances).ToString(CultureInfo.InvariantCulture));
+            DrawField(page1, fields, $"carac.{code}.initial", c.ValeurInitiale.ToString(CultureInfo.InvariantCulture), defaultFont);
+            if (layout.RenderCharacteristicAdvances)
+                DrawField(page1, fields, $"carac.{code}.advance", c.Avances.ToString(CultureInfo.InvariantCulture), defaultFont);
+            if (layout.RenderCharacteristicCurrent)
+                DrawField(page1, fields, $"carac.{code}.current", (c.ValeurInitiale + c.Avances).ToString(CultureInfo.InvariantCulture), defaultFont);
         }
 
-        page1.TextCenteredPx(684, 389, 6, p.Destin.ToString(CultureInfo.InvariantCulture));
-        page1.TextCenteredPx(684, 421, 6, p.Fortune.ToString(CultureInfo.InvariantCulture));
-        page1.TextCenteredPx(754, 414, 6, p.Resilience.ToString(CultureInfo.InvariantCulture));
-        page1.TextCenteredPx(836, 414, 6, p.Resolution.ToString(CultureInfo.InvariantCulture));
-        page1.TextPx(900, 414, 5, p.Motivation ?? string.Empty, 70);
-        page1.TextCenteredPx(1014, 414, 6, (p.XpTotal - p.XpDepense).ToString(CultureInfo.InvariantCulture));
-        page1.TextCenteredPx(1074, 414, 6, p.XpDepense.ToString(CultureInfo.InvariantCulture));
-        page1.TextCenteredPx(1148, 414, 6, p.XpTotal.ToString(CultureInfo.InvariantCulture));
-        page1.TextCenteredPx(738, 518, 8, p.Mouvement.ToString(CultureInfo.InvariantCulture));
-        page1.TextCenteredPx(872, 518, 8, (p.Mouvement * 2).ToString(CultureInfo.InvariantCulture));
-        page1.TextCenteredPx(1044, 518, 8, (p.Mouvement * 4).ToString(CultureInfo.InvariantCulture));
+        DrawField(page1, fields, "destiny.destin", p.Destin.ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page1, fields, "destiny.fortune", p.Fortune.ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page1, fields, "resistance.resilience", p.Resilience.ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page1, fields, "resistance.resolution", p.Resolution.ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page1, fields, "resistance.motivation", p.Motivation ?? string.Empty, defaultFont);
+        DrawField(page1, fields, "xp.current", (p.XpTotal - p.XpDepense).ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page1, fields, "xp.spent", p.XpDepense.ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page1, fields, "xp.total", p.XpTotal.ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page1, fields, "movement.base", p.Mouvement.ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page1, fields, "movement.walk", (p.Mouvement * 2).ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page1, fields, "movement.run", (p.Mouvement * 4).ToString(CultureInfo.InvariantCulture), defaultFont);
 
         DrawCompetences(page1, p, caracs);
-        DrawTalents(page1, p);
-        page1.TextPx(705, 1115, 9, p.AmbitionCourtTerme ?? string.Empty, 365);
-        page1.TextPx(705, 1195, 9, p.AmbitionLongTerme ?? string.Empty, 365);
-        page1.TextPx(770, 1305, 9, p.GroupeNom ?? string.Empty, 300);
-        page1.TextPx(735, 1470, 9, p.GroupeMembres ?? string.Empty, 335);
+        DrawTalents(page1, p, fields, defaultFont);
+        DrawField(page1, fields, "ambition.short", p.AmbitionCourtTerme ?? string.Empty, defaultFont);
+        DrawField(page1, fields, "ambition.long", p.AmbitionLongTerme ?? string.Empty, defaultFont);
+        DrawField(page1, fields, "group.name", p.GroupeNom ?? string.Empty, defaultFont);
+        DrawField(page1, fields, "group.members", p.GroupeMembres ?? string.Empty, defaultFont);
 
-        var page2 = new PdfCanvas();
+        var page2 = new PdfCanvas(embeddedFonts);
         page2.TemplateImage();
         DrawPossessions(page2, p);
         DrawArmes(page2, p);
-        page2.TextPx(480, 412, 8, p.Psychologie ?? string.Empty, 330);
-        page2.TextPx(480, 555, 8, p.CorruptionMutations ?? string.Empty, 330);
-        page2.TextCenteredPx(525, 707, 7, p.SousCuivre.ToString(CultureInfo.InvariantCulture));
-        page2.TextCenteredPx(525, 792, 7, p.PistolesArgent.ToString(CultureInfo.InvariantCulture));
-        page2.TextCenteredPx(525, 858, 7, p.CouronnesOr.ToString(CultureInfo.InvariantCulture));
-        page2.TextCenteredPx(936, 858, 7, p.BlessuresMax.ToString(CultureInfo.InvariantCulture));
+        DrawField(page2, fields, "psychology", p.Psychologie ?? string.Empty, defaultFont);
+        DrawField(page2, fields, "corruption", p.CorruptionMutations ?? string.Empty, defaultFont);
+        DrawField(page2, fields, "wealth.brass", p.SousCuivre.ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page2, fields, "wealth.silver", p.PistolesArgent.ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page2, fields, "wealth.gold", p.CouronnesOr.ToString(CultureInfo.InvariantCulture), defaultFont);
+        DrawField(page2, fields, "wounds.max", p.BlessuresMax.ToString(CultureInfo.InvariantCulture), defaultFont);
 
-        return OfficialSheetPdf.Write(page1.Content, page2.Content, page1Template, page2Template);
+        return OfficialSheetPdf.Write(page1.Content, page2.Content, page1Template, page2Template, embeddedFonts.Values);
+    }
+
+    private static void DrawField(PdfCanvas page, IReadOnlyDictionary<string, PdfSheetFieldLayoutDto> fields, string key, string text, string defaultFont)
+    {
+        if (!fields.TryGetValue(key, out var field))
+            return;
+
+        var font = field.Font ?? defaultFont;
+        if (field.Align.Equals("Center", StringComparison.OrdinalIgnoreCase))
+            page.TextCenteredPx(field.X, field.Y, field.Size, text, font, field.IsBold, field.IsItalic);
+        else
+            page.TextPx(field.X, field.Y, field.Size, text, field.MaxWidth, font, field.IsBold, field.IsItalic);
     }
 
     private static void DrawCompetences(PdfCanvas page, Personnage p, IReadOnlyDictionary<string, PersonnageCaracteristique> caracs)
@@ -163,15 +395,19 @@ public class CharacterSheetPdfService
         }
     }
 
-    private static void DrawTalents(PdfCanvas page, Personnage p)
+    private static void DrawTalents(
+        PdfCanvas page,
+        Personnage p,
+        IReadOnlyDictionary<string, PdfSheetFieldLayoutDto> fields,
+        string defaultFont)
     {
-        var y = 1130;
+        var index = 1;
         foreach (var talent in p.Talents.OrderBy(t => t.Talent.Nom).Take(8))
         {
-            page.TextPx(105, y, 8, talent.Talent.Nom, 170);
-            page.TextCenteredPx(310, y, 8, talent.Fois.ToString(CultureInfo.InvariantCulture));
-            page.TextPx(355, y, 7, talent.Talent.Description ?? string.Empty, 230);
-            y += 38;
+            DrawField(page, fields, $"talent.{index}.name", talent.Talent.Nom, defaultFont);
+            DrawField(page, fields, $"talent.{index}.count", talent.Fois.ToString(CultureInfo.InvariantCulture), defaultFont);
+            DrawField(page, fields, $"talent.{index}.description", talent.Talent.Description ?? string.Empty, defaultFont);
+            index++;
         }
     }
 
@@ -204,36 +440,251 @@ public class CharacterSheetPdfService
         return string.Join('-', new string(chars).Split('-', StringSplitOptions.RemoveEmptyEntries));
     }
 
+    private static string NormalizeLayoutName(string? name) =>
+        string.IsNullOrWhiteSpace(name) ? "Defaut" : name.Trim();
+
+    private static string LayoutKey(string? name)
+    {
+        var normalized = NormalizeLayoutName(name);
+        var ascii = PdfText.ToAscii(normalized).ToLowerInvariant();
+        var chars = ascii.Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray();
+        return string.Join('-', new string(chars).Split('-', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    private static List<PdfSheetFieldLayoutDto> MergeLayout(IEnumerable<PdfSheetFieldLayoutDto> overrides)
+    {
+        var byKey = overrides.ToDictionary(f => f.Key, StringComparer.OrdinalIgnoreCase);
+        return DefaultLayout().Fields
+            .Select(defaultField =>
+            {
+                if (!byKey.TryGetValue(defaultField.Key, out var custom))
+                    return defaultField;
+
+                return new PdfSheetFieldLayoutDto
+                {
+                    Key = defaultField.Key,
+                    Label = defaultField.Label,
+                    Page = defaultField.Page,
+                    X = custom.X,
+                    Y = custom.Y,
+                    Size = custom.Size,
+                    MaxWidth = custom.MaxWidth,
+                    Align = NormalizeAlign(custom.Align),
+                    Font = NormalizeOptionalFont(custom.Font),
+                    IsBold = custom.IsBold,
+                    IsItalic = custom.IsItalic,
+                };
+            })
+            .ToList();
+    }
+
+    private static string NormalizeAlign(string? align) =>
+        string.Equals(align, "Center", StringComparison.OrdinalIgnoreCase) ? "Center" : "Left";
+
+    private static string NormalizeFont(string? font) => font?.Trim() switch
+    {
+        "Inter" => "Inter",
+        "Roboto" => "Roboto",
+        "Open Sans" => "Open Sans",
+        "Lato" => "Lato",
+        "Nunito" => "Nunito",
+        "Source Sans 3" => "Source Sans 3",
+        "Merriweather" => "Merriweather",
+        "Lora" => "Lora",
+        "Cormorant Garamond" => "Cormorant Garamond",
+        "Playfair Display" => "Playfair Display",
+        "Cinzel" => "Cinzel",
+        "EB Garamond" => "EB Garamond",
+        "Cinzel Decorative" => "Cinzel Decorative",
+        "MedievalSharp" => "MedievalSharp",
+        "Uncial Antiqua" => "Uncial Antiqua",
+        "Montserrat" => "Montserrat",
+        "Oswald" => "Oswald",
+        "Raleway" => "Raleway",
+        "Poppins" => "Poppins",
+        "Bebas Neue" => "Bebas Neue",
+        "Times-Roman" => "Times-Roman",
+        "Courier" => "Courier",
+        _ => "Helvetica",
+    };
+
+    private static string? NormalizeOptionalFont(string? font)
+    {
+        if (string.IsNullOrWhiteSpace(font) || string.Equals(font, "Default", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return NormalizeFont(font);
+    }
+
+    private static PdfSheetLayoutDto DefaultLayout()
+    {
+        var fields = new List<PdfSheetFieldLayoutDto>
+        {
+            Field("identity.name", "Identite - Nom", 1, 152, 209, 8, 360),
+            Field("identity.race", "Identite - Race", 1, 690, 209, 8, 180),
+            Field("identity.class", "Identite - Classe", 1, 965, 209, 8, 160),
+            Field("identity.career", "Identite - Carriere", 1, 166, 239, 8, 350),
+            Field("identity.echelon", "Identite - Echelon", 1, 714, 239, 8, 160),
+            Field("identity.status", "Identite - Statut", 1, 965, 269, 8, 160),
+            Field("identity.age", "Identite - Age", 1, 136, 299, 8, 90),
+            Field("identity.height", "Identite - Taille", 1, 430, 299, 8, 140),
+            Field("identity.hair", "Identite - Cheveux", 1, 710, 299, 8, 150),
+            Field("identity.eyes", "Identite - Yeux", 1, 955, 299, 8, 170),
+
+            Field("destiny.destin", "Destin - Destin", 1, 684, 389, 6, 60, "Center"),
+            Field("destiny.fortune", "Destin - Chance", 1, 684, 421, 6, 60, "Center"),
+            Field("resistance.resilience", "Resistance - Resilience", 1, 754, 414, 6, 60, "Center"),
+            Field("resistance.resolution", "Resistance - Determination", 1, 836, 414, 6, 60, "Center"),
+            Field("resistance.motivation", "Resistance - Motivation", 1, 900, 414, 5, 70),
+            Field("xp.current", "Experience - Actuelle", 1, 1014, 414, 6, 60, "Center"),
+            Field("xp.spent", "Experience - Depensee", 1, 1074, 414, 6, 60, "Center"),
+            Field("xp.total", "Experience - Totale", 1, 1148, 414, 6, 60, "Center"),
+            Field("movement.base", "Mouvement - Base", 1, 738, 518, 8, 60, "Center"),
+            Field("movement.walk", "Mouvement - Marche", 1, 872, 518, 8, 60, "Center"),
+            Field("movement.run", "Mouvement - Course", 1, 1044, 518, 8, 60, "Center"),
+
+            Field("ambition.short", "Ambitions - Court terme", 1, 705, 1115, 9, 365),
+            Field("ambition.long", "Ambitions - Long terme", 1, 705, 1195, 9, 365),
+            Field("group.name", "Groupe - Nom", 1, 770, 1305, 9, 300),
+            Field("group.members", "Groupe - Membres", 1, 735, 1470, 9, 335),
+
+            Field("psychology", "Page 2 - Psychologie", 2, 480, 412, 8, 330),
+            Field("corruption", "Page 2 - Corruption et mutations", 2, 480, 555, 8, 330),
+            Field("wealth.brass", "Page 2 - Sous de cuivre", 2, 525, 707, 7, 60, "Center"),
+            Field("wealth.silver", "Page 2 - Pistoles d'argent", 2, 525, 792, 7, 60, "Center"),
+            Field("wealth.gold", "Page 2 - Couronnes d'or", 2, 525, 858, 7, 60, "Center"),
+            Field("wounds.max", "Page 2 - Blessures max", 2, 936, 858, 7, 60, "Center"),
+        };
+
+        var codes = new[] { "CC", "CT", "F", "E", "I", "Ag", "Dex", "Int", "FM", "Soc" };
+        var caracXs = new[] { 196, 235, 274, 314, 356, 396, 435, 475, 515, 554 };
+        for (var i = 0; i < codes.Length; i++)
+        {
+            fields.Add(Field($"carac.{codes[i]}.initial", $"Caracteristiques - {codes[i]} initiale", 1, caracXs[i], 428, 8, 60, "Center"));
+            fields.Add(Field($"carac.{codes[i]}.advance", $"Caracteristiques - {codes[i]} avances", 1, caracXs[i], 473, 8, 60, "Center"));
+            fields.Add(Field($"carac.{codes[i]}.current", $"Caracteristiques - {codes[i]} courante", 1, caracXs[i], 518, 8, 60, "Center"));
+        }
+
+        var talentY = 1130;
+        for (var i = 1; i <= 8; i++)
+        {
+            fields.Add(Field($"talent.{i}.name", $"Talents - Ligne {i} nom", 1, 105, talentY, 8, 170));
+            fields.Add(Field($"talent.{i}.count", $"Talents - Ligne {i} prises", 1, 310, talentY, 8, 45, "Center"));
+            fields.Add(Field($"talent.{i}.description", $"Talents - Ligne {i} description", 1, 355, talentY, 7, 230));
+            talentY += 38;
+        }
+
+        return new PdfSheetLayoutDto
+        {
+            LayoutName = "Defaut",
+            DefaultFont = "Helvetica",
+            Fields = fields,
+        };
+    }
+
+    private static PdfSheetFieldLayoutDto Field(
+        string key,
+        string label,
+        int page,
+        int x,
+        int y,
+        int size,
+        int maxWidth,
+        string align = "Left",
+        string? font = null) =>
+        new()
+        {
+            Key = key,
+            Label = label,
+            Page = page,
+            X = x,
+            Y = y,
+            Size = size,
+            MaxWidth = maxWidth,
+            Align = align,
+            Font = font,
+        };
+
+    private sealed record EmbeddedPdfFont(string Name, string BaseFontName, string ResourceName, byte[] Bytes);
+
     private static class OfficialSheetPdf
     {
-        public static byte[] Write(string page1, string page2, byte[] page1Template, byte[] page2Template)
+        public static byte[] Write(
+            string page1,
+            string page2,
+            byte[] page1Template,
+            byte[] page2Template,
+            IEnumerable<EmbeddedPdfFont> embeddedFonts)
         {
+            var fonts = embeddedFonts.ToList();
             using var ms = new MemoryStream();
             var offsets = new List<long> { 0 };
             WriteAscii(ms, "%PDF-1.4\n");
             WriteObject(ms, offsets, 1, "<< /Type /Catalog /Pages 2 0 R >>");
             WriteObject(ms, offsets, 2, "<< /Type /Pages /Kids [4 0 R 7 0 R] /Count 2 >>");
             WriteObject(ms, offsets, 3, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
-            WritePage(ms, offsets, 4, 5, 6);
+            var fontResources = BuildFontResources(fonts);
+            WritePage(ms, offsets, 4, 5, 6, fontResources);
             WriteStream(ms, offsets, 5, page1);
             WriteImage(ms, offsets, 6, page1Template);
-            WritePage(ms, offsets, 7, 8, 9);
+            WritePage(ms, offsets, 7, 8, 9, fontResources);
             WriteStream(ms, offsets, 8, page2);
             WriteImage(ms, offsets, 9, page2Template);
+            WriteObject(ms, offsets, 10, "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman >>");
+            WriteObject(ms, offsets, 11, "<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>");
+            WriteObject(ms, offsets, 12, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
+            WriteObject(ms, offsets, 13, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>");
+            WriteObject(ms, offsets, 14, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-BoldOblique >>");
+            WriteObject(ms, offsets, 15, "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold >>");
+            WriteObject(ms, offsets, 16, "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic >>");
+            WriteObject(ms, offsets, 17, "<< /Type /Font /Subtype /Type1 /BaseFont /Times-BoldItalic >>");
+            WriteObject(ms, offsets, 18, "<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold >>");
+            WriteObject(ms, offsets, 19, "<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Oblique >>");
+            WriteObject(ms, offsets, 20, "<< /Type /Font /Subtype /Type1 /BaseFont /Courier-BoldOblique >>");
+
+            var nextId = 21;
+            foreach (var font in fonts)
+            {
+                var fontFileId = nextId++;
+                var descriptorId = nextId++;
+                var fontId = nextId++;
+                WriteBinaryStream(ms, offsets, fontFileId, font.Bytes);
+                WriteObject(ms, offsets, descriptorId,
+                    $"<< /Type /FontDescriptor /FontName /{font.BaseFontName} /Flags 32 /Ascent 900 /Descent -250 /CapHeight 700 /ItalicAngle 0 /StemV 80 /FontBBox [-100 -250 1200 950] /FontFile2 {fontFileId} 0 R >>");
+                WriteObject(ms, offsets, fontId,
+                    $"<< /Type /Font /Subtype /TrueType /BaseFont /{font.BaseFontName} /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 255 /Widths [{BuildDefaultWidths()}] /FontDescriptor {descriptorId} 0 R >>");
+            }
 
             var xref = ms.Position;
-            WriteAscii(ms, "xref\n0 10\n0000000000 65535 f \n");
+            WriteAscii(ms, $"xref\n0 {nextId}\n0000000000 65535 f \n");
             for (var i = 1; i < offsets.Count; i++)
                 WriteAscii(ms, $"{offsets[i]:0000000000} 00000 n \n");
-            WriteAscii(ms, $"trailer\n<< /Size 10 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF");
+            WriteAscii(ms, $"trailer\n<< /Size {nextId} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF");
             return ms.ToArray();
         }
 
-        private static void WritePage(Stream stream, List<long> offsets, int pageId, int contentId, int imageId)
+        private static string BuildFontResources(IReadOnlyList<EmbeddedPdfFont> fonts)
+        {
+            var builder = new StringBuilder(
+                "/F1 3 0 R /F2 10 0 R /F3 11 0 R " +
+                "/F1B 12 0 R /F1I 13 0 R /F1BI 14 0 R " +
+                "/F2B 15 0 R /F2I 16 0 R /F2BI 17 0 R " +
+                "/F3B 18 0 R /F3I 19 0 R /F3BI 20 0 R");
+            var fontId = 23;
+            foreach (var font in fonts)
+            {
+                builder.Append(" /").Append(font.ResourceName).Append(' ').Append(fontId).Append(" 0 R");
+                fontId += 3;
+            }
+
+            return builder.ToString();
+        }
+
+        private static void WritePage(Stream stream, List<long> offsets, int pageId, int contentId, int imageId, string fontResources)
         {
             offsets.Add(stream.Position);
             WriteAscii(stream,
-                $"{pageId} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {PageWidth.ToString(CultureInfo.InvariantCulture)} {PageHeight.ToString(CultureInfo.InvariantCulture)}] /Resources << /Font << /F1 3 0 R >> /XObject << /Bg {imageId} 0 R >> >> /Contents {contentId} 0 R >>\nendobj\n");
+                $"{pageId} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {PageWidth.ToString(CultureInfo.InvariantCulture)} {PageHeight.ToString(CultureInfo.InvariantCulture)}] /Resources << /Font << {fontResources} >> /XObject << /Bg {imageId} 0 R >> >> /Contents {contentId} 0 R >>\nendobj\n");
         }
 
         private static void WriteObject(Stream stream, List<long> offsets, int id, string body)
@@ -245,6 +696,14 @@ public class CharacterSheetPdfService
         private static void WriteStream(Stream stream, List<long> offsets, int id, string content)
         {
             var bytes = Encoding.ASCII.GetBytes(content);
+            offsets.Add(stream.Position);
+            WriteAscii(stream, $"{id} 0 obj\n<< /Length {bytes.Length} >>\nstream\n");
+            stream.Write(bytes);
+            WriteAscii(stream, "\nendstream\nendobj\n");
+        }
+
+        private static void WriteBinaryStream(Stream stream, List<long> offsets, int id, byte[] bytes)
+        {
             offsets.Add(stream.Position);
             WriteAscii(stream, $"{id} 0 obj\n<< /Length {bytes.Length} >>\nstream\n");
             stream.Write(bytes);
@@ -265,12 +724,21 @@ public class CharacterSheetPdfService
             var bytes = Encoding.ASCII.GetBytes(value);
             stream.Write(bytes);
         }
+
+        private static string BuildDefaultWidths() =>
+            string.Join(' ', Enumerable.Repeat("600", 224));
     }
 
     private sealed class PdfCanvas
     {
+        private readonly IReadOnlyDictionary<string, EmbeddedPdfFont> _embeddedFonts;
         private readonly StringBuilder _content = new();
         public string Content => _content.ToString();
+
+        public PdfCanvas(IReadOnlyDictionary<string, EmbeddedPdfFont> embeddedFonts)
+        {
+            _embeddedFonts = embeddedFonts;
+        }
 
         public void TemplateImage()
         {
@@ -280,29 +748,94 @@ public class CharacterSheetPdfService
             _content.Append("0 0 0 rg\n");
         }
 
-        public void TextPx(int x, int y, int size, string text, int maxWidth = 220)
+        public void TextPx(
+            int x,
+            int y,
+            int size,
+            string text,
+            int maxWidth = 220,
+            string font = "Helvetica",
+            bool isBold = false,
+            bool isItalic = false)
         {
             var lineHeight = Math.Max(size + 2, 9);
             var lineY = ToPdfY(y);
             foreach (var line in Wrap(PdfText.ToAscii(text), Math.Max(1, maxWidth / Math.Max(4, size / 2))).Take(4))
             {
-                Text(PxX(x), lineY, size, line);
+                Text(PxX(x), lineY, size, line, font, isBold, isItalic);
                 lineY -= lineHeight;
             }
         }
 
-        public void TextCenteredPx(int x, int y, int size, string text)
+        public void TextCenteredPx(
+            int x,
+            int y,
+            int size,
+            string text,
+            string font = "Helvetica",
+            bool isBold = false,
+            bool isItalic = false)
         {
             var estimatedWidth = PdfText.ToAscii(text).Length * size * 0.45;
-            Text(PxX(x) - estimatedWidth / 2, ToPdfY(y), size, text);
+            Text(PxX(x) - estimatedWidth / 2, ToPdfY(y), size, text, font, isBold, isItalic);
         }
 
-        private void Text(double x, double y, int size, string text)
+        private void Text(double x, double y, int size, string text, string font, bool isBold, bool isItalic)
         {
-            _content.Append("BT /F1 ").Append(size).Append(" Tf ")
-                .Append(x.ToString("0.##", CultureInfo.InvariantCulture)).Append(' ')
-                .Append(y.ToString("0.##", CultureInfo.InvariantCulture)).Append(" Td (")
-                .Append(PdfText.Escape(text)).Append(") Tj ET\n");
+            var escapedText = PdfText.Escape(text);
+            var usesEmbeddedFont = _embeddedFonts.ContainsKey(NormalizeFont(font));
+            AppendTextOperation(x, y, size, escapedText, FontResource(font, isBold, isItalic), isItalic && usesEmbeddedFont);
+            if (isBold && usesEmbeddedFont)
+                AppendTextOperation(x + 0.28, y, size, escapedText, FontResource(font, isBold: false, isItalic), isItalic);
+        }
+
+        private void AppendTextOperation(double x, double y, int size, string escapedText, string fontResource, bool isItalic)
+        {
+            _content.Append("BT /").Append(fontResource).Append(' ').Append(size).Append(" Tf ");
+            if (isItalic)
+            {
+                _content.Append("1 0 0.22 1 ")
+                    .Append(x.ToString("0.##", CultureInfo.InvariantCulture)).Append(' ')
+                    .Append(y.ToString("0.##", CultureInfo.InvariantCulture)).Append(" Tm (");
+            }
+            else
+            {
+                _content.Append(x.ToString("0.##", CultureInfo.InvariantCulture)).Append(' ')
+                    .Append(y.ToString("0.##", CultureInfo.InvariantCulture)).Append(" Td (");
+            }
+
+            _content
+                .Append(escapedText).Append(") Tj ET\n");
+        }
+
+        private string FontResource(string font, bool isBold = false, bool isItalic = false)
+        {
+            var normalized = NormalizeFont(font);
+            if (_embeddedFonts.TryGetValue(normalized, out var embeddedFont))
+                return embeddedFont.ResourceName;
+
+            var baseResource = normalized switch
+            {
+                "Merriweather" or "Lora" or "Cormorant Garamond" or "Playfair Display" or "Cinzel" or "EB Garamond"
+                    or "Cinzel Decorative" or "MedievalSharp" or "Uncial Antiqua" => "F2",
+                "Times-Roman" => "F2",
+                "Courier" => "F3",
+                _ => "F1",
+            };
+
+            return (baseResource, isBold, isItalic) switch
+            {
+                ("F1", true, true) => "F1BI",
+                ("F1", true, false) => "F1B",
+                ("F1", false, true) => "F1I",
+                ("F2", true, true) => "F2BI",
+                ("F2", true, false) => "F2B",
+                ("F2", false, true) => "F2I",
+                ("F3", true, true) => "F3BI",
+                ("F3", true, false) => "F3B",
+                ("F3", false, true) => "F3I",
+                _ => baseResource,
+            };
         }
 
         private static double PxX(int x) => x * PageWidth / TemplatePixelWidth;

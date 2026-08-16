@@ -52,6 +52,35 @@ public class Wfrp4ApiClient
         return await response.Content.ReadAsByteArrayAsync();
     }
 
+    public async Task<byte[]> PrevisualiserFichePdfAsync(int id, PdfSheetLayoutDto layout)
+    {
+        var response = await _http.PostAsJsonAsync($"api/personnages/{id}/fiche-pdf/preview", layout);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
+    public Task<PdfSheetLayoutDto?> GetFichePdfLayoutAsync() =>
+        _http.GetFromJsonAsync<PdfSheetLayoutDto>("api/personnages/fiche-pdf/layout");
+
+    public async Task<byte[]> GetFichePdfTemplateAsync(int page)
+    {
+        var response = await _http.GetAsync($"api/personnages/fiche-pdf/template/{page}");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
+    public Task<List<PdfSheetLayoutSummaryDto>?> GetFichePdfLayoutsAsync() =>
+        _http.GetFromJsonAsync<List<PdfSheetLayoutSummaryDto>>("api/personnages/fiche-pdf/layouts");
+
+    public Task<PdfSheetLayoutDto?> GetFichePdfLayoutAsync(string key) =>
+        _http.GetFromJsonAsync<PdfSheetLayoutDto>($"api/personnages/fiche-pdf/layouts/{Uri.EscapeDataString(key)}");
+
+    public async Task EnregistrerFichePdfLayoutAsync(PdfSheetLayoutDto layout)
+    {
+        var response = await _http.PutAsJsonAsync("api/personnages/fiche-pdf/layout", layout);
+        response.EnsureSuccessStatusCode();
+    }
+
     // --- Avances ---
     public async Task AvancerAsync(int personnageId, AvanceRequest request)
     {
