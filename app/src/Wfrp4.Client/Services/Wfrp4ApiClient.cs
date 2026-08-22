@@ -81,6 +81,13 @@ public class Wfrp4ApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<byte[]> ExporterMjPdfAsync(MjPdfExportRequest request)
+    {
+        var response = await _http.PostAsJsonAsync("api/mj/pdf", request);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
     // --- Avances ---
     public async Task AvancerAsync(int personnageId, AvanceRequest request)
     {

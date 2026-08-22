@@ -78,6 +78,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddScoped<PersonnageService>();
 builder.Services.AddScoped<XPService>();
 builder.Services.AddScoped<CharacterSheetPdfService>();
+builder.Services.AddScoped<MjPdfExportService>();
 builder.Services.AddScoped<PersonnageOwnerFilter>();
 
 // --- Inscription publique (API Admin Keycloak) ---

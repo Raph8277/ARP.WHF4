@@ -1,0 +1,9 @@
+{
+  "name": "yahoo-wfrp4-joueur",
+  "identityProviderAlias": "yahoo",
+  "identityProviderMapper": "hardcoded-role-idp-mapper",
+  "config": {
+    "syncMode": "INHERIT",
+    "role": "wfrp4-joueur"
+  }
+}

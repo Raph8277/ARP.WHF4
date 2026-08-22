@@ -1,0 +1,9 @@
+{
+  "name": "meta-wfrp4-joueur",
+  "identityProviderAlias": "meta",
+  "identityProviderMapper": "hardcoded-role-idp-mapper",
+  "config": {
+    "syncMode": "INHERIT",
+    "role": "wfrp4-joueur"
+  }
+}

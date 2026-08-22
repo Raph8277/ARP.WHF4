@@ -10,6 +10,9 @@ obj/
 .vscode/
 *.swp
 
+## Local secrets
+.env
+
 ## Build
 publish/
 out/

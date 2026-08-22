@@ -738,6 +738,144 @@ body.mud-theme-dark .guide-malus {
 
 /* ── Career Progression (Creation Wizard) ── */
 
+/* --- Atelier MJ --- */
+
+.mj-creature-card {
+    display: grid;
+    grid-template-columns: minmax(180px, 240px) 1fr;
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.mj-creature-card__body {
+    min-width: 0;
+}
+
+.mj-creature-portrait {
+    position: relative;
+    display: flex;
+    min-height: 220px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--mud-palette-primary), transparent 45%);
+    background: linear-gradient(140deg, rgba(56, 48, 40, 0.95), rgba(130, 110, 82, 0.72));
+    color: #f7ecd4;
+    text-align: center;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.mj-creature-portrait::before {
+    position: absolute;
+    inset: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    content: "";
+}
+
+.mj-creature-portrait .mud-icon-root {
+    z-index: 1;
+    width: 4.2rem;
+    height: 4.2rem;
+    opacity: 0.88;
+}
+
+.mj-creature-portrait span {
+    z-index: 1;
+    max-width: 80%;
+    font-family: var(--wfrp4-font-heading, "Cormorant Garamond", Georgia, serif);
+    font-size: 1.45rem;
+    line-height: 1.05;
+}
+
+.mj-creature-portrait--human {
+    background: linear-gradient(145deg, #4c4236, #b48b54);
+}
+
+.mj-creature-portrait--beast {
+    background: linear-gradient(145deg, #263820, #7f7a42);
+}
+
+.mj-creature-portrait--undead {
+    background: linear-gradient(145deg, #1f2430, #7d8792);
+}
+
+.mj-creature-portrait--chaos {
+    background: linear-gradient(145deg, #2a1022, #9b3030);
+}
+
+.mj-creature-portrait--greenskin {
+    background: linear-gradient(145deg, #1f341f, #6f8c35);
+}
+
+.mj-creature-portrait--vermin {
+    background: linear-gradient(145deg, #2f2924, #7a5d47);
+}
+
+.mj-creature-portrait--spirit {
+    background: linear-gradient(145deg, #1f3440, #80a8b6);
+}
+
+.mj-creature-portrait--monster {
+    background: linear-gradient(145deg, #31251f, #9a5b31);
+}
+
+.mj-group-member {
+    display: grid;
+    grid-template-columns: 74px 1fr;
+    gap: 0.75rem;
+    align-items: stretch;
+    height: 100%;
+    padding: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--mud-palette-primary), transparent 55%);
+    background: color-mix(in srgb, var(--mud-palette-surface), transparent 8%);
+}
+
+.mj-group-member__portrait {
+    display: flex;
+    min-height: 98px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--mud-palette-primary), transparent 50%);
+    color: #f7ecd4;
+}
+
+.mj-group-member__portrait .mud-icon-root {
+    width: 2.5rem;
+    height: 2.5rem;
+    opacity: 0.9;
+}
+
+.mj-group-member__body {
+    min-width: 0;
+}
+
+.mj-setup-cell--inactive {
+    background: color-mix(in srgb, var(--mud-palette-surface), #777 16%);
+    opacity: 0.58;
+}
+
+.mj-setup-cell--inactive .mud-input,
+.mj-setup-cell--inactive .mud-input-control,
+.mj-setup-cell--inactive .mud-select {
+    cursor: not-allowed;
+}
+
+@media (max-width: 800px) {
+    .mj-creature-card {
+        grid-template-columns: 1fr;
+    }
+
+    .mj-creature-portrait {
+        min-height: 150px;
+    }
+
+    .mj-group-member {
+        grid-template-columns: 1fr;
+    }
+}
+
 .career-progression {
     display: flex;
     gap: 0;

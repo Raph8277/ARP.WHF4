@@ -45,6 +45,20 @@ Le realm `wfrp4`, les clients OIDC et les rôles sont importés automatiquement 
 
 L'admin Keycloak reste disponible sur `http://localhost:8080/admin` si vous voulez inspecter ou enrichir cette configuration.
 
+Connecteurs sociaux importés avec le realm :
+- Google : variables `WFRP4_GOOGLE_CLIENT_ID` et `WFRP4_GOOGLE_CLIENT_SECRET`
+- Yahoo : variables `WFRP4_YAHOO_CLIENT_ID` et `WFRP4_YAHOO_CLIENT_SECRET`
+- Meta : variables `WFRP4_META_CLIENT_ID` et `WFRP4_META_CLIENT_SECRET`
+
+Guide detaille pour Google : [docs/HowToConnectGoogle.md](../docs/HowToConnectGoogle.md).
+
+Avant `docker compose up -d`, renseignez les variables nécessaires dans votre shell ou dans un fichier `.env` au niveau du dossier `app`. Les URLs de redirection à déclarer côté fournisseur sont :
+- Google : `http://localhost:8080/realms/wfrp4/broker/google/endpoint`
+- Yahoo : `http://localhost:8080/realms/wfrp4/broker/yahoo/endpoint`
+- Meta : `http://localhost:8080/realms/wfrp4/broker/meta/endpoint`
+
+Les comptes créés via ces connecteurs reçoivent automatiquement le rôle `wfrp4-joueur`.
+
 ### 3. Migration et seed
 
 ```bash
