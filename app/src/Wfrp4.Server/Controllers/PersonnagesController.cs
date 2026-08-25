@@ -48,6 +48,7 @@ public class PersonnagesController : ControllerBase
             {
                 Id = p.Id,
                 Nom = p.Nom,
+                Genre = p.Genre,
                 EspeceNom = p.Espece.Nom,
                 CarriereCouranteIntitule = p.CarriereCourante != null ? p.CarriereCourante.Intitule : null,
                 StatutTier = p.CarriereCourante != null ? p.CarriereCourante.Statut : null,
@@ -79,6 +80,7 @@ public class PersonnagesController : ControllerBase
             {
                 Id = pp.Personnage.Id,
                 Nom = pp.Personnage.Nom,
+                Genre = pp.Personnage.Genre,
                 EspeceNom = pp.Personnage.Espece.Nom,
                 CarriereCouranteIntitule = pp.Personnage.CarriereCourante != null ? pp.Personnage.CarriereCourante.Intitule : null,
                 StatutTier = pp.Personnage.CarriereCourante != null ? pp.Personnage.CarriereCourante.Statut : null,
@@ -104,12 +106,16 @@ public class PersonnagesController : ControllerBase
             .AsNoTracking()
             .Include(p => p.Espece)
             .Include(p => p.CarriereCourante)
+            .Include(p => p.TitreBaseReference)
+            .Include(p => p.TitreQualificatifReference)
             .Include(p => p.Caracteristiques)
             .Include(p => p.Competences).ThenInclude(c => c.Competence)
             .Include(p => p.Talents).ThenInclude(t => t.Talent)
             .Include(p => p.Carrieres).ThenInclude(c => c.NiveauCarriere).ThenInclude(n => n.Carriere).ThenInclude(c => c.Classe)
             .Include(p => p.HistoriqueXP)
             .Include(p => p.Possessions)
+            .Include(p => p.Sorts).ThenInclude(s => s.SortReference)
+            .Include(p => p.Parchemins).ThenInclude(p => p.SortReference)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (personnage == null) return NotFound();
@@ -137,6 +143,7 @@ public class PersonnagesController : ControllerBase
         {
             Id = personnage.Id,
             Nom = personnage.Nom,
+            Genre = personnage.Genre,
             EspeceId = personnage.EspeceId,
             EspeceNom = personnage.Espece.Nom,
             CarriereCouranteId = personnage.CarriereCouranteId,
@@ -155,6 +162,10 @@ public class PersonnagesController : ControllerBase
             PistolesArgent = personnage.PistolesArgent,
             SousCuivre = personnage.SousCuivre,
             Motivation = personnage.Motivation,
+            TitreBaseReferenceId = personnage.TitreBaseReferenceId,
+            TitreBaseLibelle = personnage.TitreBaseReference != null ? personnage.TitreBaseReference.Libelle : null,
+            TitreQualificatifReferenceId = personnage.TitreQualificatifReferenceId,
+            TitreQualificatifLibelle = personnage.TitreQualificatifReference != null ? personnage.TitreQualificatifReference.Libelle : null,
             AmbitionCourtTerme = personnage.AmbitionCourtTerme,
             AmbitionLongTerme = personnage.AmbitionLongTerme,
             GroupeNom = personnage.GroupeNom,
@@ -223,6 +234,37 @@ public class PersonnagesController : ControllerBase
                 Type = p.Type,
                 Quantite = p.Quantite,
             }).ToList(),
+            Sorts = personnage.Sorts
+                .OrderBy(s => s.SortReference.Nom)
+                .Select(s => new PersonnageSortDto
+                {
+                    Id = s.Id,
+                    SortReferenceId = s.SortReferenceId,
+                    SortNom = s.SortReference.Nom,
+                    Categorie = s.SortReference.Categorie,
+                    Domaine = s.SortReference.Domaine,
+                    Cn = s.SortReference.Cn,
+                    Portee = s.SortReference.Portee,
+                    Cible = s.SortReference.Cible,
+                    Duree = s.SortReference.Duree,
+                    Resume = s.SortReference.Resume,
+                }).ToList(),
+            Parchemins = personnage.Parchemins
+                .OrderBy(p => p.SortReference.Nom)
+                .Select(p => new PersonnageParcheminDto
+                {
+                    Id = p.Id,
+                    SortReferenceId = p.SortReferenceId,
+                    SortNom = p.SortReference.Nom,
+                    Categorie = p.SortReference.Categorie,
+                    Domaine = p.SortReference.Domaine,
+                    Cn = p.SortReference.Cn,
+                    Portee = p.SortReference.Portee,
+                    Cible = p.SortReference.Cible,
+                    Duree = p.SortReference.Duree,
+                    Resume = p.SortReference.Resume,
+                    Quantite = p.Quantite,
+                }).ToList(),
         };
 
         return Ok(dto);
@@ -331,6 +373,31 @@ public class PersonnagesController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Nom))
             return BadRequest(new { Error = "Le nom est obligatoire." });
 
+        if (request.TitreBaseReferenceId.HasValue != request.TitreQualificatifReferenceId.HasValue)
+            return BadRequest(new { Error = "Le titre doit comporter une base et un qualificatif, ou rester vide." });
+
+        var personnageAvecNiveau = await _db.Personnages
+            .AsNoTracking()
+            .Include(p => p.CarriereCourante)
+            .FirstAsync(p => p.Id == id);
+        var niveauMaitriseMax = personnageAvecNiveau.CarriereCourante?.Niveau ?? 1;
+
+        if (request.TitreBaseReferenceId.HasValue)
+        {
+            var titreBaseValide = await _db.TitresBaseReference
+                .AnyAsync(t => t.Id == request.TitreBaseReferenceId.Value && t.NiveauMaitrise <= niveauMaitriseMax);
+            if (!titreBaseValide)
+                return BadRequest(new { Error = "Titre de base inaccessible pour le niveau de maîtrise actuel." });
+        }
+
+        if (request.TitreQualificatifReferenceId.HasValue)
+        {
+            var titreQualificatifValide = await _db.TitresQualificatifReference
+                .AnyAsync(t => t.Id == request.TitreQualificatifReferenceId.Value && t.NiveauMaitrise <= niveauMaitriseMax);
+            if (!titreQualificatifValide)
+                return BadRequest(new { Error = "Qualificatif de titre inaccessible pour le niveau de maîtrise actuel." });
+        }
+
         await _personnageService.MettreAJourPersonnage(id, request);
         return await GetPersonnage(id);
     }
@@ -345,6 +412,7 @@ public class PersonnagesController : ControllerBase
         {
             Id = personnage.Id,
             Nom = personnage.Nom,
+            Genre = personnage.Genre,
             EstPartage = false,
         });
     }
@@ -407,6 +475,101 @@ public class PersonnagesController : ControllerBase
         if (possession == null) return NotFound();
 
         _db.PersonnagePossessions.Remove(possession);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // --- Sorts et parchemins ---
+
+    [HttpPost("{id}/sorts")]
+    [ServiceFilter(typeof(PersonnageOwnerFilter))]
+    public async Task<IActionResult> AjouterSort(int id, AjoutSortRequest request)
+    {
+        var personnage = await _db.Personnages
+            .Include(p => p.Sorts)
+            .FirstOrDefaultAsync(p => p.Id == id);
+        if (personnage == null) return NotFound();
+        if (!IsOwnerOrAdmin(personnage.KeycloakId)) return Forbid();
+
+        if (personnage.Sorts.Any(s => s.SortReferenceId == request.SortReferenceId))
+            return BadRequest(new { Error = "Le personnage connaît déjà ce sort." });
+
+        var sort = await _db.SortsReference.FindAsync(request.SortReferenceId);
+        if (sort == null) return BadRequest(new { Error = "Sort introuvable." });
+
+        personnage.Sorts.Add(new Infrastructure.Entities.PersonnageSort
+        {
+            SortReferenceId = request.SortReferenceId,
+        });
+        personnage.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return Ok();
+    }
+
+    [HttpDelete("{id}/sorts/{sortId}")]
+    [ServiceFilter(typeof(PersonnageOwnerFilter))]
+    public async Task<IActionResult> SupprimerSort(int id, int sortId)
+    {
+        var sort = await _db.PersonnageSorts
+            .Include(s => s.Personnage)
+            .FirstOrDefaultAsync(s => s.Id == sortId && s.PersonnageId == id);
+
+        if (sort == null) return NotFound();
+        if (!IsOwnerOrAdmin(sort.Personnage.KeycloakId)) return Forbid();
+
+        _db.PersonnageSorts.Remove(sort);
+        sort.Personnage.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPost("{id}/parchemins")]
+    [ServiceFilter(typeof(PersonnageOwnerFilter))]
+    public async Task<IActionResult> AjouterParchemin(int id, AjoutParcheminRequest request)
+    {
+        var personnage = await _db.Personnages
+            .Include(p => p.Parchemins)
+            .FirstOrDefaultAsync(p => p.Id == id);
+        if (personnage == null) return NotFound();
+        if (!IsOwnerOrAdmin(personnage.KeycloakId)) return Forbid();
+
+        var sort = await _db.SortsReference.FindAsync(request.SortReferenceId);
+        if (sort == null) return BadRequest(new { Error = "Sort introuvable." });
+
+        var quantite = request.Quantite > 0 ? request.Quantite : 1;
+        var existant = personnage.Parchemins.FirstOrDefault(p => p.SortReferenceId == request.SortReferenceId);
+        if (existant != null)
+        {
+            existant.Quantite += quantite;
+        }
+        else
+        {
+            personnage.Parchemins.Add(new Infrastructure.Entities.PersonnageParchemin
+            {
+                SortReferenceId = request.SortReferenceId,
+                Quantite = quantite,
+            });
+        }
+
+        personnage.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpDelete("{id}/parchemins/{parcheminId}")]
+    [ServiceFilter(typeof(PersonnageOwnerFilter))]
+    public async Task<IActionResult> SupprimerParchemin(int id, int parcheminId)
+    {
+        var parchemin = await _db.PersonnageParchemins
+            .Include(p => p.Personnage)
+            .FirstOrDefaultAsync(p => p.Id == parcheminId && p.PersonnageId == id);
+
+        if (parchemin == null) return NotFound();
+        if (!IsOwnerOrAdmin(parchemin.Personnage.KeycloakId)) return Forbid();
+
+        _db.PersonnageParchemins.Remove(parchemin);
+        parchemin.Personnage.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return NoContent();
     }

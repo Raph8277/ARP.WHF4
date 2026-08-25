@@ -6,6 +6,7 @@ public class PersonnageSummaryDto
 {
     public int Id { get; set; }
     public string Nom { get; set; } = null!;
+    public GenrePersonnage Genre { get; set; }
     public string EspeceNom { get; set; } = null!;
     public string? CarriereCouranteIntitule { get; set; }
     public StatutTier? StatutTier { get; set; }
@@ -23,6 +24,7 @@ public class PersonnageDetailDto
 {
     public int Id { get; set; }
     public string Nom { get; set; } = null!;
+    public GenrePersonnage Genre { get; set; }
     public int EspeceId { get; set; }
     public string EspeceNom { get; set; } = null!;
     public int? CarriereCouranteId { get; set; }
@@ -45,6 +47,14 @@ public class PersonnageDetailDto
     public int SousCuivre { get; set; }
 
     public string? Motivation { get; set; }
+    public int? TitreBaseReferenceId { get; set; }
+    public string? TitreBaseLibelle { get; set; }
+    public int? TitreQualificatifReferenceId { get; set; }
+    public string? TitreQualificatifLibelle { get; set; }
+    public string? TitreComplet =>
+        string.IsNullOrWhiteSpace(TitreBaseLibelle) || string.IsNullOrWhiteSpace(TitreQualificatifLibelle)
+            ? null
+            : TitreGenreHelper.Assembler(TitreBaseLibelle, TitreQualificatifLibelle, Genre);
     public string? AmbitionCourtTerme { get; set; }
     public string? AmbitionLongTerme { get; set; }
     public string? GroupeNom { get; set; }
@@ -70,6 +80,8 @@ public class PersonnageDetailDto
     public List<PersonnageCarriereDto> Carrieres { get; set; } = [];
     public List<HistoriqueXPDto> HistoriqueXP { get; set; } = [];
     public List<PossessionDto> Possessions { get; set; } = [];
+    public List<PersonnageSortDto> Sorts { get; set; } = [];
+    public List<PersonnageParcheminDto> Parchemins { get; set; } = [];
 }
 
 public class CaracteristiqueDto
@@ -116,6 +128,35 @@ public class PossessionDto
     public int Quantite { get; set; }
 }
 
+public class PersonnageSortDto
+{
+    public int Id { get; set; }
+    public int SortReferenceId { get; set; }
+    public string SortNom { get; set; } = null!;
+    public string Categorie { get; set; } = null!;
+    public string? Domaine { get; set; }
+    public int? Cn { get; set; }
+    public string? Portee { get; set; }
+    public string? Cible { get; set; }
+    public string? Duree { get; set; }
+    public string? Resume { get; set; }
+}
+
+public class PersonnageParcheminDto
+{
+    public int Id { get; set; }
+    public int SortReferenceId { get; set; }
+    public string SortNom { get; set; } = null!;
+    public string Categorie { get; set; } = null!;
+    public string? Domaine { get; set; }
+    public int? Cn { get; set; }
+    public string? Portee { get; set; }
+    public string? Cible { get; set; }
+    public string? Duree { get; set; }
+    public string? Resume { get; set; }
+    public int Quantite { get; set; }
+}
+
 public class AjoutPossessionRequest
 {
     public string Nom { get; set; } = null!;
@@ -131,6 +172,17 @@ public class AjoutCompetenceRequest
 public class AjoutTalentRequest
 {
     public int TalentId { get; set; }
+}
+
+public class AjoutSortRequest
+{
+    public int SortReferenceId { get; set; }
+}
+
+public class AjoutParcheminRequest
+{
+    public int SortReferenceId { get; set; }
+    public int Quantite { get; set; } = 1;
 }
 
 public class HistoriqueXPDto

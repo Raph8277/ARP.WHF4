@@ -131,6 +131,31 @@ public class Wfrp4ApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    // --- Sorts et parchemins ---
+    public async Task AjouterSortAsync(int personnageId, AjoutSortRequest request)
+    {
+        var response = await _http.PostAsJsonAsync($"api/personnages/{personnageId}/sorts", request);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task SupprimerSortAsync(int personnageId, int sortId)
+    {
+        var response = await _http.DeleteAsync($"api/personnages/{personnageId}/sorts/{sortId}");
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task AjouterParcheminAsync(int personnageId, AjoutParcheminRequest request)
+    {
+        var response = await _http.PostAsJsonAsync($"api/personnages/{personnageId}/parchemins", request);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task SupprimerParcheminAsync(int personnageId, int parcheminId)
+    {
+        var response = await _http.DeleteAsync($"api/personnages/{personnageId}/parchemins/{parcheminId}");
+        response.EnsureSuccessStatusCode();
+    }
+
     // --- Ajout compétence / talent ---
     public async Task AjouterCompetenceAsync(int personnageId, AjoutCompetenceRequest request)
     {
@@ -162,4 +187,13 @@ public class Wfrp4ApiClient
 
     public Task<List<ArmeReferenceDto>?> GetArmesAsync() =>
         _http.GetFromJsonAsync<List<ArmeReferenceDto>>("api/armes");
+
+    public Task<List<SortReferenceDto>?> GetSortsAsync() =>
+        _http.GetFromJsonAsync<List<SortReferenceDto>>("api/sorts");
+
+    public Task<List<TitreBaseReferenceDto>?> GetTitresBaseAsync() =>
+        _http.GetFromJsonAsync<List<TitreBaseReferenceDto>>("api/titres/bases");
+
+    public Task<List<TitreQualificatifReferenceDto>?> GetTitresQualificatifsAsync() =>
+        _http.GetFromJsonAsync<List<TitreQualificatifReferenceDto>>("api/titres/qualificatifs");
 }

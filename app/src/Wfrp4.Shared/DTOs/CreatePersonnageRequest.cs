@@ -1,10 +1,15 @@
 namespace Wfrp4.Shared.DTOs;
 
+using Wfrp4.Shared.Models;
+
 public class CreatePersonnageRequest
 {
     public string Nom { get; set; } = null!;
+    public GenrePersonnage Genre { get; set; } = GenrePersonnage.Masculin;
     public int EspeceId { get; set; }
     public int NiveauCarriereId { get; set; }
+    public int? TitreBaseReferenceId { get; set; }
+    public int? TitreQualificatifReferenceId { get; set; }
     public Dictionary<string, int> CaracteristiquesInitiales { get; set; } = new();
     public string? Motivation { get; set; }
     public int? Age { get; set; }

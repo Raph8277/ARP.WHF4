@@ -739,6 +739,74 @@ public static class Wfrp4DataSeeder
             await db.SaveChangesAsync(cancellationToken);
         }
 
+        {
+            var existingSorts = await db.SortsReference.ToDictionaryAsync(s => s.Code, cancellationToken);
+
+            foreach (var sort in GetSortsReference())
+            {
+                if (existingSorts.TryGetValue(sort.Code, out var existing))
+                {
+                    existing.Nom = sort.Nom;
+                    existing.Categorie = sort.Categorie;
+                    existing.Domaine = sort.Domaine;
+                    existing.Cn = sort.Cn;
+                    existing.Portee = sort.Portee;
+                    existing.Cible = sort.Cible;
+                    existing.Duree = sort.Duree;
+                    existing.Resume = sort.Resume;
+                }
+                else
+                {
+                    db.SortsReference.Add(sort);
+                }
+            }
+
+            if (db.ChangeTracker.HasChanges())
+                await db.SaveChangesAsync(cancellationToken);
+        }
+
+        {
+            var existingBases = await db.TitresBaseReference.ToDictionaryAsync(t => t.Code, cancellationToken);
+
+            foreach (var titre in GetTitresBaseReference())
+            {
+                if (existingBases.TryGetValue(titre.Code, out var existing))
+                {
+                    existing.Libelle = titre.Libelle;
+                    existing.Ordre = titre.Ordre;
+                    existing.NiveauMaitrise = titre.NiveauMaitrise;
+                }
+                else
+                {
+                    db.TitresBaseReference.Add(titre);
+                }
+            }
+
+            if (db.ChangeTracker.HasChanges())
+                await db.SaveChangesAsync(cancellationToken);
+        }
+
+        {
+            var existingQualificatifs = await db.TitresQualificatifReference.ToDictionaryAsync(t => t.Code, cancellationToken);
+
+            foreach (var titre in GetTitresQualificatifReference())
+            {
+                if (existingQualificatifs.TryGetValue(titre.Code, out var existing))
+                {
+                    existing.Libelle = titre.Libelle;
+                    existing.Ordre = titre.Ordre;
+                    existing.NiveauMaitrise = titre.NiveauMaitrise;
+                }
+                else
+                {
+                    db.TitresQualificatifReference.Add(titre);
+                }
+            }
+
+            if (db.ChangeTracker.HasChanges())
+                await db.SaveChangesAsync(cancellationToken);
+        }
+
         await SeedTraitsPhysiquesAsync(db, cancellationToken);
 
         if (!await db.Personnages.AnyAsync(p => p.KeycloakId == DemoJoueurId, cancellationToken))
@@ -865,6 +933,335 @@ public static class Wfrp4DataSeeder
         personnage.Fortune = personnage.Destin;
         personnage.Resilience = 1;
         personnage.Resolution = personnage.Resilience;
+    }
+
+    private static IEnumerable<SortReference> GetSortsReference()
+    {
+        var sorts = new List<SortReference>();
+
+        void Add(string categorie, string? domaine, string nom, int? cn = null, string? portee = null, string? cible = null, string? duree = null, string? resume = null)
+        {
+            sorts.Add(new SortReference
+            {
+                Code = $"{categorie}:{domaine ?? "GENERAL"}:{nom}",
+                Categorie = categorie,
+                Domaine = domaine,
+                Nom = nom,
+                Cn = cn,
+                Portee = portee,
+                Cible = cible,
+                Duree = duree,
+                Resume = resume ?? $"Sort de {categorie.ToLowerInvariant()}{(string.IsNullOrWhiteSpace(domaine) ? string.Empty : $" ({domaine})")}. Consultez les champs de lancement et la description complète dans le livre de règles si la table joue avec les effets détaillés.",
+            });
+        }
+
+        Add("Mineur", null, "Repères", 0, "Vous", "Vous", "Instantanée", "Le lanceur ressent la provenance des vents de magie et sait immédiatement où se trouve le nord.");
+        Add("Mineur", null, "Éblouir", 0, "Toucher", "1", "Bonus FM rounds", "La cible reçoit une condition Aveuglé, puis en reçoit une autre au début de chaque round pendant la durée du sort.");
+        Add("Mineur", null, "Pas Prudent", 0, "Vous", "Vous", "FM minutes", "Le passage du lanceur ne marque presque pas les matières organiques ; les tests de Pistage en milieu rural subissent un fort malus.");
+        Add("Mineur", null, "Ami des Animaux", 0, "1 mètre", "1", "1 heure", "Une petite créature bestiale fait confiance au lanceur et le considère comme un ami.");
+        Add("Mineur", null, "Conservez", 0, "1 mètre", "1", "Bonus FM jours", "Préserve jusqu'à une journée de rations contre la décomposition naturelle pendant la durée du sort.");
+        Add("Mineur", null, "Fléchette", 0, "FM mètres", "1", "Instantanée", "Projette une petite fléchette d'énergie, traitée comme un missile magique de dégâts +0.");
+        Add("Mineur", null, "Drainage", 0, "Toucher", "1", "Instantanée", "Draine la vitalité d'une cible comme un missile magique de dégâts +0 ignorant la protection, puis soigne 1 blessure au lanceur.");
+        Add("Mineur", null, "Écoute Indiscrète", 0, "FM mètres", "1", "Bonus I minutes", "Permet d'entendre les paroles de la cible comme si le lanceur se trouvait juste à côté.");
+        Add("Mineur", null, "Ouvrir la Serrure", 0, "Toucher", "Spécial", "Instantanée", "Ouvre une serrure non magique touchée par le lanceur.");
+        Add("Mineur", null, "Produire un Petit Animal", 0, "Toucher", "Spécial", "Instantanée", "Fait apparaître un petit animal local attendu dans un sac, un chapeau, un terrier ou une cache similaire.");
+        Add("Mineur", null, "Rafale", 0, "FM mètres", "Spécial", "Instantanée", "Crée un bref coup de vent capable d'éteindre une bougie, pousser une porte ou disperser quelques pages.");
+        Add("Mineur", null, "Lumière", 0, "Vous", "Vous", "FM minutes", "Produit une lumière portée par le lanceur, généralement comparable à une torche et modulable avec de la canalisation.");
+        Add("Mineur", null, "Protection Contre la Pluie", 0, "Vous", "Vous", "Bonus E heures", "Garde le lanceur au sec contre les précipitations naturelles ou similaires venues du ciel.");
+        Add("Mineur", null, "Flamme Magique", 0, "Vous", "Spécial", "Instantanée", "Allume dans la main une petite flamme inoffensive pour le lanceur, mais capable de chauffer et d'enflammer comme une flamme ordinaire.");
+        Add("Mineur", null, "Purifier Eau", 0, "1 mètre", "Vous", "Bonus FM rounds", "Purifie l'eau contenue dans un récipient, retirant les impuretés non magiques et rendant le liquide potable.");
+        Add("Mineur", null, "Feux de Marais", 0, "FM mètres", "Spécial", "FM minutes", "Crée plusieurs lumières magiques mobiles que le lanceur peut diriger avec un test de Canalisation.");
+        Add("Mineur", null, "Flétrir", 0, "1 mètre", "Spécial", "Instantanée", "Fait pourrir un petit volume de matière organique, comme nourriture, tissu, cuir ou végétation.");
+        Add("Mineur", null, "Sommeil", 0, "Toucher", "1", "Bonus FM rounds", "Plonge la cible touchée dans le sommeil ; une cible déjà à terre peut devenir inconsciente.");
+        Add("Mineur", null, "Murmure Chuchotant", 0, "FM mètres", "Spécial", "Bonus FM rounds", "Fait entendre la voix du lanceur depuis un point choisi à portée, indépendamment de la ligne de vue.");
+        Add("Mineur", null, "Avertissement", 0, "1 mètre", "Spécial", "Instantanée", "Révèle immédiatement si un objet touché est empoisonné ou piégé.");
+        Add("Mineur", null, "Printemps", 0, "Toucher", "Spécial", "Bonus FM rounds", "Fait jaillir de l'eau du sol par petites quantités pendant la durée du sort.");
+        Add("Mineur", null, "Choc", 0, "Toucher", "1", "Instantanée", "La cible touchée reçoit 1 condition Étourdi.");
+        Add("Mineur", null, "Mains Sournoises", 0, "Vous", "Vous", "Bonus FM rounds", "Téléporte dans la main du lanceur un petit objet de la taille d'un poing ou moins.");
+        Add("Mineur", null, "Sons", 0, "FM mètres", "Spécial", "Bonus FM rounds", "Crée de petits bruits indistincts ou évocateurs à portée, pouvant être contrôlés par canalisation.");
+        Add("Mineur", null, "Tics", 0, "Bonus FM mètres", "Spécial", "Instantanée", "Déplace légèrement un petit objet ; un porteur peut tenter un test de Dextérité pour ne pas le lâcher.");
+
+        Add("Arcanique", null, "Armure Aéthyrique", 2, "Vous", "Vous", "Bonus FM rounds +", "Enveloppe le lanceur d'une protection magique accordant +1 point de protection à toutes les localisations.");
+        Add("Arcanique", null, "Arme Aéthyrique", 2, "Vous", "Vous", "Bonus FM rounds +", "Crée une arme de mêlée magique dont les dégâts dépendent du Bonus de FM et dont la forme est choisie par le lanceur.");
+        Add("Arcanique", null, "Bouclier Flèche", 3, "Vous", "AoE (Bonus FM mètres)", "Bonus FM rounds +", "Détruit automatiquement les projectiles organiques traversant la zone, comme les flèches à fût de bois.");
+        Add("Arcanique", null, "Sang Corrosif", 4, "Vous", "Vous", "Bonus FM rounds", "Imprègne le sang du lanceur d'une puissance corrosive et lui donne le trait de créature correspondant.");
+        Add("Arcanique", null, "Explosion redoutable", 4, "FM mètres", "AoE (Bonus FM mètres)", "Instantanée", "Déclenche une détonation magique en zone, traitée comme un missile magique de dégâts +3.");
+        Add("Arcanique", null, "Sombre Vision", 1, "Vous", "Vous", "Bonus FM rounds", "Renforce la seconde vue et les sens ordinaires du lanceur en lui donnant Vision Noire.");
+        Add("Arcanique", null, "Projectile", 4, "FM mètres", "1", "Instantanée", "Lance un projectile d'énergie, traité comme un missile magique de dégâts +4.");
+        Add("Arcanique", null, "Distrayant", 4, "Vous", "Vous", "Bonus FM rounds", "Enveloppe le lanceur d'une magie perturbante qui lui donne le trait Distrayant.");
+        Add("Arcanique", null, "Souffle", 6, "1 mètre", "Spécial", "Instantanée", "Produit immédiatement une attaque de souffle magique dont les dégâts dépendent du Bonus d'Endurance.");
+        Add("Arcanique", null, "Dôme", 7, "Vous", "AoE (Bonus FM mètres)", "Bonus FM rounds", "Crée un dôme protecteur contre les attaques magiques ou à distance venant de l'extérieur.");
+        Add("Arcanique", null, "Pont", 4, "FM mètres", "AoE (voir description)", "Bonus FM rounds +", "Forme un pont d'énergie magique dont les dimensions dépendent du Bonus de FM et de la surpuissance.");
+        Add("Arcanique", null, "Tomber", 1, "FM mètres", "1", "Instantanée", "Force une cible à lâcher un objet tenu sauf réussite d'un test de Dextérité, avec malus possible en surpuissance.");
+        Add("Arcanique", null, "Attaque en Chaîne", 6, "FM mètres", "Spécial", "Instantanée", "Rayon magique de dégâts +4 pouvant rebondir vers une nouvelle cible si la précédente tombe à 0 blessure.");
+        Add("Arcanique", null, "Enchevêtrement", 3, "FM mètres", "1", "Spécial", "Inflige une condition Enchevêtré dont la force dépend de l'Intelligence, avec conditions supplémentaires possibles.");
+        Add("Arcanique", null, "Aura Ordinaire", 4, "Vous", "Vous", "FM minutes", "Masque l'aura magique du lanceur et de ses possessions tant qu'il ne canalise ni ne lance d'autre sort.");
+        Add("Arcanique", null, "Effrayant", 3, "Vous", "Vous", "Bonus FM rounds", "Rend le lanceur intimidant et lui donne Peur 1, améliorable par la surpuissance.");
+        Add("Arcanique", null, "Pousser", 6, "Vous", "Vous", "Instantanée", "Repousse les créatures vivantes proches, les met à terre et peut infliger des dégâts contre un obstacle.");
+        Add("Arcanique", null, "Téléportation", 5, "Vous", "Vous", "Instantanée", "Téléporte le lanceur sur une courte distance dépendant du Bonus de FM, augmentable par la surpuissance.");
+        Add("Arcanique", null, "Voler", 8, "Vous", "Vous", "Bonus FM rounds +", "Permet au lanceur de voler en gagnant le trait Vol basé sur son Agilité.");
+        Add("Arcanique", null, "Bouclier Magique", 4, "Vous", "Vous", "Bonus FM rounds", "Entoure le lanceur d'une protection qui augmente ses tentatives de dissipation.");
+        Add("Arcanique", null, "Terrifiant", 7, "Vous", "Vous", "Bonus FM rounds", "Confère au lanceur Terreur (1) pendant la durée du sort.");
+        Add("Arcanique", null, "Éviter", 5, "Vous", "Vous", "1 round", "Protège magiquement le lanceur en lui donnant Éviter (9+).");
+        Add("Arcanique", null, "Déplacer un Objet", 4, "FM mètres", "1 objet", "Bonus FM rounds", "Déplace par volonté un objet non conscient jusqu'à une taille comparable au lanceur, avec opposition possible.");
+
+        Add("Tradition", "Bêtes", "Langue de Bête", 3, "Vous", "Vous", "FM minutes", "Permet de communiquer avec les créatures bestiales et donne un bonus aux interactions animales, mais empêche de parler normalement et de lancer des sorts.");
+        Add("Tradition", "Bêtes", "Talons d'Ambre", 6, "Vous", "Vous", "Bonus FM rounds", "Transforme les ongles en serres magiques utilisables en bagarre, avec dégâts basés sur le Bonus de FM et risque de saignement.");
+        Add("Tradition", "Bêtes", "Le Fléau du Destin", 8, "FM mètres", "AoE (Bonus FM mètres)", "Bonus FM rounds", "Appelle une nuée d'oiseaux locaux qui attaque les ennemis dans la zone et les gêne fortement.");
+        Add("Tradition", "Bêtes", "Forme de Bête", 5, "Vous", "Vous", "FM minutes", "Transforme le lanceur en bête du Reikland, remplaçant plusieurs caractéristiques et interdisant parole, incantation et dissipation.");
+        Add("Tradition", "Bêtes", "Maître des Bêtes", 10, "Bonus FM mètres", "1", "Bonus FM jours", "Soumet une créature bestiale au rôle de protecteur fidèle capable de suivre des instructions simples.");
+        Add("Tradition", "Bêtes", "Peau de Chasseur", 6, "Vous", "Vous", "Bonus FM rounds", "Couvre le lanceur d'un manteau de Ghur, améliorant son endurance et lui donnant plusieurs traits de prédateur.");
+        Add("Tradition", "Bêtes", "La Lance d'Ambre", 8, "FM mètres", "Spécial", "Instantanée", "Projette une lance de Ghur en ligne droite, missile magique puissant qui traverse plusieurs cibles tant qu'il blesse.");
+        Add("Tradition", "Bêtes", "Condition de Fourrure Pourpre", 9, "Vous", "Vous", "Bonus FM rounds", "Enveloppe le lanceur d'une fourrure mystique augmentant l'armure et la peur.");
+        Add("Tradition", "Bêtes", "Forme Sauvage de Wyssan", 8, "Vous", "Vous", "Bonus FM rounds", "Imprègne le lanceur de sauvagerie, lui accordant plusieurs traits de créature combatifs et bestiaux.");
+
+        Add("Tradition", "Mort", "Caresse de Laniph", 7, "Toucher", "Spécial", "Instantanée", "Attaque au toucher comme un missile magique qui ignore endurance et protection, en convertissant une partie des blessures en soins.");
+        Add("Tradition", "Mort", "Mots de la Mort", 6, "Toucher", "1", "Bonus FM rounds", "Rappelle brièvement l'âme d'un mort récent pour permettre au lanceur de lui parler.");
+        Add("Tradition", "Mort", "Vortex de l'âme", 8, "FM mètres", "AoE (Bonus FM mètres)", "Instantanée", "Boule de Shyish infligeant la panique aux vivants et frappant très durement les morts-vivants.");
+        Add("Tradition", "Mort", "Volez la Vie", 7, "FM mètres", "1", "Instantanée", "Missile magique vampirique de dégâts +6 ignorant les armures, qui retire la fatigue du lanceur et peut le soigner.");
+        Add("Tradition", "Mort", "Franchissement du Seuil", 6, "Toucher", "Spécial", "Instantanée", "Accorde une mort définitive à une cible mourante lourdement blessée et empêche son relèvement mort-vivant.");
+        Add("Tradition", "Mort", "Sanctifier", 10, "Toucher", "AoE (Bonus FM mètres)", "FM minutes", "Trace un cercle protégé par Shyish que les morts-vivants ne peuvent ni franchir ni quitter.");
+        Add("Tradition", "Mort", "Faux de Shythe", 6, "Vous", "Vous", "Bonus FM rounds", "Fait apparaître une faux magique utilisable en mêlée, particulièrement intimidante contre les morts-vivants.");
+
+        Add("Tradition", "Feu", "Égide d'Aqshy", 5, "Vous", "Vous", "Bonus FM rounds", "Manteau ardent protégeant des flammes non magiques, des conditions Enflammé et de certaines attaques de feu magiques.");
+        Add("Tradition", "Feu", "Cautérisation", 4, "Toucher", "1", "Instantanée", "Soigne des blessures, retire les saignements et prévient l'infection, au prix d'une douleur intense pour les non-initiés au feu.");
+        Add("Tradition", "Feu", "Couronne de Flamme", 8, "Vous", "Vous", "Bonus FM rounds", "Couronne d'Aqshy accordant Peur, autorité martiale et bonus aux tests liés au feu.");
+        Add("Tradition", "Feu", "Cœurs Flamboyants", 8, "FM mètres", "AoE (Bonus FM mètres)", "Bonus FM rounds", "Rallume le courage des alliés, retire certaines conditions et confère plusieurs talents de bravoure.");
+        Add("Tradition", "Feu", "Purge", 10, "FM mètres", "AoE (Bonus FM mètres)", "Bonus FM rounds", "Consume corruption, souillure et matières inflammables dans une zone ; l'entretien demande de canaliser.");
+        Add("Tradition", "Feu", "Mur de Feu", 6, "FM mètres", "AoE (spécial)", "Bonus FM rounds", "Dresse une barrière de flammes qui brûle ceux qui la traversent et inflige un impact magique.");
+        Add("Tradition", "Feu", "Les Grands Feux de U'Zhul", 10, "FM mètres", "AoE (Bonus FM mètres)", "Bonus FM rounds", "Explosion majeure d'Aqshy, missile magique très violent qui ignore l'armure et propage le feu dans la zone.");
+        Add("Tradition", "Feu", "Épée Flamboyante de Rhuin", 8, "FM mètres", "1", "Bonus FM rounds", "Enflamme une épée de magie, augmentant ses dégâts et pouvant infliger Enflammé aux cibles frappées.");
+
+        Add("Tradition", "Cieux", "Bouclier Céruléen", 7, "Vous", "Vous", "Bonus FM rounds", "Cage électrique protectrice donnant de l'armure contre la mêlée et blessant les attaquants aux armes métalliques.");
+        Add("Tradition", "Cieux", "Le Premier Signe d'Amul", 3, "Vous", "Vous", "Bonus I rounds", "Accorde temporairement un point de Fortune, avec points supplémentaires possibles par surpuissance.");
+        Add("Tradition", "Cieux", "Le Second Signe d'Amul", 6, "Vous", "Vous", "Bonus I rounds", "Accorde une réserve temporaire de Fortune basée sur les SL du sort.");
+        Add("Tradition", "Cieux", "Comète de Casandora", 10, "I mètres", "AoE (Bonus I mètres)", "Spécial", "Appelle une comète qui frappe au round suivant, avec dérive possible selon la perception du lanceur.");
+        Add("Tradition", "Cieux", "Le Troisième Signe d'Amul", 12, "Vous", "Vous", "Bonus I rounds", "Accorde temporairement un point de Destin qui disparaît s'il n'est pas utilisé avant la fin du sort.");
+        Add("Tradition", "Cieux", "Les Doigts Volage du Destin", 6, "Vous", "AoE (Bonus I mètres)", "Bonus FM rounds", "Crée une réserve commune de Fortune utilisable par les alliés dans la zone.");
+        Add("Tradition", "Cieux", "Traversée Étoilé", 7, "FM mètres", "1", "Bonus I rounds", "Permet de dépenser des points de Fortune pour forcer un adversaire ciblé à relancer des tests pendant la durée.");
+
+        Add("Tradition", "Métal", "Creuset de Chamon", 7, "Bonus FM mètres", "1", "Instantanée", "Fait fondre un objet métallique non magique ; s'il est porté, le porteur peut subir un impact magique ignorant l'endurance.");
+        Add("Tradition", "Métal", "Arc T'Essla", 7, "FM mètres", "1", "Instantanée", "Projette un éclair de Chamon, missile magique de dégâts +10 qui inflige Aveuglé.");
+        Add("Tradition", "Métal", "Arme Enchantée", 6, "Toucher", "Spécial", "Bonus FM rounds", "Enchante une arme non magique, la rendant magique, plus dommageable et plus fiable pour la durée.");
+        Add("Tradition", "Métal", "Métal Mutable", 5, "Toucher", "1", "Bonus FM rounds", "Rend un objet métallique chaud et malléable, permettant de le plier ou le remodeler avec Force ou Métier.");
+        Add("Tradition", "Métal", "Plume de Plomb", 5, "FM mètres", "AoE (Bonus FM mètres)", "Bonus FM rounds", "Altère le poids des biens des cibles, les rendant encombrées ou au contraire soulagées de l'encombrement.");
+        Add("Tradition", "Métal", "Transmutation de Chamon", 12, "FM mètres", "AoE (Bonus FM mètres)", "Bonus FM rounds", "Transforme brièvement la chair des ennemis en métal, infligeant dégâts et conditions sensorielles, avec suffocation possible.");
+        Add("Tradition", "Métal", "Or des Fous", 4, "Toucher", "1", "FM minutes", "Change temporairement le métal d'un objet en or véritable, avec des conséquences pratiques laissées au MJ.");
+        Add("Tradition", "Métal", "Forge de Chamon", 9, "Bonus FM mètres", "Spécial", "FM minutes", "Altère la qualité d'un article métallique en ajoutant des qualités ou en retirant des défauts.");
+        Add("Tradition", "Métal", "Robe Scintillante", 5, "Vous", "Vous", "Bonus E rounds", "Entoure le lanceur d'averses de Chamon qui dévient les attaques et améliorent progressivement Éviter.");
+
+        Add("Tradition", "Vie", "Plancher de Terre", 8, "Vous", "Vous", "Instantanée", "Permet au lanceur de disparaître dans la terre ou l'eau puis de réapparaître à distance au début du tour suivant.");
+        Add("Tradition", "Vie", "La Graisse de la Terre", 4, "Toucher", "1", "Bonus FM jours", "Inonde le corps de Ghyran, supprimant le besoin de manger ou boire pendant la durée.");
+        Add("Tradition", "Vie", "Forêt d'Épines", 6, "FM mètres", "AoE (Bonus FM mètres)", "Bonus FM rounds", "Fait jaillir ronces et vignes dans une zone de terre, blessant et enchevêtrant ceux qui la traversent.");
+        Add("Tradition", "Vie", "Peau d'Écorce", 3, "Toucher", "1", "Bonus FM rounds", "Durcit la peau comme de l'écorce, augmentant l'endurance au prix d'une gêne en agilité et dextérité.");
+        Add("Tradition", "Vie", "Le Mensonge de la Terre", 5, "Bonus I km", "Vous", "Spécial", "Communie avec la terre pour obtenir une carte mentale des éléments naturels d'une région.");
+        Add("Tradition", "Vie", "Sang de la Terre", 6, "Vous", "AoE (Bonus FM mètres)", "Bonus FM rounds", "Tant que le lanceur touche la terre, les créatures en contact avec elle dans la zone regagnent des blessures chaque round.");
+        Add("Tradition", "Vie", "Fleur de Vie", 5, "FM mètres", "Spécial", "Spécial", "Ramène à la vie ou restaure une zone naturelle, un point d'eau, des cultures ou un animal domestique malade.");
+        Add("Tradition", "Vie", "Régénérer", 6, "Toucher", "1", "Bonus FM rounds", "Donne à la cible le trait Régénération pour la durée.");
+
+        Add("Tradition", "Lumière", "Lumière Aveuglante", 8, "Bonus FM mètres", "Spécial", "Instantanée", "Émet une lumière blanche intense depuis le lanceur et inflige Aveuglé à ceux qui la regardent.");
+        Add("Tradition", "Lumière", "Clarté de la Pensée", 6, "Toucher", "1", "Int minutes", "Apaise l'esprit de la cible et neutralise les modificateurs négatifs affectant ses facultés intellectuelles.");
+        Add("Tradition", "Lumière", "Le Fléau du Démon", 10, "Bonus FM mètres", "1", "Instantanée", "Oppose la magie de Hysh à une créature démoniaque pour tenter de la bannir dans une lumière aveuglante.");
+        Add("Tradition", "Lumière", "Guérison de la Lumière", 9, "Bonus FM mètres", "1", "Instantanée", "Soigne par lumière purificatrice et peut retirer un point de corruption récemment gagné.");
+        Add("Tradition", "Lumière", "Filet d'Amyntok", 8, "Bonus Int mètres", "1", "Bonus Int rounds", "Piège l'esprit de la cible dans des énigmes de Hysh, lui imposant Étourdi tant que dure le sort.");
+        Add("Tradition", "Lumière", "Bannissement", 12, "Vous", "AoE (Bonus FM mètres)", "Instantanée", "Onde purificatrice affectant les créatures faibles de la zone et ravageant les morts-vivants ou démons instables.");
+        Add("Tradition", "Lumière", "La Protection de Phâ", 10, "Vous", "AoE (Bonus FM mètres)", "Bonus FM rounds", "Crée une aura sacrée interdisant l'entrée aux créatures profanes et protégeant de la corruption.");
+        Add("Tradition", "Lumière", "Vitesse de la Pensée", 8, "Vous", "Vous", "Bonus FM rounds", "Accélère l'esprit du lanceur, augmentant Intelligence et Instinct pendant la durée.");
+
+        Add("Tradition", "Ombres", "Illusion", 8, "FM mètres", "AoE (Bonus I mètres)", "FM minutes", "Crée une illusion statique dans la zone, perceptible surtout par ceux dotés de Seconde Vue.");
+        Add("Tradition", "Ombres", "Troubles de l'Esprit", 6, "1 mètre", "1", "FM minutes", "Efface temporairement le souvenir du lanceur dans l'esprit de la cible, avec risque de persistance.");
+        Add("Tradition", "Ombres", "Miasme Mystifiant", 6, "FM mètres", "AoE (Bonus FM mètres)", "Bonus FM rounds", "Remplit la zone d'une brume d'Ulgu qui trouble les sens, fatigue et fait chuter les victimes.");
+        Add("Tradition", "Ombres", "Ombres Étouffantes", 6, "Bonus FM mètres", "1", "Bonus FM rounds", "Étrangle la cible avec des vrilles d'ombre, l'empêchant de parler et provoquant fatigue et suffocation.");
+        Add("Tradition", "Ombres", "Coursier de l'Ombre", 6, "Bonus FM mètres", "1", "Jusqu'au prochain lever du soleil", "Invoque un coursier d'ombre, monture surnaturelle rapide, discrète et instable à la lumière de l'aube.");
+        Add("Tradition", "Ombres", "Doppelgangeur", 10, "Vous", "Vous", "Bonus Int minutes", "Dissimule le lanceur sous l'apparence d'un humanoïde connu, trompant les sens ordinaires.");
+        Add("Tradition", "Ombres", "Bonne Volonté", 0, "Vous", "AoE (Bonus Soc mètres)", "Bonus FM rounds", "Crée une atmosphère de bonne humeur, améliorant les tests sociaux et calmant animosité ou haine dans la zone.");
+        Add("Tradition", "Ombres", "Pas de l'Ombre", 8, "FM mètres", "Vous", "Instantanée", "Ouvre un passage obscur dans l'aethyr pour téléporter le lanceur et surprendre les ennemis proches.");
+        Add("Tradition", "Ombres", "Chevauchée de Mirk", 0, "Vous", "Vous", "Bonus FM minutes", "Projette l'esprit du lanceur dans l'Hedge, invisible et intangible, tandis que le corps reste immobile.");
+        Add("Tradition", "Ombres", "Linceul d'Invisibilité", 8, "Toucher", "1", "Bonus FM rounds", "Rend la cible invisible aux sens ordinaires, jusqu'à dissipation ou action trop voyante.");
+
+        Add("Tradition", "Hedgecraft", "Népenthe", 0, "Toucher", "Spécial", "Bonus FM rounds", "Enchante un philtre d'herbes pour faire oublier définitivement un individu à celui qui le boit pendant la durée.");
+        Add("Tradition", "Hedgecraft", "Nostrum", 0, "Toucher", "Spécial", "Bonus FM rounds", "Imprègne une préparation d'un pouvoir curatif, soignant blessures et maladies si elle est bue à temps.");
+        Add("Tradition", "Hedgecraft", "Menace Rampante", 0, "FM mètres", "1", "Bonus FM rounds", "Appelle des essaims de petites créatures pour harceler et attaquer les ennemis ciblés.");
+        Add("Tradition", "Hedgecraft", "Séparez les Branches", 6, "Vous", "Vous", "FM minutes", "Ouvre la perception du monde spirituel et rend visibles esprits, démons et créatures invisibles.");
+        Add("Tradition", "Hedgecraft", "Charme Protecteur", 0, "Toucher", "Spécial", "Bonus FM jours", "Imprègne un charme protecteur qui confère Résistance Magique à son porteur.");
+
+        Add("Sorcellerie", "Dhar", "Malédiction de la Douleur Paralysante", 10, "FM mètres", "1", "Bonus FM rounds", "Inflige par poupée rituelle une douleur localisée pouvant neutraliser jambe, bras, corps ou tête.");
+        Add("Sorcellerie", "Dhar", "Brûlure", 14, "Bonus FM mètres", "Spécial", "Spécial", "Flétrit puits, champs ou animaux domestiques, provoquant stagnation, maladie ou ruine des récoltes.");
+        Add("Sorcellerie", "Dhar", "Malédiction du Malheur", 8, "Bonus FM km", "1", "Bonus FM jours", "Attache une malchance persistante à une cible liée par un objet personnel ou une mèche de cheveux.");
+        Add("Sorcellerie", "Dhar", "Horreur Hantée", 8, "Toucher", "AoE (un lieu)", "FM jours", "Hante un lieu par rêves et présences dérangeantes qui fatiguent et brisent ceux qui y entrent.");
+        Add("Sorcellerie", "Dhar", "Manifestation d'un Petit Démon", 8, "Bonus FM mètres", "Spécial", "Bonus FM rounds", "Ouvre brièvement la réalité pour manifester un petit démon, contrôlé seulement si le duel de volonté réussit.");
+        Add("Sorcellerie", "Dhar", "Le Mauvais Œil", 6, "FM mètres", "Spécial", "Instantanée", "Fixe une cible qui croise le regard du lanceur et lui inflige fatigue ou brisure selon l'opposition.");
+        Add("Sorcellerie", "Dhar", "Pentagramme", 10, "Toucher", "AoE (Bonus FM mètres max.)", "FM minutes", "Trace un pentagramme impie empêchant les démons d'entrer ou sortir sauf volonté démesurée.");
+
+        Add("Sombre", "Démonologie", "Détecter le Démon", 4, "FM mètres", "Spécial", "Instantanée", "Révèle automatiquement la présence d'une influence démoniaque à portée.");
+        Add("Sombre", "Démonologie", "Détruire les Démons Mineur", 6, "FM mètres", "1", "Bonus FM rounds", "Perturbe le Dhar d'un démon faible, lui infligeant des blessures qui ignorent endurance et armure.");
+        Add("Sombre", "Nécromancie", "Ressusciter les Morts", 8, "FM mètres", "AoE (Bonus FM mètres)", "Jusqu'au lever du soleil", "Fait se dresser des squelettes depuis le sol, sous contrôle du nécromancien jusqu'à la fin du sort.");
+        Add("Sombre", "Nécromancie", "Réanimer", 8, "FM mètres", "AoE (Bonus FM mètres)", "Jusqu'au lever du soleil", "Réanime des cadavres en morts-vivants simples obéissant aux ordres du lanceur.");
+        Add("Sombre", "Nécromancie", "Crâne Hurlant", 8, "FM mètres", "Spécial", "Instantanée", "Projette un crâne hurlant de Dhar en ligne droite, missile magique qui brise les vivants touchés.");
+        Add("Sombre", "Nécromancie", "L'appel de Vanhel", 6, "FM mètres", "Spécial", "Instantanée", "Revigore des morts-vivants ciblés en leur accordant un mouvement ou une action libre.");
+        Add("Chaos", "Slaanesh", "Acquiescement", 5, "FM mètres", "1", "Bonus FM rounds", "Submerge la cible de regrets et de désirs brisés, réduisant son instinct et limitant ses actions.");
+        Add("Chaos", "Tzeentch", "Trahison de Tzeentch", 6, "FM mètres", "1", "Bonus FM rounds", "Déforme les motivations de la cible, l'empêchant d'utiliser talents et avances de compétences.");
+        Add("Chaos", "Nurgle", "Flux de Corruption", 9, "Spécial", "Spécial", "Instantanée", "Déverse un souffle pestilentiel, missile magique ignorant l'armure et pouvant transmettre une maladie.");
+
+        return sorts;
+    }
+
+    private static IEnumerable<TitreBaseReference> GetTitresBaseReference()
+    {
+        var libelles = new[]
+        {
+            "Adversaire", "Alchimiste", "Aristocrate", "Armurière", "Arpenteuse", "Aventurière", "Bottière", "Brigande",
+            "Briseuse", "Charognarde", "Chèvre", "Combattante", "Crainte", "Créature", "Criminelle", "Écorcheuse",
+            "Envoûteuse", "Folle furieuse", "Forgeronne", "Fossoyeuse", "Fracasseuse", "Hors-la-loi", "Imbécile",
+            "Joaillière", "Malice", "Malotrue", "Mineuse", "Moissonneuse", "Nomade", "Nullité", "Ordure",
+            "Randonneuse", "Ravageuse", "Recycleuse", "Résonance", "Roturière", "Souveraine", "Tireuse d'élite",
+            "Traqueuse", "Abomination", "Acolyte", "Adepte", "Adjuratrice", "Amasseuse", "Âme", "Ancêtre",
+            "Antagoniste", "Apothicaire", "Apparition", "Araignée", "Arnaqueuse", "Aspirante", "Assassin",
+            "Autocrate", "Barbare", "Baronne", "Batailleuse", "Bénédiction", "Bergère", "Bête", "Bouchère",
+            "Brasseuse", "Bricoleuse", "Brigadière", "Brume", "Brute", "Calamité", "Camarade", "Canaille",
+            "Candidate", "Catastrophe", "Cavalière", "Chamane", "Championne", "Chasseuse", "Châtelaine",
+            "Cheffe", "Chimère", "Chorale", "Cogneuse", "Colère", "Collectionneuse", "Complice", "Connaisseuse",
+            "Conquérante", "Coordinatrice", "Coupable", "Crapule", "Dame", "Danseuse", "Démone", "Désolation",
+            "Destructrice", "Diablesse", "Dirigeante", "Domination", "Druidesse", "Égide", "Égorgeuse", "Élue",
+            "Enchanteresse", "Énigme", "Ennemie", "Ensorceleuse", "Épouvante", "Équipe", "Exorciste",
+            "Exploratrice", "Extase", "Fanatique", "Fanfaronne", "Faucheuse", "Fleuriste", "Fouilleuse",
+            "Fripouille", "Fugitive", "Gardienne", "Gloutonne", "Griffe", "Guerrière", "Guillotine", "Hantise",
+            "Harponneuse", "Herboriste", "Hérétique", "Héroïne", "Horadrim", "Horreur", "Icône", "Iconoclaste",
+            "Idole", "Illusion", "Immortelle", "Impostrice", "Incendiaire", "Inspectrice", "Lauréate", "Légende",
+            "Légion", "Louve", "Magnate", "Maîtresse", "Maîtresse brasseuse", "Malédiction", "Mangeuse",
+            "Maraudeuse", "Marchande d'armes", "Menace", "Meneuse", "Messagère", "Métamorphe", "Meurtrière",
+            "Misérable", "Miséricorde", "Navigatrice", "Nécromancienne", "Nuisance", "Offensive", "Offrande",
+            "Opportuniste", "Pagaille", "Parfumeuse", "Parieuse", "Partisane", "Patronne", "Pêcheresse",
+            "Perdante", "Phobie", "Pirate", "Pisteuse", "Pâlie", "Poursuivante", "Prédatrice", "Prime",
+            "Protectrice", "Puissance", "Rate", "Relation", "Renverseuse", "Ruine", "Saccageuse", "Sage",
+            "Séductrice", "Sorcière", "Tempête", "Terreur", "Tête de mort", "Théaturge", "Tortionnaire",
+            "Triomphatrice", "Troupe", "Tueuse", "Vagabonde", "Vandale", "Virtuose", "Vision", "Vitalité",
+            "Voix", "Voleuse", "Voyageuse",
+        };
+
+        return libelles.Select((libelle, index) => new TitreBaseReference
+        {
+            Code = $"BASE_{index + 1:000}",
+            Libelle = libelle,
+            Ordre = index + 1,
+            NiveauMaitrise = GetNiveauMaitriseTitreBase(libelle),
+        });
+    }
+
+    private static IEnumerable<TitreQualificatifReference> GetTitresQualificatifReference()
+    {
+        var libelles = new[]
+        {
+            "Acharnée", "Aguerrie", "Ambrée", "Appliquée", "Apprentie", "Arriviste", "Astucieuse", "Belliqueuse",
+            "Bleue", "Chanceuse", "Couper", "Cupide", "D'exception", "De fer", "De pierre", "Débutante", "Dorée",
+            "Esseulée", "Fatale", "Fétide", "Fluette", "Hâtive", "Inébranlable", "Ingénieuse", "Légendaire",
+            "Livide", "Magique", "Malpropre", "Noctambule", "Perfide", "Potentielle", "Préparée", "Pyromane",
+            "Ranimée", "Rapide", "Rare", "Rusée", "Sinistre", "Solennelle", "Trépignante", "À longs crocs",
+            "Accomplie", "Affamée", "Agile", "Aigrie", "Ambitieuse", "Anxieuse", "Argentée", "Aromatique",
+            "Assiégée", "Audacieuse", "Autoritaire", "Aveugle", "Balafrée", "Baroudeuse", "Bien équipée",
+            "Blafarde", "Blême", "Brisée", "Brûlante", "Brutale", "Charmeuse", "Charnelle", "Chevronnée",
+            "Chuchotante", "Cinglante", "Complète", "Consacrée", "Contrariée", "Cornue", "Cramoisie",
+            "Cristalline", "De la Haine", "De la Triade", "De marée", "Déchaînée", "Déchirante", "Déchue",
+            "Démente", "Déserte", "Désespérée", "Dévouée", "Distillée", "Distraite", "Dominatrice",
+            "Éblouissante", "Écrasante", "Effrontée", "Élémentaire", "Émérite", "Endolorie", "Enragée",
+            "Ensanglantée", "Envoûtante", "Équestre", "Essentielle", "Exaltée", "Exemplaire", "Expérimentée",
+            "Féroce", "Fidèle", "Fracturée", "Friable", "Fringante", "Furieuse", "Furtive", "Géante",
+            "Gémissante", "Givrée", "Gourmande", "Hermétique", "Honorée", "Hurleuse", "Illuminée",
+            "Imperceptible", "Impie", "Implacable", "Imprégnée", "Inaperçue", "Indéfectible", "Indomptée",
+            "Infâme", "Infatigable", "Infernale", "Informe", "Insatiable", "Insensible", "Intelligente",
+            "Intemporelle", "Intense", "Investie", "Invétérée", "Irrépressible", "Itinérante", "Létale",
+            "Libre", "Locale", "Loyale", "Malicieuse", "Méthodique", "Minutieuse", "Moite", "Moqueuse",
+            "Murmurante", "Naturelle", "Nécrophage", "Nécrotique", "Néfaste", "Noyée", "Ondulante",
+            "Ornementée", "Palpitante", "Palustre", "Parfumée", "Pernicieuse", "Pieuse", "Pourpre",
+            "Précieuse", "Précoce", "Profane", "Putride", "Renouvelée", "Ricanante", "Ridicule", "Rouée",
+            "Rouillée", "Ruineuse", "Sacralisée", "Sacrée", "Sanctifiée", "Sanglante", "Sanguinaire",
+            "Sans égale", "Saoule", "Sèche", "Sournoise", "Soyeuse", "Tempérée", "Ténébreuse", "Terrifiante",
+            "Titanesque", "Titubante", "Torturée", "Tourmentée", "Toute-puissante", "Transcendée", "Vaillante",
+            "Vallonnée", "Vaniteuse", "Vengeresse", "Venimeuse", "Vicieuse", "Virulente", "Vitreuse",
+            "Voltaïque", "Vorace",
+        };
+
+        return libelles.Select((libelle, index) => new TitreQualificatifReference
+        {
+            Code = $"QUAL_{index + 1:000}",
+            Libelle = libelle,
+            Ordre = index + 1,
+            NiveauMaitrise = GetNiveauMaitriseTitreQualificatif(libelle),
+        });
+    }
+
+    private static int GetNiveauMaitriseTitreBase(string libelle)
+    {
+        var niveau1 = new HashSet<string>
+        {
+            "Acolyte", "Amasseuse", "Apothicaire", "Arpenteuse", "Aspirante", "Aventurière", "Bergère", "Bottière",
+            "Brasseuse", "Bricoleuse", "Camarade", "Candidate", "Chèvre", "Complice", "Fleuriste", "Fouilleuse",
+            "Fossoyeuse", "Herboriste", "Imbécile", "Malotrue", "Mineuse", "Misérable", "Nomade", "Nullité",
+            "Ordure", "Parfumeuse", "Parieuse", "Perdante", "Rate", "Relation", "Roturière", "Vagabonde",
+            "Voleuse", "Voyageuse",
+        };
+
+        var niveau4 = new HashSet<string>
+        {
+            "Ancêtre", "Autocrate", "Championne", "Conquérante", "Domination", "Élue", "Héroïne", "Horadrim",
+            "Icône", "Idole", "Immortelle", "Légende", "Légion", "Nécromancienne", "Puissance", "Souveraine",
+            "Tempête", "Terreur", "Triomphatrice", "Vitalité", "Voix",
+        };
+
+        var niveau3 = new HashSet<string>
+        {
+            "Abomination", "Adjuratrice", "Antagoniste", "Apparition", "Assassin", "Barbare", "Baronne", "Batailleuse",
+            "Bénédiction", "Bête", "Bouchère", "Brume", "Brute", "Calamité", "Catastrophe", "Chamane", "Châtelaine",
+            "Cheffe", "Chimère", "Colère", "Connaisseuse", "Crainte", "Dame", "Démone", "Désolation", "Destructrice",
+            "Diablesse", "Dirigeante", "Druidesse", "Égide", "Égorgeuse", "Enchanteresse", "Énigme", "Ensorceleuse",
+            "Épouvante", "Exorciste", "Extase", "Fanatique", "Faucheuse", "Gardienne", "Gloutonne", "Griffe",
+            "Guerrière", "Guillotine", "Hantise", "Hérétique", "Horreur", "Iconoclaste", "Illusion", "Incendiaire",
+            "Lauréate", "Louve", "Magnate", "Maîtresse", "Malédiction", "Maraudeuse", "Menace", "Métamorphe",
+            "Meurtrière", "Miséricorde", "Offensive", "Phobie", "Prédatrice", "Prime", "Protectrice", "Renverseuse",
+            "Ruine", "Saccageuse", "Sage", "Séductrice", "Sorcière", "Tête de mort", "Théaturge", "Tortionnaire",
+            "Tueuse", "Vandale", "Virtuose", "Vision",
+        };
+
+        if (niveau1.Contains(libelle)) return 1;
+        if (niveau4.Contains(libelle)) return 4;
+        if (niveau3.Contains(libelle)) return 3;
+        return 2;
+    }
+
+    private static int GetNiveauMaitriseTitreQualificatif(string libelle)
+    {
+        var niveau1 = new HashSet<string>
+        {
+            "Appliquée", "Apprentie", "Arriviste", "Bleue", "Chanceuse", "Couper", "Débutante", "Esseulée",
+            "Fluette", "Hâtive", "Malpropre", "Noctambule", "Potentielle", "Précoce", "Ricanante", "Ridicule",
+            "Saoule", "Titubante", "Vallonnée",
+        };
+
+        var niveau4 = new HashSet<string>
+        {
+            "D'exception", "Inébranlable", "Légendaire", "Sans égale", "Titanesque", "Toute-puissante",
+            "Transcendée",
+        };
+
+        var niveau3 = new HashSet<string>
+        {
+            "À longs crocs", "Accomplie", "Aguerrie", "Audacieuse", "Autoritaire", "Belliqueuse", "Bien équipée",
+            "Brûlante", "Brutale", "Cinglante", "Consacrée", "Cornue", "Cramoisie", "Cristalline", "De la Haine",
+            "De la Triade", "De marée", "De fer", "De pierre", "Déchaînée", "Déchirante", "Déchue", "Démente",
+            "Dévouée", "Dominatrice", "Éblouissante", "Écrasante", "Élémentaire", "Émérite", "Enragée",
+            "Ensanglantée", "Envoûtante", "Exaltée", "Exemplaire", "Expérimentée", "Fatale", "Féroce", "Furieuse",
+            "Géante", "Hermétique", "Honorée", "Hurleuse", "Illuminée", "Imperceptible", "Impie", "Implacable",
+            "Imprégnée", "Indéfectible", "Indomptée", "Infâme", "Infatigable", "Infernale", "Insatiable",
+            "Intemporelle", "Intense", "Invétérée", "Irrépressible", "Létale", "Nécrophage", "Nécrotique",
+            "Néfaste", "Pernicieuse", "Pourpre", "Précieuse", "Profane", "Putride", "Ruineuse", "Sacralisée",
+            "Sacrée", "Sanctifiée", "Sanglante", "Sanguinaire", "Ténébreuse", "Terrifiante", "Torturée",
+            "Tourmentée", "Vaillante", "Vengeresse", "Venimeuse", "Vicieuse", "Virulente", "Voltaïque", "Vorace",
+        };
+
+        if (niveau1.Contains(libelle)) return 1;
+        if (niveau4.Contains(libelle)) return 4;
+        if (niveau3.Contains(libelle)) return 3;
+        return 2;
     }
 
     private static Espece CreateEspece(

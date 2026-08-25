@@ -14,6 +14,8 @@ public class Wfrp4DbContext : DbContext
     public DbSet<PersonnageCarriere> PersonnageCarrieres => Set<PersonnageCarriere>();
     public DbSet<PersonnagePartage> PersonnagePartages => Set<PersonnagePartage>();
     public DbSet<PersonnagePossession> PersonnagePossessions => Set<PersonnagePossession>();
+    public DbSet<PersonnageSort> PersonnageSorts => Set<PersonnageSort>();
+    public DbSet<PersonnageParchemin> PersonnageParchemins => Set<PersonnageParchemin>();
     public DbSet<HistoriqueXP> HistoriqueXPs => Set<HistoriqueXP>();
 
     public DbSet<Espece> Especes => Set<Espece>();
@@ -23,6 +25,9 @@ public class Wfrp4DbContext : DbContext
     public DbSet<Competence> Competences => Set<Competence>();
     public DbSet<Talent> Talents => Set<Talent>();
     public DbSet<ArmeReference> ArmesReference => Set<ArmeReference>();
+    public DbSet<SortReference> SortsReference => Set<SortReference>();
+    public DbSet<TitreBaseReference> TitresBaseReference => Set<TitreBaseReference>();
+    public DbSet<TitreQualificatifReference> TitresQualificatifReference => Set<TitreQualificatifReference>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

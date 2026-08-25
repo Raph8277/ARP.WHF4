@@ -792,6 +792,9 @@ else
             "wounds.max" => p.BlessuresMax.ToString(),
             _ when field.Key.StartsWith("carac.", StringComparison.OrdinalIgnoreCase) => SampleCarac(field.Key),
             _ when field.Key.StartsWith("talent.", StringComparison.OrdinalIgnoreCase) => SampleTalent(field.Key),
+            _ when field.Key.StartsWith("possession.", StringComparison.OrdinalIgnoreCase) => SamplePossession(field.Key),
+            _ when field.Key.StartsWith("weapon.", StringComparison.OrdinalIgnoreCase) => SampleWeapon(field.Key),
+            _ when field.Key.StartsWith("spell.", StringComparison.OrdinalIgnoreCase) => SampleSpell(field.Key),
             _ => field.Label,
         };
     }
@@ -843,6 +846,100 @@ else
         };
     }
 
+    private string SamplePossession(string key)
+    {
+        if (_selectedPersonnage is null)
+            return string.Empty;
+
+        var parts = key.Split('.');
+        if (parts.Length != 3 || !int.TryParse(parts[1], out var index))
+            return string.Empty;
+
+        var possession = _selectedPersonnage.Possessions
+            .Where(p => p.Type == Wfrp4.Shared.Models.TypePossession.Objet)
+            .OrderBy(p => p.Nom)
+            .Skip(index - 1)
+            .FirstOrDefault();
+        if (possession is null)
+            return parts[2] == "name" ? "Possession" : string.Empty;
+
+        return parts[2] switch
+        {
+            "name" => possession.Nom,
+            "quantity" => possession.Quantite.ToString(),
+            _ => string.Empty,
+        };
+    }
+
+    private string SampleWeapon(string key)
+    {
+        if (_selectedPersonnage is null)
+            return string.Empty;
+
+        var parts = key.Split('.');
+        if (parts.Length != 3 || !int.TryParse(parts[1], out var index))
+            return string.Empty;
+
+        var weapon = _selectedPersonnage.Possessions
+            .Where(p => p.Type == Wfrp4.Shared.Models.TypePossession.Arme)
+            .OrderBy(p => p.Nom)
+            .Skip(index - 1)
+            .FirstOrDefault();
+        if (weapon is null)
+            return parts[2] == "name" ? "Arme" : string.Empty;
+
+        return parts[2] switch
+        {
+            "name" => weapon.Nom,
+            "quantity" => weapon.Quantite.ToString(),
+            _ => string.Empty,
+        };
+    }
+
+    private string SampleSpell(string key)
+    {
+        if (_selectedPersonnage is null)
+            return string.Empty;
+
+        var parts = key.Split('.');
+        if (parts.Length != 3 || !int.TryParse(parts[1], out var index))
+            return string.Empty;
+
+        var spells = _selectedPersonnage.Sorts
+            .Select(s => new SpellSampleLine(
+                s.SortNom,
+                s.Cn,
+                s.Portee,
+                s.Cible,
+                s.Duree,
+                s.Resume))
+            .Concat(_selectedPersonnage.Parchemins.Select(p => new SpellSampleLine(
+                p.Quantite > 1 ? $"{{#P}} {p.SortNom} (x{p.Quantite})" : $"{{#P}} {p.SortNom}",
+                p.Cn,
+                p.Portee,
+                p.Cible,
+                p.Duree,
+                p.Resume)))
+            .OrderBy(s => s.Name.StartsWith("{#P}", StringComparison.Ordinal) ? 1 : 0)
+            .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var spell = spells.Skip(index - 1).FirstOrDefault();
+        if (spell is null)
+            return parts[2] == "name" ? "Sort ou priere" : string.Empty;
+
+        return parts[2] switch
+        {
+            "name" => spell.Name,
+            "ni" => spell.Cn?.ToString() ?? string.Empty,
+            "range" => spell.Range ?? string.Empty,
+            "target" => spell.Target ?? string.Empty,
+            "duration" => spell.Duration ?? string.Empty,
+            "effects" => spell.Effects ?? string.Empty,
+            _ => string.Empty,
+        };
+    }
+
     private string OverlayClass(PdfSheetFieldLayoutDto field) =>
         _selectedFieldKeys.Contains(field.Key)
             ? "pdf-winforms-field pdf-winforms-field--selected"
@@ -858,4 +955,12 @@ else
         var index = field.Label.IndexOf(" - ", StringComparison.Ordinal);
         return index > 0 ? field.Label[..index] : "Autres";
     }
+
+    private sealed record SpellSampleLine(
+        string Name,
+        int? Cn,
+        string? Range,
+        string? Target,
+        string? Duration,
+        string? Effects);
 }

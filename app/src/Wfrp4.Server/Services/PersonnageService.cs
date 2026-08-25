@@ -27,13 +27,35 @@ public class PersonnageService
             .FirstOrDefaultAsync(n => n.Id == request.NiveauCarriereId)
             ?? throw new InvalidOperationException("Niveau de carrière introuvable.");
 
+        if (request.TitreBaseReferenceId.HasValue != request.TitreQualificatifReferenceId.HasValue)
+            throw new InvalidOperationException("Le titre doit comporter une base et un qualificatif, ou rester vide.");
+
+        if (request.TitreBaseReferenceId.HasValue)
+        {
+            var titreBaseValide = await _db.TitresBaseReference
+                .AnyAsync(t => t.Id == request.TitreBaseReferenceId.Value && t.NiveauMaitrise <= niveauCarriere.Niveau);
+            if (!titreBaseValide)
+                throw new InvalidOperationException("Titre de base inaccessible pour le niveau de maîtrise actuel.");
+        }
+
+        if (request.TitreQualificatifReferenceId.HasValue)
+        {
+            var titreQualificatifValide = await _db.TitresQualificatifReference
+                .AnyAsync(t => t.Id == request.TitreQualificatifReferenceId.Value && t.NiveauMaitrise <= niveauCarriere.Niveau);
+            if (!titreQualificatifValide)
+                throw new InvalidOperationException("Qualificatif de titre inaccessible pour le niveau de maîtrise actuel.");
+        }
+
         var now = DateTime.UtcNow;
         var personnage = new Personnage
         {
             KeycloakId = keycloakId,
             Nom = request.Nom,
+            Genre = request.Genre,
             EspeceId = request.EspeceId,
             CarriereCouranteId = niveauCarriere.Id,
+            TitreBaseReferenceId = request.TitreBaseReferenceId,
+            TitreQualificatifReferenceId = request.TitreQualificatifReferenceId,
             Motivation = request.Motivation,
             Age = request.Age,
             CouleurYeux = request.CouleurYeux,
@@ -144,7 +166,10 @@ public class PersonnageService
             ?? throw new InvalidOperationException("Personnage introuvable.");
 
         personnage.Nom = request.Nom;
+        personnage.Genre = request.Genre;
         personnage.Motivation = request.Motivation;
+        personnage.TitreBaseReferenceId = request.TitreBaseReferenceId;
+        personnage.TitreQualificatifReferenceId = request.TitreQualificatifReferenceId;
         personnage.Age = request.Age;
         personnage.CouleurYeux = request.CouleurYeux;
         personnage.CouleurCheveux = request.CouleurCheveux;

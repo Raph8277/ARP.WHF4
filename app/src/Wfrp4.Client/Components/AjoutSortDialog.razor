@@ -1,0 +1,108 @@
+@using Wfrp4.Shared.DTOs
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>Ajouter un sort</TitleContent>
+    <DialogContent>
+        @if (_sorts == null)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        }
+        else
+        {
+            <MudAutocomplete T="SortReferenceDto" Label="Sort"
+                             @bind-Value="_sortSelectionne"
+                             SearchFunc="RechercherSorts"
+                             ToStringFunc="@(s => s?.Nom ?? string.Empty)"
+                             Dense="true"
+                             Variant="Variant.Outlined"
+                             ResetValueOnEmptyText="true"
+                             CoerceText="false" />
+
+            @if (_sortsDisponibles.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">Tous les sorts du référentiel sont déjà connus.</MudAlert>
+            }
+
+            @if (_sortSelectionne != null)
+            {
+                <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mt-3">
+                    <tbody>
+                        <tr><td><strong>Catégorie</strong></td><td>@_sortSelectionne.Categorie</td></tr>
+                        <tr><td><strong>Domaine</strong></td><td>@(_sortSelectionne.Domaine ?? "—")</td></tr>
+                        <tr><td><strong>CN</strong></td><td>@(_sortSelectionne.Cn?.ToString() ?? "—")</td></tr>
+                        <tr><td><strong>Portée</strong></td><td>@(_sortSelectionne.Portee ?? "—")</td></tr>
+                        <tr><td><strong>Cible</strong></td><td>@(_sortSelectionne.Cible ?? "—")</td></tr>
+                        <tr><td><strong>Durée</strong></td><td>@(_sortSelectionne.Duree ?? "—")</td></tr>
+                    </tbody>
+                </MudSimpleTable>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirmer"
+                   Disabled="@(_submitting || _sortSelectionne == null)">
+            Ajouter
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int PersonnageId { get; set; }
+    [Parameter] public List<int> SortsExistants { get; set; } = [];
+
+    private List<SortReferenceDto>? _sorts;
+    private List<SortReferenceDto> _sortsDisponibles = [];
+    private SortReferenceDto? _sortSelectionne;
+    private bool _submitting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _sorts = await Api.GetSortsAsync() ?? [];
+        _sortsDisponibles = _sorts
+            .Where(s => !SortsExistants.Contains(s.Id))
+            .OrderBy(s => s.Nom)
+            .ToList();
+    }
+
+    private Task<IEnumerable<SortReferenceDto>> RechercherSorts(string? value, CancellationToken ct)
+    {
+        var source = _sortsDisponibles.AsEnumerable();
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(source);
+
+        var results = source.Where(s =>
+            s.Nom.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+            s.Categorie.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+            (s.Domaine?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(results);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Confirmer()
+    {
+        if (_sortSelectionne == null) return;
+        _submitting = true;
+        try
+        {
+            await Api.AjouterSortAsync(PersonnageId, new AjoutSortRequest
+            {
+                SortReferenceId = _sortSelectionne.Id,
+            });
+            Snackbar.Add($"{_sortSelectionne.Nom} ajouté aux sorts connus.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

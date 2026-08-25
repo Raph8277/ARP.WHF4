@@ -197,6 +197,33 @@
                         <MudSelectItem Value="@("Elevee")">Elevee</MudSelectItem>
                     </MudSelect>
                 </MudItem>
+                <MudItem xs="12">
+                    <MudText Class="old-world-kicker mt-2">Armement, equipement et sorts</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="string" @bind-Value="_pnjWeaponChoice" Label="Armement" Dense="true">
+                        @foreach (var weapon in WeaponOptions)
+                        {
+                            <MudSelectItem Value="@weapon">@weapon</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="string" @bind-Value="_pnjEquipmentChoice" Label="Equipement" Dense="true">
+                        @foreach (var equipment in EquipmentOptions)
+                        {
+                            <MudSelectItem Value="@equipment">@equipment</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="string" @bind-Value="_pnjSpellChoice" Label="Sort" Dense="true">
+                        @foreach (var spell in SpellOptions)
+                        {
+                            <MudSelectItem Value="@spell">@spell</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
             </MudGrid>
 
             @if (_pnj is not null)
@@ -234,6 +261,9 @@
                                 <tr><td><strong>Secret</strong></td><td>@_pnj.Secret</td></tr>
                                 <tr><td><strong>Accroche</strong></td><td>@_pnj.Hook</td></tr>
                                 <tr><td><strong>Profil rapide</strong></td><td>@_pnj.Profile</td></tr>
+                                <tr><td><strong>Armement</strong></td><td>@_pnj.Weapon</td></tr>
+                                <tr><td><strong>Equipement</strong></td><td>@_pnj.Equipment</td></tr>
+                                <tr><td><strong>Sort</strong></td><td>@_pnj.Spell</td></tr>
                             </tbody>
                         </MudSimpleTable>
                     </div>
@@ -269,8 +299,47 @@
                 <MudItem xs="12">
                     <MudPaper Class="old-world-panel pa-3" Elevation="0">
                         <MudText Class="old-world-kicker mb-2">Etape 1</MudText>
-                        <MudText Typo="Typo.h6" Class="mb-3">Nombre de PNJ</MudText>
-                        <MudNumericField T="int" @bind-Value="_groupSize" Label="Taille du groupe" Min="1" Max="12" Dense="true" />
+                        <MudText Typo="Typo.h6" Class="mb-3">Ambiance et nombre de PNJ</MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudSelect T="string" @bind-Value="_groupTone" Label="Ambiance" Dense="true">
+                                    @foreach (var tone in GroupToneOptions)
+                                    {
+                                        <MudSelectItem Value="@tone">@tone</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="int" @bind-Value="_groupSize" Label="Taille du groupe" Min="1" Max="12" Dense="true" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudText Class="old-world-kicker mt-2">Armement, equipement et sorts du groupe</MudText>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudSelect T="string" @bind-Value="_groupWeaponChoice" Label="Armement" Dense="true">
+                                    @foreach (var weapon in WeaponOptions)
+                                    {
+                                        <MudSelectItem Value="@weapon">@weapon</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudSelect T="string" @bind-Value="_groupEquipmentChoice" Label="Equipement" Dense="true">
+                                    @foreach (var equipment in EquipmentOptions)
+                                    {
+                                        <MudSelectItem Value="@equipment">@equipment</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudSelect T="string" @bind-Value="_groupSpellChoice" Label="Sort" Dense="true">
+                                    @foreach (var spell in SpellOptions)
+                                    {
+                                        <MudSelectItem Value="@spell">@spell</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
                         <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-3" StartIcon="@Icons.Material.Filled.Check"
                                    OnClick="PreparerGroupe">
                             Valider
@@ -411,6 +480,7 @@
                         Export PDF
                     </MudButton>
                 </div>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="mb-2">@_group.Tone</MudChip>
                 <MudText Typo="Typo.body2" Class="mb-3">@_group.Objective</MudText>
                 <MudGrid Spacing="2" Class="mb-3">
                     @foreach (var member in _group.Members)
@@ -439,6 +509,13 @@
                                             <tr>
                                                 <td>@member.Stats.WS</td><td>@member.Stats.BS</td><td>@member.Stats.S</td><td>@member.Stats.T</td><td>@member.Stats.I</td><td>@member.Stats.Ag</td><td>@member.Stats.Dex</td><td>@member.Stats.Int</td><td>@member.Stats.WP</td><td>@member.Stats.Fel</td><td>@member.Stats.Wounds</td><td>@member.Stats.Move</td>
                                             </tr>
+                                        </tbody>
+                                    </MudSimpleTable>
+                                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mt-2">
+                                        <tbody>
+                                            <tr><td style="width:140px"><strong>Armement</strong></td><td>@member.Weapon</td></tr>
+                                            <tr><td><strong>Equipement</strong></td><td>@member.Equipment</td></tr>
+                                            <tr><td><strong>Sort</strong></td><td>@member.Spell</td></tr>
                                         </tbody>
                                     </MudSimpleTable>
                                 </div>
@@ -475,19 +552,45 @@
             </div>
 
             <MudGrid Spacing="2" Class="mb-3">
-                <MudItem xs="12" sm="6">
+                <MudItem xs="12" sm="6" md="3">
                     <MudSelect T="string" @bind-Value="_lootWealth" Label="Richesse" Dense="true">
+                        <MudSelectItem Value="@("Misere")">Misere</MudSelectItem>
                         <MudSelectItem Value="@("Pauvre")">Pauvre</MudSelectItem>
                         <MudSelectItem Value="@("Correcte")">Correcte</MudSelectItem>
                         <MudSelectItem Value="@("Riche")">Riche</MudSelectItem>
+                        <MudSelectItem Value="@("Exceptionnelle")">Exceptionnelle</MudSelectItem>
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudSelect T="string" @bind-Value="_lootType" Label="Type" Dense="true">
-                        <MudSelectItem Value="@("Route")">Route</MudSelectItem>
-                        <MudSelectItem Value="@("Repaire")">Repaire</MudSelectItem>
-                        <MudSelectItem Value="@("Noble")">Noble</MudSelectItem>
-                        <MudSelectItem Value="@("Occulte")">Occulte</MudSelectItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="string" @bind-Value="_lootType" Label="Ambiance" Dense="true">
+                        @foreach (var type in LootTypeOptions)
+                        {
+                            <MudSelectItem Value="@type">@type</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="string" @bind-Value="_lootNature" Label="Nature dominante" Dense="true">
+                        @foreach (var nature in LootNatureOptions)
+                        {
+                            <MudSelectItem Value="@nature">@nature</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="string" @bind-Value="_lootDanger" Label="Danger" Dense="true">
+                        @foreach (var danger in LootDangerOptions)
+                        {
+                            <MudSelectItem Value="@danger">@danger</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="string" @bind-Value="_lootMagicFrequency" Label="Objets magiques" Dense="true">
+                        <MudSelectItem Value="@("Jamais")">Jamais</MudSelectItem>
+                        <MudSelectItem Value="@("Rare")">Rare</MudSelectItem>
+                        <MudSelectItem Value="@("Possible")">Possible</MudSelectItem>
+                        <MudSelectItem Value="@("Frequent")">Frequent</MudSelectItem>
                     </MudSelect>
                 </MudItem>
             </MudGrid>
@@ -498,6 +601,13 @@
                     <tbody>
                         <tr><td><strong>Monnaie</strong></td><td>@_loot.Coins</td></tr>
                         <tr><td><strong>Objets</strong></td><td>@string.Join(", ", _loot.Items)</td></tr>
+                        <tr><td><strong>Objet utile</strong></td><td>@_loot.UsefulItem</td></tr>
+                        <tr><td><strong>Objet magique</strong></td><td>@_loot.MagicItem</td></tr>
+                        <tr><td><strong>Effet magique</strong></td><td>@_loot.MagicEffect</td></tr>
+                        <tr><td><strong>Risque magique</strong></td><td>@_loot.MagicRisk</td></tr>
+                        <tr><td><strong>Valeur</strong></td><td>@_loot.ValueEstimate</td></tr>
+                        <tr><td><strong>Proprietaire</strong></td><td>@_loot.Owner</td></tr>
+                        <tr><td><strong>Etat</strong></td><td>@_loot.Condition</td></tr>
                         <tr><td><strong>Indice</strong></td><td>@_loot.Clue</td></tr>
                         <tr><td><strong>Complication</strong></td><td>@_loot.Complication</td></tr>
                     </tbody>
@@ -523,16 +633,26 @@
     private string _pnjCareer = "Aleatoire";
     private string _pnjBestiaryChoice = "Aleatoire";
     private string _pnjDanger = "Aleatoire";
+    private string _pnjWeaponChoice = "Aleatoire";
+    private string _pnjEquipmentChoice = "Aleatoire";
+    private string _pnjSpellChoice = "Aleatoire";
     private string _groupSource = "Humanoide";
     private int _groupSize = 4;
+    private string _groupTone = "Urbain";
     private string _groupThreat = "Moyenne";
     private string _groupRace = "Aleatoire";
     private string _groupClass = "Aleatoire";
     private string _groupCareer = "Aleatoire";
     private string _groupBestiaryChoice = "Aleatoire";
     private bool _groupSourcesRandom = true;
+    private string _groupWeaponChoice = "Aleatoire";
+    private string _groupEquipmentChoice = "Aleatoire";
+    private string _groupSpellChoice = "Aleatoire";
     private string _lootWealth = "Correcte";
     private string _lootType = "Route";
+    private string _lootNature = "Aleatoire";
+    private string _lootDanger = "Aleatoire";
+    private string _lootMagicFrequency = "Rare";
     private GeneratedNpc? _pnj;
     private GeneratedGroup? _group;
     private GeneratedLoot? _loot;
@@ -629,6 +749,9 @@
                         Line("Secret", _pnj.Secret),
                         Line("Accroche", _pnj.Hook),
                         Line("Profil rapide", _pnj.Profile),
+                        Line("Armement", _pnj.Weapon),
+                        Line("Equipement", _pnj.Equipment),
+                        Line("Sort", _pnj.Spell),
                     ],
                     Stats = [Stats(_pnj.Name, _pnj.Role, _pnj.Origin, _pnj.Danger, _pnj.Stats)]
                 }
@@ -653,7 +776,14 @@
                     Lines =
                     [
                         Line("Objectif", _group.Objective),
+                        Line("Ambiance", _group.Tone),
                         Line("Complication", _group.Complication),
+                        .._group.Members.SelectMany(member => new[]
+                        {
+                            Line($"{member.Name} - armement", member.Weapon),
+                            Line($"{member.Name} - equipement", member.Equipment),
+                            Line($"{member.Name} - sort", member.Spell),
+                        }),
                     ],
                     Stats = _group.Members
                         .Select(member => Stats(member.Name, member.Role, member.Origin, member.Danger, member.Stats))
@@ -679,8 +809,18 @@
                     Title = "Tresor et butin",
                     Lines =
                     [
+                        Line("Ambiance", _loot.Context),
+                        Line("Nature", _loot.Nature),
+                        Line("Danger", _loot.Danger),
                         Line("Monnaie", _loot.Coins),
                         Line("Objets", string.Join(", ", _loot.Items)),
+                        Line("Objet utile", _loot.UsefulItem),
+                        Line("Objet magique", _loot.MagicItem),
+                        Line("Effet magique", _loot.MagicEffect),
+                        Line("Risque magique", _loot.MagicRisk),
+                        Line("Valeur", _loot.ValueEstimate),
+                        Line("Proprietaire", _loot.Owner),
+                        Line("Etat", _loot.Condition),
                         Line("Indice", _loot.Clue),
                         Line("Complication", _loot.Complication),
                     ]
@@ -754,6 +894,15 @@
             var creature = PickBestiary(_pnjBestiaryChoice, _pnjDanger);
             var bestiaryDanger = _pnjDanger == "Aleatoire" ? creature.Danger : _pnjDanger;
             var stats = VaryCreatureStats(creature, bestiaryDanger);
+            var loadout = GenerateLoadout(
+                _pnjTone,
+                creature.Profile,
+                creature.Visual,
+                _pnjWeaponChoice,
+                _pnjEquipmentChoice,
+                _pnjSpellChoice,
+                creature.Attack,
+                creature.Defense);
             _pnj = new GeneratedNpc(
                 Name: creature.Name,
                 Role: creature.Role,
@@ -768,13 +917,23 @@
                 Secret: creature.Hook,
                 Hook: creature.Hook,
                 Stats: stats,
-                Profile: $"{creature.Profile}. {creature.Special}");
+                Profile: $"{creature.Profile}. {creature.Special}",
+                Weapon: loadout.Weapon,
+                Equipment: loadout.Equipment,
+                Spell: loadout.Spell);
             return;
         }
 
         var role = _pnjRole == "Aleatoire" ? Pick(["Allie", "Contact", "Rival", "Adversaire"]) : _pnjRole;
         var profile = ResolveHumanoidProfile(_pnjRace, _pnjClass, _pnjCareer, Pick(ProfessionsByTone[_pnjTone]));
         var danger = DangerFromPower(_pnjPower);
+        var humanoidLoadout = GenerateLoadout(
+            _pnjTone,
+            profile.Career,
+            "human",
+            _pnjWeaponChoice,
+            _pnjEquipmentChoice,
+            _pnjSpellChoice);
         var power = _pnjPower switch
         {
             "Competent" => "Tests utiles autour de 45-55, 1 talent marquant, moral stable.",
@@ -796,7 +955,10 @@
             Secret: Pick(Secrets),
             Hook: Pick(Hooks),
             Stats: GenerateNpcStats(_pnjPower, role, profile.Career, profile.Race, profile.Class),
-            Profile: power);
+            Profile: power,
+            Weapon: humanoidLoadout.Weapon,
+            Equipment: humanoidLoadout.Equipment,
+            Spell: humanoidLoadout.Spell);
     }
 
     private void GenererVariantePnj()
@@ -811,6 +973,9 @@
         {
             Appearance = Pick(Appearances),
             Manner = Pick(Manners),
+            Weapon = ResolveWeaponChoice(_pnjWeaponChoice, WeaponsFor(_pnj.Tone, _pnj.Profession, _pnj.Visual), _pnj.Weapon),
+            Equipment = ResolveChoice(_pnjEquipmentChoice, EquipmentFor(_pnj.Tone, _pnj.Profession, _pnj.Visual), _pnj.Equipment),
+            Spell = ResolveSpellChoice(_pnjSpellChoice, _pnj.Tone, _pnj.Profession, _pnj.Visual, _pnj.Spell),
             Stats = _pnj.Origin == "Bestiaire"
                 ? VaryCreatureStats(PickBestiary(_pnj.Name, _pnj.Danger), _pnj.Danger)
                 : GenerateNpcStats(_pnjPower, _pnj.Role, _pnj.Profession, _pnj.Origin, _pnj.Origin)
@@ -842,9 +1007,9 @@
         {
             if (_groupSourcesRandom)
             {
-                setup.Source = Pick(["Humanoide", "Bestiaire"]);
+                setup.Source = Pick(GroupSourcesForTone(_groupTone));
                 setup.Danger = Pick(["Faible", "Moyenne", "Elevee"]);
-                var profile = ResolveHumanoidProfile("Aleatoire", "Aleatoire", "Aleatoire", Pick(GroupRoles[ThreatFromDanger(setup.Danger)]));
+                var profile = ResolveHumanoidProfile("Aleatoire", "Aleatoire", "Aleatoire", Pick(ProfessionsForTone(_groupTone)));
                 setup.Race = profile.Race;
                 setup.Class = profile.Class;
                 setup.Career = profile.Career;
@@ -866,14 +1031,17 @@
 
     private void GenererGroupeDepuisPreparation()
     {
-        var baseName = Pick(GroupNames);
+        var baseName = Pick(GroupNamesForTone(_groupTone));
         var leader = Pick(FirstNames);
 
         if (_groupMemberSetups.Count == 0)
             PreparerGroupe();
 
-        if (_groupMemberSetups.All(s => s.Source == "Humanoide" && s.Race == "Aleatoire" && s.Class == "Aleatoire" && s.Career == "Aleatoire" && s.BestiaryChoice == "Aleatoire"))
+        if (_groupSourcesRandom
+            || _groupMemberSetups.All(s => s.Source == "Humanoide" && s.Race == "Aleatoire" && s.Class == "Aleatoire" && s.Career == "Aleatoire" && s.BestiaryChoice == "Aleatoire"))
+        {
             DefinirSourcesGroupe();
+        }
 
         var members = _groupMemberSetups
             .OrderBy(s => s.Order)
@@ -883,9 +1051,10 @@
         _group = new GeneratedGroup(
             Name: $"{baseName} de {leader}",
             Threat: _groupThreat,
-            Objective: Pick(GroupObjectives),
+            Tone: _groupTone,
+            Objective: Pick(GroupObjectivesForTone(_groupTone)),
             Members: members,
-            Complication: Pick(GroupComplications));
+            Complication: Pick(GroupComplicationsForTone(_groupTone)));
     }
 
     private void GenererVariantesGroupe()
@@ -899,11 +1068,22 @@
         _group = _group with
         {
             Threat = _groupThreat,
-            Members = _groupMemberSetups
+            Tone = _groupTone,
+            Objective = Pick(GroupObjectivesForTone(_groupTone)),
+            Complication = Pick(GroupComplicationsForTone(_groupTone)),
+            Members = GroupMemberSetupsForGeneration()
                 .OrderBy(s => s.Order)
                 .SelectMany(setup => Enumerable.Range(1, Math.Max(1, setup.Quantity)).Select(_ => GenerateGroupMember(setup)))
                 .ToList()
         };
+    }
+
+    private List<GroupMemberSetup> GroupMemberSetupsForGeneration()
+    {
+        if (_groupSourcesRandom)
+            DefinirSourcesGroupe();
+
+        return _groupMemberSetups;
     }
 
     private void DupliquerLigneGroupe(GroupMemberSetup setup)
@@ -935,16 +1115,86 @@
     {
         var coins = _lootWealth switch
         {
+            "Misere" => $"{Roll(1, 10)} sous de cuivre",
             "Pauvre" => $"{Roll(2, 10)} sous de cuivre, {Roll(1, 5)} pistoles d'argent",
             "Riche" => $"{Roll(2, 10)} pistoles d'argent, {Roll(1, 5)} couronnes d'or",
+            "Exceptionnelle" => $"{Roll(4, 10)} pistoles d'argent, {Roll(2, 10)} couronnes d'or",
             _ => $"{Roll(3, 10)} sous de cuivre, {Roll(2, 10)} pistoles d'argent",
         };
+        var nature = ResolveChoice(_lootNature, LootNatureOptionsWithoutRandom);
+        var danger = ResolveChoice(_lootDanger, LootDangerOptionsWithoutRandom);
+        var magicItem = GenerateMagicLoot(nature, _lootMagicFrequency);
 
         _loot = new GeneratedLoot(
+            Context: _lootType,
+            Nature: nature,
+            Danger: danger,
             Coins: coins,
-            Items: PickMany(LootItems[_lootType], 3),
-            Clue: Pick(LootClues),
-            Complication: Pick(LootComplications));
+            Items: PickMany(ItemsForLoot(_lootType, nature), 3),
+            UsefulItem: Pick(UsefulLootItems[nature]),
+            MagicItem: magicItem.Name,
+            MagicEffect: magicItem.Effect,
+            MagicRisk: magicItem.Risk,
+            ValueEstimate: Pick(ValueEstimates[_lootWealth]),
+            Owner: Pick(LootOwners[_lootType]),
+            Condition: Pick(LootConditions),
+            Clue: Pick(CluesForLoot(_lootType, nature)),
+            Complication: BuildLootComplication(danger, magicItem.Risk));
+    }
+
+    private static IReadOnlyList<string> ItemsForLoot(string context, string nature)
+    {
+        var items = new List<string>();
+        if (LootItems.TryGetValue(context, out var contextItems))
+            items.AddRange(contextItems);
+
+        if (LootItemsByNature.TryGetValue(nature, out var natureItems))
+            items.AddRange(natureItems);
+
+        return items.Count > 0 ? items : LootItems["Route"];
+    }
+
+    private static IReadOnlyList<string> CluesForLoot(string context, string nature)
+    {
+        var clues = new List<string>(LootClues);
+        if (LootCluesByContext.TryGetValue(context, out var contextClues))
+            clues.AddRange(contextClues);
+        if (LootCluesByNature.TryGetValue(nature, out var natureClues))
+            clues.AddRange(natureClues);
+
+        return clues;
+    }
+
+    private static MagicLoot GenerateMagicLoot(string nature, string frequency)
+    {
+        var forcedByNature = nature is "Objet magique" or "Composants magiques" or "Reliques";
+        var chance = frequency switch
+        {
+            "Jamais" => 0,
+            "Possible" => 45,
+            "Frequent" => 100,
+            _ => 15,
+        };
+
+        if (!forcedByNature && Random.Shared.Next(100) >= chance)
+            return new MagicLoot("Aucun", "Aucun", "Aucun");
+
+        var pool = nature switch
+        {
+            "Composants magiques" => MagicComponents,
+            "Reliques" => MagicRelics,
+            "Equipement" => MagicWeapons,
+            "Objet magique" => MagicItems,
+            _ => MagicItems,
+        };
+
+        return Pick(pool);
+    }
+
+    private static string BuildLootComplication(string danger, string magicRisk)
+    {
+        var complication = Pick(LootComplicationsByDanger[danger]);
+        return magicRisk == "Aucun" ? complication : $"{complication} {magicRisk}";
     }
 
     private static GroupMemberSetup CreateDefaultGroupSetup(int order) =>
@@ -964,7 +1214,16 @@
     {
         if (setup.Source == "Bestiaire")
         {
-            var creature = PickBestiary(previous?.BestiaryName ?? setup.BestiaryChoice, setup.Danger);
+            var creature = PickBestiary(previous?.BestiaryName ?? setup.BestiaryChoice, setup.Danger, _groupTone);
+            var loadout = GenerateLoadout(
+                _groupTone,
+                creature.Profile,
+                creature.Visual,
+                _groupWeaponChoice,
+                _groupEquipmentChoice,
+                _groupSpellChoice,
+                creature.Attack,
+                creature.Defense);
             return new GeneratedGroupMember(
                 Order: setup.Order,
                 Name: creature.Name,
@@ -974,12 +1233,22 @@
                 Danger: setup.Danger,
                 Visual: creature.Visual,
                 Manner: creature.Special,
+                Weapon: loadout.Weapon,
+                Equipment: loadout.Equipment,
+                Spell: loadout.Spell,
                 Stats: VaryCreatureStats(creature, setup.Danger));
         }
 
         var threat = ThreatFromDanger(setup.Danger);
         var role = previous?.Role ?? Pick(GroupRoles[threat]);
-        var profile = ResolveHumanoidProfile(setup.Race, setup.Class, setup.Career, role);
+        var profile = ResolveHumanoidProfile(setup.Race, setup.Class, setup.Career, Pick(ProfessionsForTone(_groupTone)));
+        var humanoidLoadout = GenerateLoadout(
+            _groupTone,
+            profile.Career,
+            "human",
+            _groupWeaponChoice,
+            _groupEquipmentChoice,
+            _groupSpellChoice);
 
         return new GeneratedGroupMember(
             Order: setup.Order,
@@ -990,6 +1259,9 @@
             Danger: setup.Danger,
             Visual: "human",
             Manner: Pick(Manners),
+            Weapon: humanoidLoadout.Weapon,
+            Equipment: humanoidLoadout.Equipment,
+            Spell: humanoidLoadout.Spell,
             Stats: GenerateGroupMemberStats(threat, profile.Career, profile.Race, profile.Class));
     }
 
@@ -1147,7 +1419,10 @@
         if (candidates.Count == 0)
             candidates = _carrieres.ToList();
 
-        var career = candidates.Count > 0 ? Pick(candidates) : null;
+        var preferredCareer = careerSelection == "Aleatoire"
+            ? FindPreferredCareer(candidates, fallbackCareer)
+            : null;
+        var career = preferredCareer ?? (candidates.Count > 0 ? Pick(candidates) : null);
         if (career is null)
             return new HumanoidProfile(PickChoice(raceSelection, FallbackNpcRacesWithoutRandom), PickChoice(classSelection, FallbackNpcClassesWithoutRandom), fallbackCareer);
 
@@ -1157,6 +1432,13 @@
         var resolvedClass = _classes.FirstOrDefault(c => c.Id == career.ClasseId) ?? selectedClass ?? Pick(_classes);
 
         return new HumanoidProfile(resolvedRace.Nom, resolvedClass.Nom, career.Nom);
+    }
+
+    private static CarriereDto? FindPreferredCareer(IReadOnlyList<CarriereDto> candidates, string fallbackCareer)
+    {
+        var normalizedFallback = NormalizeKey(fallbackCareer);
+        return candidates.FirstOrDefault(c => NormalizeKey(c.Nom) == normalizedFallback)
+            ?? candidates.FirstOrDefault(c => NormalizeKey(c.Nom).Contains(normalizedFallback) || normalizedFallback.Contains(NormalizeKey(c.Nom)));
     }
 
     private IEnumerable<CarriereDto> AllowedCareers(string raceSelection, string classSelection)
@@ -1206,6 +1488,9 @@
     }
 
     private static BestiaryEntry PickBestiary(string selectedName, string danger)
+        => PickBestiary(selectedName, danger, null);
+
+    private static BestiaryEntry PickBestiary(string selectedName, string danger, string? tone)
     {
         if (selectedName != "Aleatoire")
             return Bestiary.FirstOrDefault(c => c.Name == selectedName) ?? Bestiary[0];
@@ -1214,7 +1499,181 @@
             ? Bestiary
             : Bestiary.Where(c => c.Danger == danger).ToList();
 
+        if (!string.IsNullOrWhiteSpace(tone) && tone != "Aleatoire")
+        {
+            var toneCandidates = candidates.Where(c => BestiaryMatchesTone(c, tone)).ToList();
+            if (toneCandidates.Count > 0)
+                candidates = toneCandidates;
+        }
+
         return Pick(candidates.Count == 0 ? Bestiary : candidates);
+    }
+
+    private static bool BestiaryMatchesTone(BestiaryEntry creature, string tone)
+    {
+        var environment = creature.Environment;
+        return tone switch
+        {
+            "Urbain" => MatchesAny(environment, "Urbain", "Egouts"),
+            "Sombre" => MatchesAny(environment, "Occulte", "Ruines", "Nuit", "Desolation", "Cimetiere", "Tombe"),
+            "Cimetiere" => MatchesAny(environment, "Cimetiere", "Tombe"),
+            "Foret" => MatchesAny(environment, "Foret", "Bois"),
+            "Route" => MatchesAny(environment, "Route"),
+            "Noble" => MatchesAny(environment, "Noble", "Urbain", "Nuit"),
+            "Egouts" => MatchesAny(environment, "Egouts", "Urbain"),
+            "Occulte" => MatchesAny(environment, "Occulte", "Ruines", "Desolation", "Nuit"),
+            _ => environment.Contains(tone, StringComparison.OrdinalIgnoreCase),
+        };
+    }
+
+    private static bool MatchesAny(string value, params string[] candidates) =>
+        candidates.Any(candidate => value.Contains(candidate, StringComparison.OrdinalIgnoreCase));
+
+    private static IReadOnlyList<string> ProfessionsForTone(string tone) =>
+        ProfessionsByTone.TryGetValue(tone, out var professions) ? professions : ProfessionsByTone["Urbain"];
+
+    private static IReadOnlyList<string> GroupNamesForTone(string tone) =>
+        GroupNamesByTone.TryGetValue(tone, out var names) ? names : GroupNames;
+
+    private static IReadOnlyList<string> GroupObjectivesForTone(string tone) =>
+        GroupObjectivesByTone.TryGetValue(tone, out var objectives) ? objectives : GroupObjectives;
+
+    private static IReadOnlyList<string> GroupComplicationsForTone(string tone) =>
+        GroupComplicationsByTone.TryGetValue(tone, out var complications) ? complications : GroupComplications;
+
+    private static IReadOnlyList<string> GroupSourcesForTone(string tone) =>
+        tone is "Cimetiere"
+            ? ["Bestiaire"]
+            : tone is "Foret" or "Egouts" or "Occulte"
+            ? ["Bestiaire", "Bestiaire", "Humanoide"]
+            : ["Humanoide", "Bestiaire"];
+
+    private static GeneratedLoadout GenerateLoadout(
+        string tone,
+        string profession,
+        string visual,
+        string weaponChoice,
+        string equipmentChoice,
+        string spellChoice,
+        string? defaultWeapon = null,
+        string? defaultEquipment = null)
+    {
+        var weapon = ResolveWeaponChoice(weaponChoice, WeaponsFor(tone, profession, visual), defaultWeapon);
+        var equipment = ResolveChoice(equipmentChoice, EquipmentFor(tone, profession, visual), defaultEquipment);
+        var spell = ResolveSpellChoice(spellChoice, tone, profession, visual);
+
+        return new GeneratedLoadout(weapon, equipment, spell);
+    }
+
+    private static string ResolveChoice(string choice, IReadOnlyList<string> values, string? fallback = null) =>
+        choice switch
+        {
+            "Aleatoire" => Pick(values),
+            "Aucun" => "Aucun",
+            _ => choice,
+        } ?? fallback ?? "Aucun";
+
+    private static string ResolveWeaponChoice(string choice, IReadOnlyList<string> values, string? fallback = null) =>
+        WithWeaponDamage(ResolveChoice(choice, values, fallback));
+
+    private static string ResolveSpellChoice(string choice, string tone, string profession, string visual, string? previous = null)
+    {
+        if (choice == "Aucun")
+            return "Aucun";
+
+        if (choice != "Aleatoire")
+            return choice;
+
+        if (!CanHaveSpell(tone, profession, visual))
+            return previous ?? "Aucun";
+
+        return Pick(["Aucun", ..SpellsFor(tone, profession, visual)]);
+    }
+
+    private static IReadOnlyList<string> WeaponsFor(string tone, string profession, string visual)
+    {
+        var profile = NormalizeKey($"{tone} {profession} {visual}");
+        if (profile.Contains("undead") || profile.Contains("squelette"))
+            return ["Lame rouillee", "Arc ancien", "Lance brisee", "Griffes osseuses"];
+        if (profile.Contains("beast") || profile.Contains("predateur") || profile.Contains("bete"))
+            return ["Morsure", "Griffes", "Charge", "Crocs et griffes"];
+        if (profile.Contains("spirit"))
+            return ["Contact spectral", "Cri glace", "Presence etouffante"];
+        if (profile.Contains("mage") || profile.Contains("sorcier") || profile.Contains("mystique") || profile.Contains("occulte"))
+            return ["Dague rituelle", "Baton grave", "Couteau sacrificiel", "Serpe noire"];
+        if (profile.Contains("noble") || profile.Contains("duelliste") || profile.Contains("courtisan"))
+            return ["Rapiere", "Main gauche", "Pistolet de duel", "Canne-epee"];
+        if (profile.Contains("foret") || profile.Contains("chasseur") || profile.Contains("eclaireur"))
+            return ["Arc court", "Hachette", "Epieu", "Couteau de chasse"];
+        if (profile.Contains("route") || profile.Contains("cocher") || profile.Contains("patrouilleur") || profile.Contains("hors-la-loi"))
+            return ["Arbalete legere", "Gourdin", "Epee courte", "Pistolet use"];
+        if (profile.Contains("egouts") || profile.Contains("ratier") || profile.Contains("voleur"))
+            return ["Dague sale", "Gourdin plombe", "Fronde", "Crochet rouille"];
+
+        return ["Dague", "Gourdin", "Epee courte", "Arbalete legere"];
+    }
+
+    private static string WithWeaponDamage(string weapon)
+    {
+        if (weapon == "Aucun" || weapon.Contains("Degats", StringComparison.OrdinalIgnoreCase))
+            return weapon;
+
+        return WeaponDamage.TryGetValue(NormalizeWeaponName(weapon), out var damage)
+            ? $"{weapon} (Degats {damage})"
+            : $"{weapon} (Degats selon profil)";
+    }
+
+    private static string NormalizeWeaponName(string weapon)
+    {
+        var withoutDetails = weapon.Split('(', 2)[0].Trim();
+        return NormalizeKey(withoutDetails);
+    }
+
+    private static IReadOnlyList<string> EquipmentFor(string tone, string profession, string visual)
+    {
+        var profile = NormalizeKey($"{tone} {profession} {visual}");
+        if (profile.Contains("cimetiere") || profile.Contains("undead"))
+            return ["Lanterne sourde", "Pelle courte", "Corde tachee de terre", "Symbole de Morr fendu"];
+        if (profile.Contains("foret") || profile.Contains("beast"))
+            return ["Piege a machoires", "Cape de pluie", "Sac d'herbes seches", "Corde et silex"];
+        if (profile.Contains("noble"))
+            return ["Lettre scellee", "Bourse parfumee", "Chevaliere", "Manteau double"];
+        if (profile.Contains("egouts"))
+            return ["Masque de tissu", "Lampe a huile", "Cle de grille", "Carte humide"];
+        if (profile.Contains("occulte") || profile.Contains("sorcier") || profile.Contains("mage"))
+            return ["Craie noire", "Bougie grasse", "Page de grimoire", "Amulette fissuree"];
+        if (profile.Contains("route"))
+            return ["Carte tachee", "Outre de voyage", "Cape ciree", "Sifflet de relais"];
+
+        return ["Bourse legere", "Couteau utilitaire", "Manteau use", "Petit carnet"];
+    }
+
+    private static IReadOnlyList<string> SpellsFor(string tone, string profession, string visual)
+    {
+        var profile = NormalizeKey($"{tone} {profession} {visual}");
+        if (profile.Contains("undead") || profile.Contains("cimetiere"))
+            return ["Animation mineure", "Voix d'outre-tombe", "Main de poussiere", "Froid de la tombe"];
+        if (profile.Contains("occulte") || profile.Contains("sorcier") || profile.Contains("mage"))
+            return ["Dard magique", "Murmure corrupteur", "Ombre mouvante", "Mauvais oeil"];
+        if (profile.Contains("foret"))
+            return ["Ronces entravantes", "Brume des sous-bois", "Peau d'ecorce", "Cri de corbeau"];
+
+        return ["Benediction mineure", "Lumiere vacillante", "Murmure lointain", "Main invisible"];
+    }
+
+    private static bool CanHaveSpell(string tone, string profession, string visual)
+    {
+        var profile = NormalizeKey($"{tone} {profession} {visual}");
+        return profile.Contains("mage")
+            || profile.Contains("sorcier")
+            || profile.Contains("sorciere")
+            || profile.Contains("mystique")
+            || profile.Contains("pretre")
+            || profile.Contains("occulte")
+            || profile.Contains("undead")
+            || profile.Contains("spirit")
+            || profile.Contains("demon")
+            || tone is "Occulte" or "Cimetiere";
     }
 
     private static CreatureStats GenerateNpcStats(string power, string role, string profession, string race, string npcClass)
@@ -1302,6 +1761,17 @@
         return string.Join('-', new string(chars).Split('-', StringSplitOptions.RemoveEmptyEntries));
     }
 
+    private static string NormalizeKey(string value)
+    {
+        var normalized = value.Normalize(System.Text.NormalizationForm.FormD);
+        var chars = normalized
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+            .Select(c => char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-')
+            .ToArray();
+
+        return string.Join('-', new string(chars).Split('-', StringSplitOptions.RemoveEmptyEntries));
+    }
+
     private static List<string> PickMany(IReadOnlyList<string> values, int count) =>
         values.OrderBy(_ => Random.Shared.Next()).Take(count).ToList();
 
@@ -1325,7 +1795,7 @@
         new("Ours noir", "Predateur massif", "Foret", "Elevee", "beast", S(50, 0, 55, 55, 35, 30, 0, 15, 35, 0, 24, 4), "Masse de muscles et de griffes", "Griffes, morsure", "Peau epaisse, moral animal", "Terrifiant a courte distance", "Il garde une taniere ou un cadavre."),
         new("Cheval panique", "Animal de trait", "Route", "Faible", "beast", S(25, 0, 45, 40, 30, 40, 0, 10, 20, 0, 14, 8), "Monture affolee", "Ruade", "Fuit le feu et les cris", "Peut pietiner sans intention", "Son harnachement porte un blason utile."),
         new("Goule", "Mort-vivant charognard", "Cimetiere", "Moyenne", "undead", S(40, 0, 40, 40, 30, 35, 15, 20, 40, 0, 13, 4), "Mangeur de cadavres", "Griffes sales", "Ignore la peur ordinaire", "Infection ou morsure sale", "Elle garde un secret enterre avec les morts."),
-        new("Squelette", "Mort-vivant arme", "Tombe", "Faible", "undead", S(35, 25, 30, 35, 20, 25, 15, 15, 45, 0, 10, 4), "Os anime par magie", "Lame rouillee ou arc ancien", "Insensible a la douleur", "Ne fuit pas, sauf si le lien magique casse", "Son armure indique une ancienne bataille."),
+        new("Squelette", "Mort-vivant arme", "Cimetiere", "Faible", "undead", S(35, 25, 30, 35, 20, 25, 15, 15, 45, 0, 10, 4), "Os anime par magie", "Lame rouillee ou arc ancien", "Insensible a la douleur", "Ne fuit pas, sauf si le lien magique casse", "Son armure indique une ancienne bataille."),
         new("Zombie", "Cadavre anime", "Cimetiere", "Faible", "undead", S(30, 0, 40, 45, 10, 15, 0, 5, 45, 0, 14, 3), "Lent, lourd, obstine", "Poings, morsure", "Encaisse beaucoup, esquive peu", "Dangereux en masse", "Un objet personnel le relie a un habitant."),
         new("Spectre mineur", "Esprit vengeur", "Ruines", "Elevee", "spirit", S(45, 0, 0, 35, 50, 45, 0, 35, 60, 10, 16, 6), "Presence glaciale", "Contact spectral", "Difficile a blesser sans moyens adaptes", "Traverse obstacles fragiles", "Il repete la derniere nuit de sa vie."),
         new("Gobelin", "Peau-verte sournoise", "Bois", "Faible", "greenskin", S(30, 35, 25, 30, 35, 40, 30, 25, 25, 20, 8, 4), "Petit pillard vicieux", "Lance courte, arc, piege", "Mauvais moral seul", "Excellent pour embuscades sales", "Il sait ou se cache un chef plus gros."),
@@ -1346,10 +1816,14 @@
 
     private static readonly Dictionary<string, IReadOnlyList<string>> ProfessionsByTone = new()
     {
-        ["Urbain"] = ["aubergiste", "apprenti imprimeur", "garde de porte", "racketteur", "messager", "rebouteux"],
-        ["Route"] = ["cocher", "patrouilleur", "colporteur", "chasseur", "peager", "deserteur"],
-        ["Noble"] = ["intendant", "duelliste", "dame de compagnie", "percepteur", "precepteur", "heraut"],
-        ["Sombre"] = ["fossoyeur", "mendiant prophete", "cultiste repenti", "contrebandier", "bourreau", "informateur"],
+        ["Urbain"] = ["Citadin", "Sentinelle", "Marchand", "Ratier", "Racketteur", "Messager"],
+        ["Route"] = ["Cocher", "Patrouilleur", "Colporteur", "Chasseur de Primes", "Messager", "Hors-la-loi"],
+        ["Noble"] = ["Noble", "Intendant", "Duelliste", "Emissaire", "Conseiller", "Serviteur"],
+        ["Sombre"] = ["Mendiant", "Flagellant", "Sorciere", "Chasseur de Sorcieres", "Espion", "Contrebandier"],
+        ["Cimetiere"] = ["Pilleur de Tombes", "Pretre", "Nonne", "Mystique", "Flagellant", "Chasseur de Sorcieres"],
+        ["Foret"] = ["Chasseur", "Eclaireur", "Herboriste", "Colporteur", "Chasseur de Primes", "Hors-la-loi"],
+        ["Egouts"] = ["Ratier", "Mendiant", "Contrebandier", "Voleur", "Receleur", "Racketteur"],
+        ["Occulte"] = ["Sorciere", "Mage", "Sorcier de Village", "Mystique", "Erudit", "Chasseur de Sorcieres"],
     };
 
     private static readonly IReadOnlyList<string> FallbackNpcRaces = ["Aleatoire", "Humain", "Nain", "Halfling", "Haut Elfe", "Elfe des Bois"];
@@ -1366,9 +1840,94 @@
     private static readonly IReadOnlyList<string> Secrets = ["travaille pour deux camps", "a vu un symbole interdit", "cache une morsure suspecte", "a vole une lettre scellee", "connait le vrai coupable", "ment sur son identite"];
     private static readonly IReadOnlyList<string> Hooks = ["demande une escorte discrete", "vend une information incomplete", "accuse un innocent", "propose un marche trop beau", "cherche des bras pour une expedition courte", "reconnait un PJ par erreur"];
 
+    private static readonly IReadOnlyList<string> GroupToneOptions = ["Urbain", "Sombre", "Cimetiere", "Foret", "Route", "Noble", "Egouts", "Occulte"];
+    private static readonly IReadOnlyList<string> WeaponOptions =
+    [
+        "Aleatoire", "Aucun", "Dague", "Gourdin", "Epee courte", "Arbalete legere", "Arc court", "Hachette",
+        "Epieu", "Rapiere", "Pistolet de duel", "Lame rouillee", "Baton grave", "Dague rituelle"
+    ];
+    private static readonly Dictionary<string, string> WeaponDamage = new()
+    {
+        ["arbalete-legere"] = "+7",
+        ["arc-ancien"] = "+6",
+        ["arc-court"] = "+6",
+        ["baton-grave"] = "+BF+4",
+        ["canne-epee"] = "+BF+3",
+        ["charge"] = "+BF+4",
+        ["contact-spectral"] = "+FM",
+        ["couteau-de-chasse"] = "+BF+2",
+        ["couteau-sacrificiel"] = "+BF+2",
+        ["cri-glace"] = "+FM",
+        ["crochet-rouille"] = "+BF+2",
+        ["crocs-et-griffes"] = "+BF+4",
+        ["dague"] = "+BF+2",
+        ["dague-rituelle"] = "+BF+2",
+        ["dague-sale"] = "+BF+2",
+        ["epee-courte"] = "+BF+4",
+        ["epieu"] = "+BF+4",
+        ["fronde"] = "+6",
+        ["gourdin"] = "+BF+4",
+        ["gourdin-plombe"] = "+BF+4",
+        ["griffes"] = "+BF+3",
+        ["griffes-osseuses"] = "+BF+3",
+        ["hachette"] = "+BF+3",
+        ["lame-rouillee"] = "+BF+3",
+        ["lance-brisee"] = "+BF+4",
+        ["main-gauche"] = "+BF+2",
+        ["morsure"] = "+BF+3",
+        ["pistolet-de-duel"] = "+8",
+        ["pistolet-use"] = "+8",
+        ["presence-etouffante"] = "+FM",
+        ["rapiere"] = "+BF+4",
+        ["serpe-noire"] = "+BF+3",
+    };
+    private static readonly IReadOnlyList<string> EquipmentOptions =
+    [
+        "Aleatoire", "Aucun", "Bourse legere", "Couteau utilitaire", "Lanterne sourde", "Pelle courte",
+        "Corde tachee de terre", "Symbole de Morr fendu", "Piege a machoires", "Carte tachee",
+        "Lettre scellee", "Craie noire", "Page de grimoire", "Cle de grille"
+    ];
+    private static readonly IReadOnlyList<string> SpellOptions =
+    [
+        "Aleatoire", "Aucun", "Dard magique", "Mauvais oeil", "Ombre mouvante", "Voix d'outre-tombe",
+        "Animation mineure", "Froid de la tombe", "Ronces entravantes", "Benediction mineure"
+    ];
     private static readonly IReadOnlyList<string> GroupNames = ["Patrouille", "Bande", "Escouade", "Cellule", "Caravane", "Main noire"];
     private static readonly IReadOnlyList<string> GroupObjectives = ["arreter un temoin avant qu'il parle", "recuperer une caisse marquee d'un sceau noble", "tenir un pont jusqu'a la nuit", "escorter un prisonnier qui sait trop de choses", "faire peur sans declencher d'enquete", "chercher un objet enterre sous une vieille chapelle"];
     private static readonly IReadOnlyList<string> GroupComplications = ["Le chef veut negocier, un second veut tuer.", "Un membre est blesse et ralentit tout le groupe.", "Ils portent un signe qui implique une faction locale.", "Ils ne savent pas qui les paie vraiment.", "Un innocent est pris au milieu de la scene.", "La garde arrive dans 1d10 minutes."];
+    private static readonly Dictionary<string, IReadOnlyList<string>> GroupNamesByTone = new()
+    {
+        ["Urbain"] = ["Patrouille", "Bande de ruelle", "Main de guilde", "Cercle de taverne"],
+        ["Sombre"] = ["Cellule", "Main noire", "Procession muette", "Confrerie voilee"],
+        ["Cimetiere"] = ["Veille funeraire", "Cercle de fossoyeurs", "Bande des tombes", "Garde de Morr"],
+        ["Foret"] = ["Meute", "Bande des taillis", "Patrouille forestiere", "Cercle de chasse"],
+        ["Route"] = ["Caravane", "Relais arme", "Patrouille de grand-route", "Bande de peagers"],
+        ["Noble"] = ["Suite", "Escorte noble", "Maison armee", "Cabale de salon"],
+        ["Egouts"] = ["Bande des canaux", "Nid", "Equipe de vidange", "Cellule sous la ville"],
+        ["Occulte"] = ["Cercle interdit", "Loge", "Culte masque", "Choeur noir"],
+    };
+    private static readonly Dictionary<string, IReadOnlyList<string>> GroupObjectivesByTone = new()
+    {
+        ["Urbain"] = ["faire taire un temoin dans une ruelle", "recuperer une dette avant la fermeture des portes", "controler une taverne jusqu'a l'arrivee d'un contact", "suivre les PJ sans attirer la garde"],
+        ["Sombre"] = ["effacer les traces d'un crime rituel", "enlever quelqu'un avant l'aube", "livrer un paquet sans jamais l'ouvrir", "faire peur sans laisser de survivant bavard"],
+        ["Cimetiere"] = ["ouvrir une tombe avant la ronde de Morr", "proteger un cadavre qui ne devrait pas bouger", "retrouver un bijou enterre avec le mauvais mort", "empecher les PJ d'approcher une crypte"],
+        ["Foret"] = ["tendre une embuscade pres d'un vieux chene", "garder une piste que personne ne doit suivre", "chasser une proie blessee avant la nuit", "eloigner les curieux d'un camp cache"],
+        ["Route"] = ["escorter un prisonnier qui sait trop de choses", "tenir un pont jusqu'a la nuit", "ranconner les voyageurs sous pretexte de peage", "recuperer une caisse tombee d'une diligence"],
+        ["Noble"] = ["proteger un invite compromettant", "recuperer une lettre scellee avant lecture", "intimider un serviteur trop curieux", "organiser un duel qui ressemble a un accident"],
+        ["Egouts"] = ["deplacer une cargaison par les conduits", "fermer une bouche d'egout derriere les PJ", "noyer une preuve dans un collecteur", "suivre une odeur jusqu'a un repaire"],
+        ["Occulte"] = ["gagner du temps pour achever un rite", "capturer un temoin marque par les vents", "recuperer un grimoire incomplet", "proteger un cercle trace a la craie noire"],
+    };
+    private static readonly Dictionary<string, IReadOnlyList<string>> GroupComplicationsByTone = new()
+    {
+        ["Urbain"] = ["La garde arrive dans 1d10 minutes.", "Un marchand local reconnait l'un des membres.", "La foule bloque une fuite propre.", "Un enfant a tout vu depuis une fenetre."],
+        ["Sombre"] = ["Le chef veut negocier, un second veut tuer.", "La lumiere revele une marque interdite.", "Un membre entend des voix et panique.", "Ils ne savent pas qui les paie vraiment."],
+        ["Cimetiere"] = ["Une tombe voisine s'ouvre au mauvais moment.", "Le pretre de Morr approche avec sa lanterne.", "Un mort porte le visage d'un proche.", "Le sol frais cache une deuxieme fosse."],
+        ["Foret"] = ["Le vent tourne et emporte les bruits.", "Une bete plus grosse rode tout pres.", "Un piege ancien menace les deux camps.", "La pluie efface la piste au pire moment."],
+        ["Route"] = ["Une diligence arrive en plein conflit.", "Un cheval panique et renverse le plan.", "Un membre est blesse et ralentit tout le groupe.", "Un panneau routier a ete volontairement inverse."],
+        ["Noble"] = ["Un blason implique une maison influente.", "Un temoin noble exige des formes et des excuses.", "Le chef refuse de salir ses gants.", "Un domestique essaie de sauver sa propre peau."],
+        ["Egouts"] = ["L'eau monte rapidement.", "Une grille se referme derriere le groupe.", "Des rats masquent un autre bruit.", "L'air devient difficile a respirer."],
+        ["Occulte"] = ["Le rituel reagit au sang verse.", "Un symbole bouge quand personne ne le regarde.", "Un membre regrette et veut parler.", "La corruption attire quelque chose d'autre."],
+    };
     private static readonly Dictionary<string, IReadOnlyList<string>> GroupRoles = new()
     {
         ["Faible"] = ["bravache mal arme", "guetteur nerveux", "porteur de gourdin", "tireur mediocre"],
@@ -1376,23 +1935,141 @@
         ["Forte"] = ["veteran cuirasse", "duelliste froid", "fanatique protege", "tireur d'elite"],
     };
 
+    private static readonly IReadOnlyList<string> LootTypeOptions = ["Route", "Repaire", "Urbain", "Sombre", "Cimetiere", "Foret", "Noble", "Egouts", "Occulte", "Ruines", "Champ de bataille"];
+    private static readonly IReadOnlyList<string> LootNatureOptions = ["Aleatoire", "Monnaie", "Marchandises", "Equipement", "Documents", "Reliques", "Contrebande", "Composants magiques", "Objet magique"];
+    private static readonly IReadOnlyList<string> LootNatureOptionsWithoutRandom = LootNatureOptions.Skip(1).ToList();
+    private static readonly IReadOnlyList<string> LootDangerOptions = ["Aleatoire", "Aucun", "Piege", "Malediction", "Proprietaire vivant", "Recherche", "Instable"];
+    private static readonly IReadOnlyList<string> LootDangerOptionsWithoutRandom = LootDangerOptions.Skip(1).ToList();
+
     private static readonly Dictionary<string, IReadOnlyList<string>> LootItems = new()
     {
         ["Route"] = ["lanterne cabossee", "carte tachee", "manteau huile", "corde solide", "bague sans pierre", "flasque d'eau-de-vie"],
         ["Repaire"] = ["cle numerotee", "sac de sel", "outils de crochetage grossiers", "icone volee", "registre de dettes", "arme cachee"],
+        ["Urbain"] = ["jeton de taverne", "liste de creanciers", "cle d'arriere-boutique", "cachet de guilde", "bourse de mendiant", "bon de livraison"],
+        ["Sombre"] = ["manteau noirci", "lettre sans signature", "couteau nettoye trop vite", "chapelet brise", "flacon amer", "masque de cuir"],
+        ["Cimetiere"] = ["pelle courte", "clou de cercueil", "lampe funeraire", "plaque de tombe", "ruban de deuil", "os numerote"],
+        ["Foret"] = ["piege a machoires", "peau tannee", "corne d'appel", "gourde de resine", "carte de sentier", "herbes sechees"],
         ["Noble"] = ["sceau de cire", "mouchoir brode", "bourse parfumee", "lettre de recommandation", "bouton d'argent", "invitation froissee"],
+        ["Egouts"] = ["crochet rouille", "sac etanche", "cle couverte de graisse", "lanterne sourde", "plan de collecteur", "medaille avalee"],
         ["Occulte"] = ["bougie noire", "poudre rouge", "amulette fendue", "page de rituel", "os grave", "miroir terni"],
+        ["Ruines"] = ["fragment de fresque", "cle antique", "tesson marque", "piece d'un empire mort", "charniere de bronze", "tablette cassee"],
+        ["Champ de bataille"] = ["casque fendu", "medaille militaire", "ordre froisse", "baionnette tordue", "ration seche", "boucle de regiment"],
     };
 
+    private static readonly Dictionary<string, IReadOnlyList<string>> LootItemsByNature = new()
+    {
+        ["Monnaie"] = ["petite cassette", "bourse cachee", "rouleau de pistoles", "pieces etrangeres", "jetons de jeu", "couronnes retaillees"],
+        ["Marchandises"] = ["ballot de laine", "sac d'epices", "caisse de clous", "rouleau de cuir", "bouteilles de vin", "linge fin"],
+        ["Equipement"] = ["dague de secours", "baudrier solide", "trousse de soin", "outils de crochetage", "corde de chanvre", "gants renforces"],
+        ["Documents"] = ["contrat rature", "lettre codee", "liste de noms", "plan incomplet", "permis contrefait", "journal de route"],
+        ["Reliques"] = ["medaille benie", "os de saint local", "icone de poche", "sceau de temple", "clou de reliquaire", "morceau de suaire"],
+        ["Contrebande"] = ["tabac interdit", "fiole sans etiquette", "poudre de duel", "fausses taxes", "livret proscrit", "anneau vole"],
+        ["Composants magiques"] = ["poudre d'os", "racine de mandragore", "sang coagule", "sel noir", "encre ferreuse", "fragment de malepierre"],
+        ["Objet magique"] = ["ecrin double fond", "etui de velours use", "boite scellee", "linge marque de runes", "coffret froid", "pochette cousue"],
+    };
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> UsefulLootItems = new()
+    {
+        ["Monnaie"] = ["un changeur peut identifier l'origine des pieces", "les pieces paient un repas et une chambre correcte", "la bourse contient un jeton utile dans une taverne precise"],
+        ["Marchandises"] = ["la cargaison se revend facilement a un artisan", "un marchand local la reconnaitra sans poser trop de questions", "un lot abime peut servir de troc rapide"],
+        ["Equipement"] = ["l'objet remplace une piece d'equipement usee", "l'objet donne un bon pretexte pour entrer chez un artisan", "l'objet peut servir dans la prochaine scene d'enquete"],
+        ["Documents"] = ["le document donne un nom exploitable", "le document ouvre une porte administrative", "le document prouve qu'un paiement a ete fait"],
+        ["Reliques"] = ["un temple offrira aide ou information pour la relique", "la relique calme les superstitieux", "la relique prouve le passage d'un pretre ou d'un fossoyeur"],
+        ["Contrebande"] = ["la contrebande vaut cher mais attire les mauvaises personnes", "un receleur saura la vendre discretement", "la cargaison peut servir de levier contre son proprietaire"],
+        ["Composants magiques"] = ["un sorcier ou un apothicaire paiera sans discuter", "le composant peut renforcer un rituel mineur", "le composant permet d'identifier une pratique occulte"],
+        ["Objet magique"] = ["l'objet est assez etrange pour interesser un expert", "l'objet peut sauver une scene au prix d'un risque", "l'objet attire autant les collectionneurs que les fanatiques"],
+    };
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> LootOwners = new()
+    {
+        ["Route"] = ["un cocher disparu", "un colporteur mort de peur", "une bande de coupe-jarrets", "un messager de province"],
+        ["Repaire"] = ["le chef du repaire", "un prisonnier oublie", "un receleur local", "un lieutenant trop ambitieux"],
+        ["Urbain"] = ["une guilde mineure", "un aubergiste endette", "un collecteur de taxes", "un gang de ruelle"],
+        ["Sombre"] = ["un maitre-chanteur", "un culte discret", "un assassin independant", "un temoin qui se cache"],
+        ["Cimetiere"] = ["un fossoyeur", "une famille endeuillee", "un pretre de Morr", "un pilleur de tombe"],
+        ["Foret"] = ["un braconnier", "un patrouilleur rural", "une bande de charbonniers", "un ermite violent"],
+        ["Noble"] = ["une maison noble", "un intendant", "un dueliste ruine", "une servante qui sait trop de choses"],
+        ["Egouts"] = ["un contrebandier", "un egoutier", "un clan de mutants", "un collecteur de dettes"],
+        ["Occulte"] = ["un apprenti sorcier", "un cultiste prudent", "un chasseur de sorcieres", "un libraire interdit"],
+        ["Ruines"] = ["un antiquaire", "un pillard", "un ordre savant", "un esprit qui n'a pas oublie"],
+        ["Champ de bataille"] = ["un veteran", "un officier mort", "un charognard", "un regiment qui reclame ses biens"],
+    };
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> ValueEstimates = new()
+    {
+        ["Misere"] = ["quelques sous au mieux", "presque rien, sauf pour la bonne personne", "valeur sentimentale plus que marchande"],
+        ["Pauvre"] = ["quelques pistoles", "de quoi payer une nuit mediocre", "modeste mais facile a echanger"],
+        ["Correcte"] = ["plusieurs pistoles", "assez pour attirer un voleur prudent", "une recompense honnete"],
+        ["Riche"] = ["plusieurs couronnes", "assez pour provoquer une dispute", "valeur forte si vendu discretement"],
+        ["Exceptionnelle"] = ["une petite fortune", "assez pour lancer une intrigue", "valeur enorme mais tres dangereuse a ecouler"],
+    };
+
+    private static readonly IReadOnlyList<string> LootConditions = ["intact mais sale", "abime par l'humidite", "cache dans un double fond", "enveloppe dans un linge gras", "marque par le sang", "protege par un sceau casse", "recemment deplace"];
     private static readonly IReadOnlyList<string> LootClues = ["un nom revient deux fois dans les papiers", "une adresse est codee dans une marge", "une trace de boue indique un quartier precis", "un symbole renvoie a une guilde", "un paiement porte la marque d'un intendant", "une odeur d'encens trahit un culte"];
-    private static readonly IReadOnlyList<string> LootComplications = ["L'objet est reconnaissable par son vrai proprietaire.", "La monnaie est rogne ou fausse.", "Quelqu'un cherche deja ce butin.", "Le butin accuse autant qu'il recompense.", "Un temoin a vu les PJ le prendre.", "Une piece porte une marque de corruption."];
+    private static readonly Dictionary<string, IReadOnlyList<string>> LootCluesByContext = new()
+    {
+        ["Cimetiere"] = ["de la terre fraiche colle a l'objet", "une date de deces ne correspond pas au registre"],
+        ["Noble"] = ["un blason a ete volontairement gratte", "le parfum indique une maison precise"],
+        ["Occulte"] = ["une rune revient sur plusieurs objets", "la cire noire porte une empreinte de bague"],
+        ["Egouts"] = ["une odeur de suif et de vase suit le paquet", "un plan indique une bouche condamnee"],
+        ["Route"] = ["la boue vient d'une route differente", "une marque de roue se repete sur l'emballage"],
+    };
+    private static readonly Dictionary<string, IReadOnlyList<string>> LootCluesByNature = new()
+    {
+        ["Documents"] = ["une initiale est cachee dans la signature", "la meme main a corrige deux passages"],
+        ["Reliques"] = ["un temple voisin connaitra cette marque", "la relique manque dans un inventaire sacre"],
+        ["Contrebande"] = ["le lot porte un code de receleur", "un prix a ete note dans une marge"],
+        ["Composants magiques"] = ["le composant reagit pres d'un symbole", "l'odeur trahit un atelier occulte"],
+        ["Objet magique"] = ["l'objet devient froid quand le mensonge approche", "un expert reconnaitra l'ecole de fabrication"],
+    };
+    private static readonly Dictionary<string, IReadOnlyList<string>> LootComplicationsByDanger = new()
+    {
+        ["Aucun"] = ["Le butin est utile, mais personne ne le reclame pour l'instant."],
+        ["Piege"] = ["Un fil, une aiguille ou un sceau declenche une mauvaise surprise."],
+        ["Malediction"] = ["La prise laisse une marque subtile sur celui qui la garde."],
+        ["Proprietaire vivant"] = ["Le proprietaire sait que l'objet a change de mains."],
+        ["Recherche"] = ["La garde, une guilde ou un culte cherche deja ce butin."],
+        ["Instable"] = ["L'objet se degrade, fuit, chauffe ou attire les regards au mauvais moment."],
+    };
+
+    private static readonly IReadOnlyList<MagicLoot> MagicItems =
+    [
+        new("Miroir fendu de mauvaise verite", "reflete une silhouette cachee ou un mensonge proche", "Apres usage, le porteur voit parfois son reflet bouger seul."),
+        new("Cle sans serrure", "ouvre une porte ordinaire si une dette est prononcee a voix basse", "La dette devient reelle pour quelqu'un."),
+        new("Piece qui revient toujours", "revient dans la bourse du porteur a l'aube", "Chaque retour attire la malchance d'un creancier inconnu."),
+        new("Masque de cuir murmurant", "donne une voix credible pour mentir une fois", "Le masque repete ensuite le mensonge au pire moment."),
+        new("Bougie noire de veille", "brule sans vent et revele les traces recentes de sang", "Sa fumee attire les choses qui n'aiment pas la lumiere."),
+    ];
+    private static readonly IReadOnlyList<MagicLoot> MagicRelics =
+    [
+        new("Medaille de Morr ternie", "apaise la peur provoquee par les morts pendant une scene", "Les morts proches semblent remarquer le porteur."),
+        new("Clou de reliquaire", "repousse un esprit mineur ou force un silence sacre", "Un pretre voudra savoir comment il a ete obtenu."),
+        new("Os grave d'un saint local", "donne du poids a une priere ou a une demande de temple", "La relique exige d'etre rendue avant la prochaine aube."),
+        new("Sceau de Sigmar craquele", "rassure les fideles et intimide les cultistes faibles", "Il devient brulant pres de la corruption."),
+    ];
+    private static readonly IReadOnlyList<MagicLoot> MagicWeapons =
+    [
+        new("Dague runee froide", "blesse plus facilement une creature etheree ou impie", "La lame laisse le bras engourdi apres usage."),
+        new("Masse consacree de chapelle", "frappe les morts-vivants avec une autorite visible", "Elle sonne comme une cloche quand un mensonge est dit."),
+        new("Balle gravee d'un nom", "semble destinee a une personne precise", "Si elle rate, elle cherche une autre dette de sang."),
+        new("Lame argentee ternie", "utile contre certaines betes ou maledictions", "Son eclat revele aussi la peur du porteur."),
+    ];
+    private static readonly IReadOnlyList<MagicLoot> MagicComponents =
+    [
+        new("Fragment de malepierre enveloppe de plomb", "sert de composant puissant et tres illegal", "Il corrompt lentement ce qui le touche."),
+        new("Racine de mandragore nouee", "renforce un sort de sommeil, peur ou guerison douteuse", "Elle crie faiblement quand on la coupe."),
+        new("Encre ferreuse de pacte", "rend un serment ecrit difficile a rompre", "La peau du signataire garde une trace sombre."),
+        new("Poudre d'os de pendu", "alimente un rite de mort ou de divination", "Les ombres semblent plus longues autour du sachet."),
+    ];
 
     private sealed record BestiaryEntry(string Name, string Role, string Environment, string Danger, string Visual, CreatureStats BaseStats, string Profile, string Attack, string Defense, string Special, string Hook);
     private sealed record CreatureStats(int WS, int BS, int S, int T, int I, int Ag, int Dex, int Int, int WP, int Fel, int Wounds, int Move);
-    private sealed record GeneratedNpc(string Name, string Role, string Tone, string Profession, string Origin, string Danger, string Visual, string Appearance, string Manner, string Motivation, string Secret, string Hook, CreatureStats Stats, string Profile);
-    private sealed record GeneratedGroup(string Name, string Threat, string Objective, IReadOnlyList<GeneratedGroupMember> Members, string Complication);
-    private sealed record GeneratedGroupMember(int Order, string Name, string Role, string Origin, string? BestiaryName, string Danger, string Visual, string Manner, CreatureStats Stats);
-    private sealed record GeneratedLoot(string Coins, IReadOnlyList<string> Items, string Clue, string Complication);
+    private sealed record GeneratedLoadout(string Weapon, string Equipment, string Spell);
+    private sealed record GeneratedNpc(string Name, string Role, string Tone, string Profession, string Origin, string Danger, string Visual, string Appearance, string Manner, string Motivation, string Secret, string Hook, CreatureStats Stats, string Profile, string Weapon, string Equipment, string Spell);
+    private sealed record GeneratedGroup(string Name, string Threat, string Tone, string Objective, IReadOnlyList<GeneratedGroupMember> Members, string Complication);
+    private sealed record GeneratedGroupMember(int Order, string Name, string Role, string Origin, string? BestiaryName, string Danger, string Visual, string Manner, string Weapon, string Equipment, string Spell, CreatureStats Stats);
+    private sealed record GeneratedLoot(string Context, string Nature, string Danger, string Coins, IReadOnlyList<string> Items, string UsefulItem, string MagicItem, string MagicEffect, string MagicRisk, string ValueEstimate, string Owner, string Condition, string Clue, string Complication);
+    private sealed record MagicLoot(string Name, string Effect, string Risk);
     private sealed record HumanoidProfile(string Race, string Class, string Career);
 
     private sealed class GroupMemberSetup

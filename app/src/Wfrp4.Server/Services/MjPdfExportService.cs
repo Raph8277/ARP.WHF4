@@ -19,27 +19,28 @@ public class MjPdfExportService
 
     public async Task<(byte[] Content, string FileName)> GenerateAsync(MjPdfExportRequest request, CancellationToken ct)
     {
-        var template = await File.ReadAllBytesAsync(TemplatePath("wfrp4-character-sheet-1.jpg"), ct);
-        var pages = BuildPages(request);
+        var theme = PdfTheme.For(request.Type);
+        var template = await File.ReadAllBytesAsync(TemplatePath(theme.TemplateFileName), ct);
+        var pages = BuildPages(request, theme);
         var fileName = $"atelier-mj-{Slug(request.Type)}-{Slug(request.Title)}.pdf";
         return (SimplePdf.Write(pages, template), fileName);
     }
 
-    private List<string> BuildPages(MjPdfExportRequest request)
+    private List<string> BuildPages(MjPdfExportRequest request, PdfTheme theme)
     {
         var pages = new List<string>();
-        var canvas = NewPage(request.Title, pages.Count + 1);
-        var y = 250;
+        var canvas = NewPage(request.Title, pages.Count + 1, theme);
+        var y = theme.ContentStartY;
 
         foreach (var section in request.Sections)
         {
-            EnsureSpace(ref canvas, pages, request.Title, ref y, 120);
+            EnsureSpace(ref canvas, pages, request.Title, theme, ref y, 120);
             canvas.TextPx(110, y, 18, section.Title, 760, "Times-Roman", isBold: true);
             y += 38;
 
             foreach (var line in section.Lines)
             {
-                EnsureSpace(ref canvas, pages, request.Title, ref y, 42);
+                EnsureSpace(ref canvas, pages, request.Title, theme, ref y, 42);
                 canvas.TextPx(120, y, 10, line.Label, 210, "Helvetica", isBold: true);
                 canvas.TextPx(330, y, 10, line.Value, 650, "Helvetica");
                 y += 34;
@@ -47,7 +48,7 @@ public class MjPdfExportService
 
             foreach (var stat in section.Stats)
             {
-                EnsureSpace(ref canvas, pages, request.Title, ref y, 180);
+                EnsureSpace(ref canvas, pages, request.Title, theme, ref y, 180);
                 canvas.TextPx(120, y, 13, stat.Name, 420, "Times-Roman", isBold: true);
                 canvas.TextPx(540, y, 10, stat.Danger, 140, "Helvetica", isBold: true);
                 y += 26;
@@ -64,24 +65,27 @@ public class MjPdfExportService
         return pages;
     }
 
-    private static PdfCanvas NewPage(string title, int pageNumber)
+    private static PdfCanvas NewPage(string title, int pageNumber, PdfTheme theme)
     {
         var canvas = new PdfCanvas();
-        canvas.TemplateImage();
-        canvas.TextCenteredPx(620, 118, 24, "ATELIER MJ", "Times-Roman", isBold: true);
-        canvas.TextCenteredPx(620, 160, 13, title, "Helvetica");
+        canvas.TemplateImage(theme.LightText);
+        if (theme.DrawHeader)
+        {
+            canvas.TextCenteredPx(620, 118, 24, "ATELIER MJ", "Times-Roman", isBold: true);
+            canvas.TextCenteredPx(620, 160, 13, title, "Helvetica");
+        }
         canvas.TextPx(1040, 1450, 9, $"Page {pageNumber}", 120, "Helvetica");
         return canvas;
     }
 
-    private static void EnsureSpace(ref PdfCanvas canvas, List<string> pages, string title, ref int y, int needed)
+    private static void EnsureSpace(ref PdfCanvas canvas, List<string> pages, string title, PdfTheme theme, ref int y, int needed)
     {
         if (y + needed <= 1410)
             return;
 
         pages.Add(canvas.Content);
-        canvas = NewPage(title, pages.Count + 1);
-        y = 250;
+        canvas = NewPage(title, pages.Count + 1, theme);
+        y = theme.ContentStartY;
     }
 
     private static void DrawStats(PdfCanvas canvas, MjPdfStatsDto stat, int y)
@@ -98,6 +102,17 @@ public class MjPdfExportService
 
     private string TemplatePath(string fileName) =>
         Path.Combine(_environment.ContentRootPath, "PdfTemplates", fileName);
+
+    private sealed record PdfTheme(string TemplateFileName, bool LightText, bool DrawHeader, int ContentStartY)
+    {
+        public static PdfTheme For(string type)
+        {
+            var normalized = Slug(type);
+            return normalized is "pnj" or "groupe-pnj" or "butin"
+                ? new PdfTheme("wfrp4-mj-page-background.jpg", LightText: false, DrawHeader: false, ContentStartY: 315)
+                : new PdfTheme("wfrp4-character-sheet-1.jpg", LightText: false, DrawHeader: true, ContentStartY: 250);
+        }
+    }
 
     private static string Slug(string value)
     {
@@ -180,12 +195,12 @@ public class MjPdfExportService
         private readonly StringBuilder _content = new();
         public string Content => _content.ToString();
 
-        public void TemplateImage()
+        public void TemplateImage(bool lightText)
         {
             _content.Append("q ")
                 .Append(PageWidth.ToString(CultureInfo.InvariantCulture)).Append(" 0 0 ")
                 .Append(PageHeight.ToString(CultureInfo.InvariantCulture)).Append(" 0 0 cm /Bg Do Q\n");
-            _content.Append("0 0 0 rg\n");
+            _content.Append(lightText ? "0.92 0.9 0.82 rg\n" : "0 0 0 rg\n");
         }
 
         public void TextPx(int x, int y, int size, string text, int maxWidth = 220, string font = "Helvetica", bool isBold = false)

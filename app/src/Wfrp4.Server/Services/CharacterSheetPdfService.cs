@@ -199,6 +199,8 @@ public class CharacterSheetPdfService
             .Include(p => p.Talents).ThenInclude(t => t.Talent)
             .Include(p => p.Carrieres).ThenInclude(c => c.NiveauCarriere).ThenInclude(n => n.Carriere).ThenInclude(c => c.Classe)
             .Include(p => p.Possessions)
+            .Include(p => p.Sorts).ThenInclude(s => s.SortReference)
+            .Include(p => p.Parchemins).ThenInclude(p => p.SortReference)
             .FirstOrDefaultAsync(p => p.Id == personnageId, ct)
             ?? throw new InvalidOperationException("Personnage introuvable.");
 
@@ -324,8 +326,9 @@ public class CharacterSheetPdfService
 
         var page2 = new PdfCanvas(embeddedFonts);
         page2.TemplateImage();
-        DrawPossessions(page2, p);
-        DrawArmes(page2, p);
+        DrawPossessions(page2, p, fields, defaultFont);
+        DrawArmes(page2, p, fields, defaultFont);
+        DrawSortsEtPrieres(page2, p, fields, defaultFont);
         DrawField(page2, fields, "psychology", p.Psychologie ?? string.Empty, defaultFont);
         DrawField(page2, fields, "corruption", p.CorruptionMutations ?? string.Empty, defaultFont);
         DrawField(page2, fields, "wealth.brass", p.SousCuivre.ToString(CultureInfo.InvariantCulture), defaultFont);
@@ -411,27 +414,82 @@ public class CharacterSheetPdfService
         }
     }
 
-    private static void DrawPossessions(PdfCanvas page, Personnage p)
+    private static void DrawPossessions(
+        PdfCanvas page,
+        Personnage p,
+        IReadOnlyDictionary<string, PdfSheetFieldLayoutDto> fields,
+        string defaultFont)
     {
-        var y = 430;
+        var index = 1;
         foreach (var item in p.Possessions.Where(x => x.Type == TypePossession.Objet).OrderBy(x => x.Nom).Take(15))
         {
-            page.TextPx(105, y, 7, item.Nom, 260);
-            page.TextCenteredPx(410, y, 7, item.Quantite.ToString(CultureInfo.InvariantCulture));
-            y += 30;
+            DrawField(page, fields, $"possession.{index}.name", item.Nom, defaultFont);
+            DrawField(page, fields, $"possession.{index}.quantity", item.Quantite.ToString(CultureInfo.InvariantCulture), defaultFont);
+            index++;
         }
     }
 
-    private static void DrawArmes(PdfCanvas page, Personnage p)
+    private static void DrawArmes(
+        PdfCanvas page,
+        Personnage p,
+        IReadOnlyDictionary<string, PdfSheetFieldLayoutDto> fields,
+        string defaultFont)
     {
-        var y = 1012;
+        var index = 1;
         foreach (var item in p.Possessions.Where(x => x.Type == TypePossession.Arme).OrderBy(x => x.Nom).Take(6))
         {
-            page.TextPx(105, y, 7, item.Nom, 260);
-            page.TextCenteredPx(500, y, 7, item.Quantite.ToString(CultureInfo.InvariantCulture));
-            y += 30;
+            DrawField(page, fields, $"weapon.{index}.name", item.Nom, defaultFont);
+            DrawField(page, fields, $"weapon.{index}.quantity", item.Quantite.ToString(CultureInfo.InvariantCulture), defaultFont);
+            index++;
         }
     }
+
+    private static void DrawSortsEtPrieres(
+        PdfCanvas page,
+        Personnage p,
+        IReadOnlyDictionary<string, PdfSheetFieldLayoutDto> fields,
+        string defaultFont)
+    {
+        var lignes = p.Sorts
+            .Select(s => new SortPdfLine(
+                s.SortReference.Nom,
+                s.SortReference.Cn,
+                s.SortReference.Portee,
+                s.SortReference.Cible,
+                s.SortReference.Duree,
+                s.SortReference.Resume))
+            .Concat(p.Parchemins.Select(p => new SortPdfLine(
+                p.Quantite > 1 ? $"{{#P}} {p.SortReference.Nom} (x{p.Quantite})" : $"{{#P}} {p.SortReference.Nom}",
+                p.SortReference.Cn,
+                p.SortReference.Portee,
+                p.SortReference.Cible,
+                p.SortReference.Duree,
+                p.SortReference.Resume)))
+            .OrderBy(l => l.Nom.StartsWith("{#P}", StringComparison.Ordinal) ? 1 : 0)
+            .ThenBy(l => l.Nom, StringComparer.OrdinalIgnoreCase)
+            .Take(7)
+            .ToList();
+
+        var index = 1;
+        foreach (var ligne in lignes)
+        {
+            DrawField(page, fields, $"spell.{index}.name", ligne.Nom, defaultFont);
+            DrawField(page, fields, $"spell.{index}.ni", ligne.Cn?.ToString(CultureInfo.InvariantCulture) ?? string.Empty, defaultFont);
+            DrawField(page, fields, $"spell.{index}.range", ligne.Portee ?? string.Empty, defaultFont);
+            DrawField(page, fields, $"spell.{index}.target", ligne.Cible ?? string.Empty, defaultFont);
+            DrawField(page, fields, $"spell.{index}.duration", ligne.Duree ?? string.Empty, defaultFont);
+            DrawField(page, fields, $"spell.{index}.effects", ligne.Resume ?? string.Empty, defaultFont);
+            index++;
+        }
+    }
+
+    private sealed record SortPdfLine(
+        string Nom,
+        int? Cn,
+        string? Portee,
+        string? Cible,
+        string? Duree,
+        string? Resume);
 
     private static string Slug(string value)
     {
@@ -572,6 +630,34 @@ public class CharacterSheetPdfService
             fields.Add(Field($"talent.{i}.count", $"Talents - Ligne {i} prises", 1, 310, talentY, 8, 45, "Center"));
             fields.Add(Field($"talent.{i}.description", $"Talents - Ligne {i} description", 1, 355, talentY, 7, 230));
             talentY += 38;
+        }
+
+        var possessionY = 430;
+        for (var i = 1; i <= 15; i++)
+        {
+            fields.Add(Field($"possession.{i}.name", $"Possessions - Ligne {i} nom", 2, 105, possessionY, 7, 260));
+            fields.Add(Field($"possession.{i}.quantity", $"Possessions - Ligne {i} quantite", 2, 410, possessionY, 7, 45, "Center"));
+            possessionY += 30;
+        }
+
+        var weaponY = 1012;
+        for (var i = 1; i <= 6; i++)
+        {
+            fields.Add(Field($"weapon.{i}.name", $"Armes - Ligne {i} nom", 2, 105, weaponY, 7, 260));
+            fields.Add(Field($"weapon.{i}.quantity", $"Armes - Ligne {i} quantite", 2, 500, weaponY, 7, 45, "Center"));
+            weaponY += 30;
+        }
+
+        var spellY = 1284;
+        for (var i = 1; i <= 7; i++)
+        {
+            fields.Add(Field($"spell.{i}.name", $"Sorts et prieres - Ligne {i} nom", 2, 105, spellY, 7, 205));
+            fields.Add(Field($"spell.{i}.ni", $"Sorts et prieres - Ligne {i} NI", 2, 355, spellY, 7, 45, "Center"));
+            fields.Add(Field($"spell.{i}.range", $"Sorts et prieres - Ligne {i} portee", 2, 405, spellY, 7, 85));
+            fields.Add(Field($"spell.{i}.target", $"Sorts et prieres - Ligne {i} cible", 2, 498, spellY, 7, 80));
+            fields.Add(Field($"spell.{i}.duration", $"Sorts et prieres - Ligne {i} duree", 2, 588, spellY, 7, 80));
+            fields.Add(Field($"spell.{i}.effects", $"Sorts et prieres - Ligne {i} effets", 2, 680, spellY, 6, 380));
+            spellY += 30;
         }
 
         return new PdfSheetLayoutDto

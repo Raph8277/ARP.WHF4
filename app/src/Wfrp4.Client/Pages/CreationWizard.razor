@@ -442,6 +442,11 @@ else
                 }
             </MudStack>
 
+            <MudSelect T="GenrePersonnage" @bind-Value="_request.Genre" Label="Genre" Class="mb-2">
+                <MudSelectItem T="GenrePersonnage" Value="GenrePersonnage.Masculin">Masculin</MudSelectItem>
+                <MudSelectItem T="GenrePersonnage" Value="GenrePersonnage.Feminin">Féminin</MudSelectItem>
+            </MudSelect>
+
             <MudStack Row="true" AlignItems="AlignItems.End" Class="mb-2">
                 <MudNumericField T="int?" @bind-Value="_request.Age" Label="Âge" Min="@AgeMin" Style="flex:1" />
                 @if (SelectedEspece?.TraitsPhysiques != null)
@@ -488,6 +493,25 @@ else
                                    Title="Tirer la taille au sort" />
                 }
             </MudStack>
+
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_request.TitreBaseReferenceId" Label="Titre" Clearable="true">
+                        @foreach (var titre in TitresBaseAccessibles)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)titre.Id)">@TitreGenreHelper.AppliquerGenre(titre.Libelle, _request.Genre)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_request.TitreQualificatifReferenceId" Label="Qualificatif" Clearable="true">
+                        @foreach (var titre in TitresQualificatifsAccessibles)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)titre.Id)">@TitreGenreHelper.AppliquerGenre(titre.Libelle, _request.Genre)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
 
             <MudAutocomplete T="string" @bind-Value="_request.Motivation" Label="Motivation"
                              SearchFunc="SuggererMotivations" CoerceText="true" CoerceValue="false"
@@ -604,6 +628,8 @@ else
     private List<CarriereDto>? _carrieres;
     private List<CompetenceDto>? _competences;
     private List<TalentDto>? _talents;
+    private List<TitreBaseReferenceDto> _titresBase = [];
+    private List<TitreQualificatifReferenceDto> _titresQualificatifs = [];
     private int _selectedClasseId;
     private int _selectedCarriereId;
 
@@ -678,6 +704,18 @@ else
 
     private List<string> DotationsCarriere => NiveauUn?.Dotations ?? [];
 
+    private int NiveauMaitriseTitreMax => NiveauUn?.Niveau ?? 1;
+
+    private IEnumerable<TitreBaseReferenceDto> TitresBaseAccessibles =>
+        _titresBase.Where(t => t.NiveauMaitrise <= NiveauMaitriseTitreMax)
+            .OrderBy(t => t.NiveauMaitrise)
+            .ThenBy(t => t.Libelle);
+
+    private IEnumerable<TitreQualificatifReferenceDto> TitresQualificatifsAccessibles =>
+        _titresQualificatifs.Where(t => t.NiveauMaitrise <= NiveauMaitriseTitreMax)
+            .OrderBy(t => t.NiveauMaitrise)
+            .ThenBy(t => t.Libelle);
+
     private IEnumerable<CarriereDto> CarrieresDeLaClasse =>
         _carrieres?.Where(c => c.ClasseId == _selectedClasseId && EstCarriereAutorisee(c)).OrderBy(c => c.Nom) ?? Enumerable.Empty<CarriereDto>();
 
@@ -695,6 +733,8 @@ else
         _carrieres = await Api.GetCarrieresAsync();
         _competences = await Api.GetCompetencesAsync();
         _talents = await Api.GetTalentsAsync();
+        _titresBase = await Api.GetTitresBaseAsync() ?? [];
+        _titresQualificatifs = await Api.GetTitresQualificatifsAsync() ?? [];
         _referentielsCharges = true;
     }
 
@@ -842,6 +882,12 @@ else
 
         if (carriere?.Niveaux.Count > 0)
             _request.NiveauCarriereId = carriere.Niveaux[0].Id;
+
+        if (_request.TitreBaseReferenceId.HasValue != _request.TitreQualificatifReferenceId.HasValue)
+        {
+            Snackbar.Add("Choisissez les deux parties du titre, ou laissez le titre vide.", Severity.Warning);
+            return;
+        }
 
         _request.XpBonus = _xpBonusDes;
         _request.CompetencesInitiales = new Dictionary<int, int>(_selectedCompetences);

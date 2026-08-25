@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Wfrp4.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Wfrp4.Infrastructure.Data;
 namespace Wfrp4.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(Wfrp4DbContext))]
-    partial class Wfrp4DbContextModelSnapshot : ModelSnapshot
+    [Migration("20260824175348_AddTitleMasteryLevels")]
+    partial class AddTitleMasteryLevels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -375,13 +378,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                     b.Property<int>("Fortune")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Genre")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasDefaultValue("Masculin");
-
                     b.Property<string>("GroupeMembres")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -430,12 +426,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                     b.Property<int?>("TailleCm")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("TitreBaseReferenceId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("TitreQualificatifReferenceId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -452,10 +442,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                     b.HasIndex("EspeceId");
 
                     b.HasIndex("KeycloakId");
-
-                    b.HasIndex("TitreBaseReferenceId");
-
-                    b.HasIndex("TitreQualificatifReferenceId");
 
                     b.ToTable("Personnages");
                 });
@@ -871,23 +857,9 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Wfrp4.Infrastructure.Entities.TitreBaseReference", "TitreBaseReference")
-                        .WithMany()
-                        .HasForeignKey("TitreBaseReferenceId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Wfrp4.Infrastructure.Entities.TitreQualificatifReference", "TitreQualificatifReference")
-                        .WithMany()
-                        .HasForeignKey("TitreQualificatifReferenceId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("CarriereCourante");
 
                     b.Navigation("Espece");
-
-                    b.Navigation("TitreBaseReference");
-
-                    b.Navigation("TitreQualificatifReference");
                 });
 
             modelBuilder.Entity("Wfrp4.Infrastructure.Entities.PersonnageCaracteristique", b =>

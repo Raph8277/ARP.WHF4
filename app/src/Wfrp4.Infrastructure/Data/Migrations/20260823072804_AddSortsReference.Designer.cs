@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Wfrp4.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Wfrp4.Infrastructure.Data;
 namespace Wfrp4.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(Wfrp4DbContext))]
-    partial class Wfrp4DbContextModelSnapshot : ModelSnapshot
+    [Migration("20260823072804_AddSortsReference")]
+    partial class AddSortsReference
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -375,13 +378,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                     b.Property<int>("Fortune")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Genre")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasDefaultValue("Masculin");
-
                     b.Property<string>("GroupeMembres")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -430,12 +426,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                     b.Property<int?>("TailleCm")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("TitreBaseReferenceId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("TitreQualificatifReferenceId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -452,10 +442,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                     b.HasIndex("EspeceId");
 
                     b.HasIndex("KeycloakId");
-
-                    b.HasIndex("TitreBaseReferenceId");
-
-                    b.HasIndex("TitreQualificatifReferenceId");
 
                     b.ToTable("Personnages");
                 });
@@ -530,33 +516,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                     b.ToTable("PersonnageCompetences");
                 });
 
-            modelBuilder.Entity("Wfrp4.Infrastructure.Entities.PersonnageParchemin", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("PersonnageId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Quantite")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SortReferenceId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SortReferenceId");
-
-                    b.HasIndex("PersonnageId", "SortReferenceId")
-                        .IsUnique();
-
-                    b.ToTable("PersonnageParchemins");
-                });
-
             modelBuilder.Entity("Wfrp4.Infrastructure.Entities.PersonnagePartage", b =>
                 {
                     b.Property<int>("Id")
@@ -619,30 +578,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                     b.HasIndex("PersonnageId");
 
                     b.ToTable("PersonnagePossessions");
-                });
-
-            modelBuilder.Entity("Wfrp4.Infrastructure.Entities.PersonnageSort", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("PersonnageId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SortReferenceId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SortReferenceId");
-
-                    b.HasIndex("PersonnageId", "SortReferenceId")
-                        .IsUnique();
-
-                    b.ToTable("PersonnageSorts");
                 });
 
             modelBuilder.Entity("Wfrp4.Infrastructure.Entities.PersonnageTalent", b =>
@@ -755,76 +690,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                     b.ToTable("Talents");
                 });
 
-            modelBuilder.Entity("Wfrp4.Infrastructure.Entities.TitreBaseReference", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<string>("Libelle")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<int>("NiveauMaitrise")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Ordre")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.ToTable("TitresBaseReference", t =>
-                        {
-                            t.HasCheckConstraint("CK_TitresBaseReference_NiveauMaitrise", "\"NiveauMaitrise\" BETWEEN 1 AND 4");
-                        });
-                });
-
-            modelBuilder.Entity("Wfrp4.Infrastructure.Entities.TitreQualificatifReference", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<string>("Libelle")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<int>("NiveauMaitrise")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Ordre")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.ToTable("TitresQualificatifReference", t =>
-                        {
-                            t.HasCheckConstraint("CK_TitresQualificatifReference_NiveauMaitrise", "\"NiveauMaitrise\" BETWEEN 1 AND 4");
-                        });
-                });
-
             modelBuilder.Entity("Wfrp4.Infrastructure.Entities.Carriere", b =>
                 {
                     b.HasOne("Wfrp4.Infrastructure.Entities.Classe", "Classe")
@@ -871,23 +736,9 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Wfrp4.Infrastructure.Entities.TitreBaseReference", "TitreBaseReference")
-                        .WithMany()
-                        .HasForeignKey("TitreBaseReferenceId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Wfrp4.Infrastructure.Entities.TitreQualificatifReference", "TitreQualificatifReference")
-                        .WithMany()
-                        .HasForeignKey("TitreQualificatifReferenceId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("CarriereCourante");
 
                     b.Navigation("Espece");
-
-                    b.Navigation("TitreBaseReference");
-
-                    b.Navigation("TitreQualificatifReference");
                 });
 
             modelBuilder.Entity("Wfrp4.Infrastructure.Entities.PersonnageCaracteristique", b =>
@@ -933,25 +784,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                     b.Navigation("Competence");
                 });
 
-            modelBuilder.Entity("Wfrp4.Infrastructure.Entities.PersonnageParchemin", b =>
-                {
-                    b.HasOne("Wfrp4.Infrastructure.Entities.Personnage", "Personnage")
-                        .WithMany("Parchemins")
-                        .HasForeignKey("PersonnageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Wfrp4.Infrastructure.Entities.SortReference", "SortReference")
-                        .WithMany()
-                        .HasForeignKey("SortReferenceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Personnage");
-
-                    b.Navigation("SortReference");
-                });
-
             modelBuilder.Entity("Wfrp4.Infrastructure.Entities.PersonnagePartage", b =>
                 {
                     b.HasOne("Wfrp4.Infrastructure.Entities.Personnage", "Personnage")
@@ -970,25 +802,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                         .HasForeignKey("PersonnageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Wfrp4.Infrastructure.Entities.PersonnageSort", b =>
-                {
-                    b.HasOne("Wfrp4.Infrastructure.Entities.Personnage", "Personnage")
-                        .WithMany("Sorts")
-                        .HasForeignKey("PersonnageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Wfrp4.Infrastructure.Entities.SortReference", "SortReference")
-                        .WithMany()
-                        .HasForeignKey("SortReferenceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Personnage");
-
-                    b.Navigation("SortReference");
                 });
 
             modelBuilder.Entity("Wfrp4.Infrastructure.Entities.PersonnageTalent", b =>
@@ -1028,13 +841,9 @@ namespace Wfrp4.Infrastructure.Data.Migrations
 
                     b.Navigation("HistoriqueXP");
 
-                    b.Navigation("Parchemins");
-
                     b.Navigation("Partages");
 
                     b.Navigation("Possessions");
-
-                    b.Navigation("Sorts");
 
                     b.Navigation("Talents");
                 });

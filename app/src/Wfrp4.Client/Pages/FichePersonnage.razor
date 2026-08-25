@@ -1,5 +1,6 @@
 @page "/personnage/{Id:int}"
 @attribute [Authorize]
+@using Wfrp4.Shared.DTOs
 @using Wfrp4.Shared.Models
 @inject Wfrp4ApiClient Api
 @inject IDialogService Dialog
@@ -24,7 +25,13 @@ else
     <div class="d-flex flex-wrap align-center justify-space-between gap-4">
         <div>
             <MudText Class="old-world-kicker">Dossier de personnage</MudText>
-            <MudText Typo="Typo.h2" Class="old-world-hero__title mb-2">@_personnage.Nom</MudText>
+            <div class="d-flex flex-wrap align-baseline gap-3 mb-2">
+                <MudText Typo="Typo.h2" Class="old-world-hero__title">@_personnage.Nom</MudText>
+                @if (!string.IsNullOrWhiteSpace(_personnage.TitreComplet))
+                {
+                    <MudText Typo="Typo.h5" Class="old-world-hero__text">@_personnage.TitreComplet</MudText>
+                }
+            </div>
             <div class="d-flex align-center gap-2">
                 <MudText Typo="Typo.subtitle1" Class="old-world-hero__text">
                     @_personnage.EspeceNom — @(_personnage.CarriereCouranteIntitule ?? "Sans carrière")
@@ -191,10 +198,99 @@ else
                     </div>
                 </MudTabPanel>
 
-                @* Chapitre VII : Dotations *@
-                <MudTabPanel Text="Dotations">
+                @* Chapitre VII : Sorts et parchemins *@
+                <MudTabPanel Text="Sorts & parchemins">
                     <div class="old-world-tab-body">
                         <MudText Class="old-world-kicker">Chapitre VII</MudText>
+                        <div class="d-flex align-center justify-space-between mb-3">
+                            <MudText Typo="Typo.h5">Sorts connus</MudText>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Add" OnClick="OuvrirAjoutSort">
+                                Ajouter
+                            </MudButton>
+                        </div>
+                        @if (_personnage.Sorts.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Aucun sort connu.</MudText>
+                        }
+                        else
+                        {
+                            <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mb-4">
+                                <thead>
+                                    <tr><th>Sort</th><th>Catégorie</th><th>Domaine</th><th>CN</th><th>Portée</th><th>Cible</th><th>Durée</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var sort in _personnage.Sorts)
+                                    {
+                                        <tr>
+                                            <td>@sort.SortNom</td>
+                                            <td>@sort.Categorie</td>
+                                            <td>@(sort.Domaine ?? "—")</td>
+                                            <td>@(sort.Cn?.ToString() ?? "—")</td>
+                                            <td>@(sort.Portee ?? "—")</td>
+                                            <td>@(sort.Cible ?? "—")</td>
+                                            <td>@(sort.Duree ?? "—")</td>
+                                            <td>
+                                                <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small"
+                                                               OnClick="() => AfficherDetailSort(sort)" />
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                               Color="Color.Error" OnClick="() => SupprimerSort(sort)" />
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        }
+
+                        <MudDivider Class="my-4" />
+
+                        <div class="d-flex align-center justify-space-between mb-3">
+                            <MudText Typo="Typo.h5">Parchemins</MudText>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Add" OnClick="OuvrirAjoutParchemin">
+                                Ajouter
+                            </MudButton>
+                        </div>
+                        @if (_personnage.Parchemins.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Aucun parchemin.</MudText>
+                        }
+                        else
+                        {
+                            <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                                <thead>
+                                    <tr><th>Sort</th><th>Qté</th><th>Catégorie</th><th>Domaine</th><th>CN</th><th>Portée</th><th>Cible</th><th>Durée</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var parchemin in _personnage.Parchemins)
+                                    {
+                                        <tr>
+                                            <td>@parchemin.SortNom</td>
+                                            <td>@parchemin.Quantite</td>
+                                            <td>@parchemin.Categorie</td>
+                                            <td>@(parchemin.Domaine ?? "—")</td>
+                                            <td>@(parchemin.Cn?.ToString() ?? "—")</td>
+                                            <td>@(parchemin.Portee ?? "—")</td>
+                                            <td>@(parchemin.Cible ?? "—")</td>
+                                            <td>@(parchemin.Duree ?? "—")</td>
+                                            <td>
+                                                <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small"
+                                                               OnClick="() => AfficherDetailParchemin(parchemin)" />
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                               Color="Color.Error" OnClick="() => SupprimerParchemin(parchemin)" />
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        }
+                    </div>
+                </MudTabPanel>
+
+                @* Chapitre VIII : Dotations *@
+                <MudTabPanel Text="Dotations">
+                    <div class="old-world-tab-body">
+                        <MudText Class="old-world-kicker">Chapitre VIII</MudText>
                         <MudText Typo="Typo.h5" Class="mb-3">Possessions de départ (carrière)</MudText>
                         @if (_personnage.Dotations.Count == 0)
                         {
@@ -324,14 +420,18 @@ else
                     </div>
                 </MudTabPanel>
 
-                @* Chapitre VIII : Détails *@
+                @* Chapitre IX : Détails *@
                 <MudTabPanel Text="Détails">
                     <div class="old-world-tab-body">
-                        <MudText Class="old-world-kicker">Chapitre VIII</MudText>
+                        <MudText Class="old-world-kicker">Chapitre IX</MudText>
                         <MudText Typo="Typo.h5" Class="mb-3">Identité du personnage</MudText>
                         <MudGrid>
                             <MudItem xs="12" md="6">
                                 <MudTextField @bind-Value="_edition.Nom" Label="Nom" Required="true" Class="mb-2" />
+                                <MudSelect T="GenrePersonnage" @bind-Value="_edition.Genre" Label="Genre" Class="mb-2">
+                                    <MudSelectItem T="GenrePersonnage" Value="GenrePersonnage.Masculin">Masculin</MudSelectItem>
+                                    <MudSelectItem T="GenrePersonnage" Value="GenrePersonnage.Feminin">Féminin</MudSelectItem>
+                                </MudSelect>
                                 <MudNumericField T="int?" @bind-Value="_edition.Age" Label="Âge" Class="mb-2" />
                                 <MudNumericField T="int?" @bind-Value="_edition.TailleCm" Label="Taille (cm)" Class="mb-2" />
                                 <MudSwitch T="bool" @bind-Value="_edition.EstActif" Color="Color.Primary">Personnage actif</MudSwitch>
@@ -339,6 +439,24 @@ else
                             <MudItem xs="12" md="6">
                                 <MudTextField @bind-Value="_edition.CouleurYeux" Label="Couleur des yeux" Class="mb-2" />
                                 <MudTextField @bind-Value="_edition.CouleurCheveux" Label="Couleur des cheveux" Class="mb-2" />
+                                <MudGrid Class="mb-2">
+                                    <MudItem xs="12" sm="6">
+                                        <MudSelect T="int?" @bind-Value="_edition.TitreBaseReferenceId" Label="Titre" Clearable="true">
+                                            @foreach (var titre in TitresBaseAccessibles)
+                                            {
+                                                <MudSelectItem T="int?" Value="@((int?)titre.Id)">@TitreGenreHelper.AppliquerGenre(titre.Libelle, _edition.Genre)</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6">
+                                        <MudSelect T="int?" @bind-Value="_edition.TitreQualificatifReferenceId" Label="Qualificatif" Clearable="true">
+                                            @foreach (var titre in TitresQualificatifsAccessibles)
+                                            {
+                                                <MudSelectItem T="int?" Value="@((int?)titre.Id)">@TitreGenreHelper.AppliquerGenre(titre.Libelle, _edition.Genre)</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </MudItem>
+                                </MudGrid>
                                 <MudTextField @bind-Value="_edition.Motivation" Label="Motivation" Lines="4" Class="mb-2" />
                             </MudItem>
                         </MudGrid>
@@ -449,6 +567,102 @@ else
                         <PropertyColumn Property="x => x.Fois" Title="Fois" />
                     </Columns>
                 </MudDataGrid>
+                </div>
+            </MudTabPanel>
+
+            @* Onglet Sorts et parchemins *@
+            <MudTabPanel Text="Sorts & parchemins">
+                <div class="old-world-tab-body">
+                <div class="d-flex align-center justify-space-between mb-2">
+                    <MudText Typo="Typo.h6">Sorts connus</MudText>
+                    @if (_personnage.PeutModifier)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Add" OnClick="OuvrirAjoutSort">
+                            Ajouter
+                        </MudButton>
+                    }
+                </div>
+                @if (_personnage.Sorts.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Aucun sort connu.</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mb-4">
+                        <thead><tr><th>Sort</th><th>Catégorie</th><th>Domaine</th><th>CN</th><th>Portée</th><th>Cible</th><th>Durée</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var sort in _personnage.Sorts)
+                            {
+                                <tr>
+                                    <td>@sort.SortNom</td>
+                                    <td>@sort.Categorie</td>
+                                    <td>@(sort.Domaine ?? "—")</td>
+                                    <td>@(sort.Cn?.ToString() ?? "—")</td>
+                                    <td>@(sort.Portee ?? "—")</td>
+                                    <td>@(sort.Cible ?? "—")</td>
+                                    <td>@(sort.Duree ?? "—")</td>
+                                    <td>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small"
+                                                       OnClick="() => AfficherDetailSort(sort)" />
+                                        @if (_personnage.PeutModifier)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                           Color="Color.Error" OnClick="() => SupprimerSort(sort)" />
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+
+                <MudDivider Class="my-4" />
+
+                <div class="d-flex align-center justify-space-between mb-2">
+                    <MudText Typo="Typo.h6">Parchemins</MudText>
+                    @if (_personnage.PeutModifier)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Add" OnClick="OuvrirAjoutParchemin">
+                            Ajouter
+                        </MudButton>
+                    }
+                </div>
+                @if (_personnage.Parchemins.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Aucun parchemin.</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                        <thead><tr><th>Sort</th><th>Qté</th><th>Catégorie</th><th>Domaine</th><th>CN</th><th>Portée</th><th>Cible</th><th>Durée</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var parchemin in _personnage.Parchemins)
+                            {
+                                <tr>
+                                    <td>@parchemin.SortNom</td>
+                                    <td>@parchemin.Quantite</td>
+                                    <td>@parchemin.Categorie</td>
+                                    <td>@(parchemin.Domaine ?? "—")</td>
+                                    <td>@(parchemin.Cn?.ToString() ?? "—")</td>
+                                    <td>@(parchemin.Portee ?? "—")</td>
+                                    <td>@(parchemin.Cible ?? "—")</td>
+                                    <td>@(parchemin.Duree ?? "—")</td>
+                                    <td>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small"
+                                                       OnClick="() => AfficherDetailParchemin(parchemin)" />
+                                        @if (_personnage.PeutModifier)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                           Color="Color.Error" OnClick="() => SupprimerParchemin(parchemin)" />
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
                 </div>
             </MudTabPanel>
 
@@ -676,9 +890,26 @@ else
     private bool _enregistrementEdition;
     private UpdatePersonnageRequest _edition = new();
     private List<ArmeReferenceDto>? _armesReference;
+    private List<TitreBaseReferenceDto> _titresBase = [];
+    private List<TitreQualificatifReferenceDto> _titresQualificatifs = [];
     private int _deltaCO = 1;
     private int _deltaPA = 1;
     private int _deltaSC = 1;
+
+    private int NiveauMaitriseTitreMax =>
+        _personnage?.Carrieres.FirstOrDefault(c => c.EstCourante)?.Niveau
+        ?? _personnage?.Carrieres.OrderByDescending(c => c.DateEntree).FirstOrDefault()?.Niveau
+        ?? 1;
+
+    private IEnumerable<TitreBaseReferenceDto> TitresBaseAccessibles =>
+        _titresBase.Where(t => t.NiveauMaitrise <= NiveauMaitriseTitreMax || t.Id == _edition.TitreBaseReferenceId)
+            .OrderBy(t => t.NiveauMaitrise)
+            .ThenBy(t => t.Libelle);
+
+    private IEnumerable<TitreQualificatifReferenceDto> TitresQualificatifsAccessibles =>
+        _titresQualificatifs.Where(t => t.NiveauMaitrise <= NiveauMaitriseTitreMax || t.Id == _edition.TitreQualificatifReferenceId)
+            .OrderBy(t => t.NiveauMaitrise)
+            .ThenBy(t => t.Libelle);
 
     protected override async Task OnParametersSetAsync()
     {
@@ -690,12 +921,19 @@ else
         _loading = true;
         _personnage = await Api.GetPersonnageAsync(Id);
         _armesReference ??= await Api.GetArmesAsync() ?? [];
+        if (_titresBase.Count == 0)
+            _titresBase = await Api.GetTitresBaseAsync() ?? [];
+        if (_titresQualificatifs.Count == 0)
+            _titresQualificatifs = await Api.GetTitresQualificatifsAsync() ?? [];
         if (_personnage != null)
         {
             _edition = new UpdatePersonnageRequest
             {
                 Nom = _personnage.Nom,
+                Genre = _personnage.Genre,
                 Motivation = _personnage.Motivation,
+                TitreBaseReferenceId = _personnage.TitreBaseReferenceId,
+                TitreQualificatifReferenceId = _personnage.TitreQualificatifReferenceId,
                 Age = _personnage.Age,
                 CouleurYeux = _personnage.CouleurYeux,
                 CouleurCheveux = _personnage.CouleurCheveux,
@@ -853,6 +1091,85 @@ else
         }
     }
 
+    private async Task OuvrirAjoutSort()
+    {
+        if (_personnage == null) return;
+
+        var parameters = new DialogParameters<Components.AjoutSortDialog>
+        {
+            { x => x.PersonnageId, Id },
+            { x => x.SortsExistants, _personnage.Sorts.Select(s => s.SortReferenceId).ToList() },
+        };
+
+        var dialog = await Dialog.ShowAsync<Components.AjoutSortDialog>("Ajouter un sort", parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await Recharger();
+        }
+    }
+
+    private async Task OuvrirAjoutParchemin()
+    {
+        if (_personnage == null) return;
+
+        var parameters = new DialogParameters<Components.AjoutParcheminDialog>
+        {
+            { x => x.PersonnageId, Id },
+        };
+
+        var dialog = await Dialog.ShowAsync<Components.AjoutParcheminDialog>("Ajouter un parchemin", parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await Recharger();
+        }
+    }
+
+    private Task AfficherDetailSort(PersonnageSortDto sort) =>
+        AfficherDetailSort(ToSortReference(sort));
+
+    private Task AfficherDetailParchemin(PersonnageParcheminDto parchemin) =>
+        AfficherDetailSort(ToSortReference(parchemin));
+
+    private async Task AfficherDetailSort(SortReferenceDto sort)
+    {
+        var parameters = new DialogParameters<Components.SortDetailsDialog>
+        {
+            { x => x.Sort, sort },
+        };
+
+        await Dialog.ShowAsync<Components.SortDetailsDialog>(sort.Nom, parameters);
+    }
+
+    private static SortReferenceDto ToSortReference(PersonnageSortDto sort) => new()
+    {
+        Id = sort.SortReferenceId,
+        Nom = sort.SortNom,
+        Categorie = sort.Categorie,
+        Domaine = sort.Domaine,
+        Cn = sort.Cn,
+        Portee = sort.Portee,
+        Cible = sort.Cible,
+        Duree = sort.Duree,
+        Resume = sort.Resume,
+    };
+
+    private static SortReferenceDto ToSortReference(PersonnageParcheminDto parchemin) => new()
+    {
+        Id = parchemin.SortReferenceId,
+        Nom = parchemin.SortNom,
+        Categorie = parchemin.Categorie,
+        Domaine = parchemin.Domaine,
+        Cn = parchemin.Cn,
+        Portee = parchemin.Portee,
+        Cible = parchemin.Cible,
+        Duree = parchemin.Duree,
+        Resume = parchemin.Resume,
+    };
+
     private async Task OuvrirAjoutPossession(TypePossession type)
     {
         if (_personnage == null) return;
@@ -932,6 +1249,38 @@ else
         {
             await Api.SupprimerPossessionAsync(Id, possession.Id);
             Snackbar.Add($"{possession.Nom} supprimé.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SupprimerSort(PersonnageSortDto sort)
+    {
+        if (_personnage == null) return;
+
+        try
+        {
+            await Api.SupprimerSortAsync(Id, sort.Id);
+            Snackbar.Add($"{sort.SortNom} retiré des sorts connus.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SupprimerParchemin(PersonnageParcheminDto parchemin)
+    {
+        if (_personnage == null) return;
+
+        try
+        {
+            await Api.SupprimerParcheminAsync(Id, parchemin.Id);
+            Snackbar.Add($"Parchemin de {parchemin.SortNom} supprimé.", Severity.Success);
             await Recharger();
         }
         catch (Exception ex)

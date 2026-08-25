@@ -1,6 +1,7 @@
 @page "/referentiels"
 @attribute [Authorize]
 @inject Wfrp4ApiClient Api
+@inject IDialogService Dialog
 
 <PageTitle>Référentiels — WFRP4</PageTitle>
 
@@ -560,6 +561,67 @@
             </div>
         }
     </MudTabPanel>
+
+    <MudTabPanel Text="Sorts">
+        @if (_sorts != null)
+        {
+            <div class="old-world-tab-body">
+            <MudDataGrid Items="@_sorts" Dense="true" Hover="true" Filterable="true" Groupable="true">
+                <Columns>
+                    <PropertyColumn Property="x => x.Categorie" Title="Catégorie" Groupable="true" />
+                    <PropertyColumn Property="x => x.Domaine" Title="Domaine" Groupable="true" />
+                    <PropertyColumn Property="x => x.Nom" Title="Nom" />
+                    <PropertyColumn Property="x => x.Cn" Title="CN" />
+                    <PropertyColumn Property="x => x.Portee" Title="Portée" />
+                    <PropertyColumn Property="x => x.Cible" Title="Cible" />
+                    <PropertyColumn Property="x => x.Duree" Title="Durée" />
+                    <TemplateColumn Title="Détails">
+                        <CellTemplate>
+                            <MudTooltip Text="Afficher le détail du sort">
+                                <MudIconButton Icon="@Icons.Material.Filled.Info"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="@(() => ShowSortDetails(context.Item))" />
+                            </MudTooltip>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+            </div>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Titres">
+        @if (_titresBase != null && _titresQualificatifs != null)
+        {
+            <div class="old-world-tab-body">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.h6" Class="mb-2">Bases</MudText>
+                        <MudDataGrid Items="@_titresBase" Dense="true" Hover="true" Filterable="true">
+                            <Columns>
+                                <PropertyColumn Property="x => x.Ordre" Title="#" />
+                                <PropertyColumn Property="x => x.NiveauMaitrise" Title="Niveau" />
+                                <PropertyColumn Property="x => x.Libelle" Title="Libellé" />
+                                <PropertyColumn Property="x => x.Code" Title="Code" />
+                            </Columns>
+                        </MudDataGrid>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.h6" Class="mb-2">Qualificatifs</MudText>
+                        <MudDataGrid Items="@_titresQualificatifs" Dense="true" Hover="true" Filterable="true">
+                            <Columns>
+                                <PropertyColumn Property="x => x.Ordre" Title="#" />
+                                <PropertyColumn Property="x => x.NiveauMaitrise" Title="Niveau" />
+                                <PropertyColumn Property="x => x.Libelle" Title="Libellé" />
+                                <PropertyColumn Property="x => x.Code" Title="Code" />
+                            </Columns>
+                        </MudDataGrid>
+                    </MudItem>
+                </MudGrid>
+            </div>
+        }
+    </MudTabPanel>
 </MudTabs>
 </MudPaper>
 
@@ -569,6 +631,9 @@
     private List<CompetenceDto>? _competences;
     private List<TalentDto>? _talents;
     private List<ArmeReferenceDto>? _armes;
+    private List<SortReferenceDto>? _sorts;
+    private List<TitreBaseReferenceDto>? _titresBase;
+    private List<TitreQualificatifReferenceDto>? _titresQualificatifs;
 
     protected override async Task OnInitializedAsync()
     {
@@ -577,13 +642,29 @@
         var t3 = Api.GetCompetencesAsync();
         var t4 = Api.GetTalentsAsync();
         var t5 = Api.GetArmesAsync();
+        var t6 = Api.GetSortsAsync();
+        var t7 = Api.GetTitresBaseAsync();
+        var t8 = Api.GetTitresQualificatifsAsync();
 
-        await Task.WhenAll(t1, t2, t3, t4, t5);
+        await Task.WhenAll(t1, t2, t3, t4, t5, t6, t7, t8);
 
         _especes = t1.Result;
         _carrieres = t2.Result;
         _competences = t3.Result;
         _talents = t4.Result;
         _armes = t5.Result;
+        _sorts = t6.Result;
+        _titresBase = t7.Result;
+        _titresQualificatifs = t8.Result;
+    }
+
+    private async Task ShowSortDetails(SortReferenceDto sort)
+    {
+        var parameters = new DialogParameters<SortDetailsDialog>
+        {
+            { x => x.Sort, sort },
+        };
+
+        await Dialog.ShowAsync<SortDetailsDialog>(sort.Nom, parameters);
     }
 }

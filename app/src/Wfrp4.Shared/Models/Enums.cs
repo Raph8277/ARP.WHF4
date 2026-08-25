@@ -28,6 +28,12 @@ public enum TypePossession
     Arme
 }
 
+public enum GenrePersonnage
+{
+    Masculin,
+    Feminin
+}
+
 public enum NomStructure
 {
     PrenomNom,

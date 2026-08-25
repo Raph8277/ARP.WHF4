@@ -100,7 +100,7 @@ public static class Wfrp4Theme
         new()
         {
             Id = "imperial",
-            Name = "Bleu Impérial",
+            Name = "Bleu Impérial Azure",
             IsBuiltIn = true,
             IsDarkMode = false,
             Primary = "#1a3a5c",
@@ -164,6 +164,9 @@ public static class Wfrp4Theme
             ActionDisabledBackground = "#88aa881a",
         },
     ];
+
+    public static ThemePreset DefaultPreset { get; } =
+        BuiltInPresets.First(p => p.Id == "imperial");
 
     public static MudTheme Build(ThemePreset preset)
     {

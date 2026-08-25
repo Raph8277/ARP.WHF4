@@ -22,6 +22,7 @@ public class UnitTest1
         Assert.True(await db.Carrieres.AnyAsync());
         Assert.True(await db.Competences.AnyAsync());
         Assert.True(await db.Talents.AnyAsync());
+        Assert.True(await db.SortsReference.AnyAsync());
         Assert.All(db.Especes, espece => Assert.False(string.IsNullOrWhiteSpace(espece.CaracInitiales)));
     }
 }

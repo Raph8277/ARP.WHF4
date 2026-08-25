@@ -10,10 +10,12 @@ public sealed class UserThemeService
 {
     private const string PresetsKey = "wfrp4_theme_presets";
     private const string ActiveKey = "wfrp4_theme_active";
+    private const string DefaultThemeVersionKey = "wfrp4_theme_default_version";
+    private const string DefaultThemeVersion = "imperial-azure-1";
     private readonly IJSRuntime _js;
 
     private List<ThemePreset> _userPresets = [];
-    private ThemePreset _active = Wfrp4Theme.BuiltInPresets[0];
+    private ThemePreset _active = Wfrp4Theme.DefaultPreset;
 
     public UserThemeService(IJSRuntime js) => _js = js;
 
@@ -21,7 +23,7 @@ public sealed class UserThemeService
 
     public ThemePreset ActivePreset => _active;
     public bool IsDarkMode => _active.IsDarkMode;
-    public MudTheme CurrentTheme { get; private set; } = Wfrp4Theme.Build(Wfrp4Theme.BuiltInPresets[0]);
+    public MudTheme CurrentTheme { get; private set; } = Wfrp4Theme.Build(Wfrp4Theme.DefaultPreset);
 
     public IReadOnlyList<ThemePreset> AllPresets
     {
@@ -39,15 +41,37 @@ public sealed class UserThemeService
         if (!string.IsNullOrEmpty(presetsJson))
             _userPresets = JsonSerializer.Deserialize<List<ThemePreset>>(presetsJson) ?? [];
 
+        var defaultThemeVersion = await _js.InvokeAsync<string?>("localStorage.getItem", DefaultThemeVersionKey);
+        if (defaultThemeVersion != DefaultThemeVersion)
+        {
+            _active = Wfrp4Theme.DefaultPreset;
+            RebuildTheme();
+            await PersistActiveAsync();
+            await PersistDefaultThemeVersionAsync();
+            await ApplyAllAsync();
+            return;
+        }
+
         var activeId = await _js.InvokeAsync<string?>("localStorage.getItem", ActiveKey);
+        var shouldPersistActive = string.IsNullOrEmpty(activeId);
         if (!string.IsNullOrEmpty(activeId))
         {
             var found = AllPresets.FirstOrDefault(p => p.Id == activeId);
             if (found != null)
+            {
                 _active = found;
+            }
+            else
+            {
+                _active = Wfrp4Theme.DefaultPreset;
+                shouldPersistActive = true;
+            }
         }
 
         RebuildTheme();
+        if (shouldPersistActive)
+            await PersistActiveAsync();
+
         await ApplyAllAsync();
     }
 
@@ -115,7 +139,7 @@ public sealed class UserThemeService
         _userPresets.Remove(preset);
         if (_active.Id == presetId)
         {
-            _active = Wfrp4Theme.BuiltInPresets[0];
+            _active = Wfrp4Theme.DefaultPreset;
             RebuildTheme();
         }
 
@@ -234,6 +258,11 @@ public sealed class UserThemeService
     private async Task PersistActiveAsync()
     {
         await _js.InvokeVoidAsync("localStorage.setItem", ActiveKey, _active.Id);
+    }
+
+    private async Task PersistDefaultThemeVersionAsync()
+    {
+        await _js.InvokeVoidAsync("localStorage.setItem", DefaultThemeVersionKey, DefaultThemeVersion);
     }
 
     private async Task LoadGoogleFontsAsync()

@@ -183,4 +183,72 @@ public class ReferentielsController : ControllerBase
 
         return Ok(armes);
     }
+
+    [HttpGet("sorts")]
+    public async Task<ActionResult<List<SortReferenceDto>>> GetSorts()
+    {
+        var sorts = await _db.SortsReference
+            .AsNoTracking()
+            .Select(s => new SortReferenceDto
+            {
+                Id = s.Id,
+                Code = s.Code,
+                Nom = s.Nom,
+                Categorie = s.Categorie,
+                Domaine = s.Domaine,
+                Cn = s.Cn,
+                Portee = s.Portee,
+                Cible = s.Cible,
+                Duree = s.Duree,
+                Resume = s.Resume,
+            })
+            .OrderBy(s => s.Categorie)
+            .ThenBy(s => s.Domaine)
+            .ThenBy(s => s.Nom)
+            .ToListAsync();
+
+        return Ok(sorts);
+    }
+
+    [HttpGet("titres/bases")]
+    public async Task<ActionResult<List<TitreBaseReferenceDto>>> GetTitresBase()
+    {
+        var titres = await _db.TitresBaseReference
+            .AsNoTracking()
+            .Select(t => new TitreBaseReferenceDto
+            {
+                Id = t.Id,
+                Code = t.Code,
+                Libelle = t.Libelle,
+                Ordre = t.Ordre,
+                NiveauMaitrise = t.NiveauMaitrise,
+            })
+            .OrderBy(t => t.NiveauMaitrise)
+            .ThenBy(t => t.Ordre)
+            .ThenBy(t => t.Libelle)
+            .ToListAsync();
+
+        return Ok(titres);
+    }
+
+    [HttpGet("titres/qualificatifs")]
+    public async Task<ActionResult<List<TitreQualificatifReferenceDto>>> GetTitresQualificatifs()
+    {
+        var titres = await _db.TitresQualificatifReference
+            .AsNoTracking()
+            .Select(t => new TitreQualificatifReferenceDto
+            {
+                Id = t.Id,
+                Code = t.Code,
+                Libelle = t.Libelle,
+                Ordre = t.Ordre,
+                NiveauMaitrise = t.NiveauMaitrise,
+            })
+            .OrderBy(t => t.NiveauMaitrise)
+            .ThenBy(t => t.Ordre)
+            .ThenBy(t => t.Libelle)
+            .ToListAsync();
+
+        return Ok(titres);
+    }
 }

@@ -100,6 +100,46 @@ public class ArmeReferenceConfiguration : IEntityTypeConfiguration<ArmeReference
     }
 }
 
+public class SortReferenceConfiguration : IEntityTypeConfiguration<SortReference>
+{
+    public void Configure(EntityTypeBuilder<SortReference> builder)
+    {
+        builder.HasIndex(s => s.Code).IsUnique();
+        builder.Property(s => s.Code).HasMaxLength(160).IsRequired();
+        builder.Property(s => s.Nom).HasMaxLength(120).IsRequired();
+        builder.Property(s => s.Categorie).HasMaxLength(50).IsRequired();
+        builder.Property(s => s.Domaine).HasMaxLength(80);
+        builder.Property(s => s.Portee).HasMaxLength(80);
+        builder.Property(s => s.Cible).HasMaxLength(80);
+        builder.Property(s => s.Duree).HasMaxLength(80);
+        builder.Property(s => s.Resume).HasMaxLength(1000);
+    }
+}
+
+public class TitreBaseReferenceConfiguration : IEntityTypeConfiguration<TitreBaseReference>
+{
+    public void Configure(EntityTypeBuilder<TitreBaseReference> builder)
+    {
+        builder.ToTable(t => t.HasCheckConstraint("CK_TitresBaseReference_NiveauMaitrise", "\"NiveauMaitrise\" BETWEEN 1 AND 4"));
+        builder.HasIndex(t => t.Code).IsUnique();
+        builder.Property(t => t.Code).HasMaxLength(80).IsRequired();
+        builder.Property(t => t.Libelle).HasMaxLength(120).IsRequired();
+        builder.Property(t => t.NiveauMaitrise).IsRequired();
+    }
+}
+
+public class TitreQualificatifReferenceConfiguration : IEntityTypeConfiguration<TitreQualificatifReference>
+{
+    public void Configure(EntityTypeBuilder<TitreQualificatifReference> builder)
+    {
+        builder.ToTable(t => t.HasCheckConstraint("CK_TitresQualificatifReference_NiveauMaitrise", "\"NiveauMaitrise\" BETWEEN 1 AND 4"));
+        builder.HasIndex(t => t.Code).IsUnique();
+        builder.Property(t => t.Code).HasMaxLength(80).IsRequired();
+        builder.Property(t => t.Libelle).HasMaxLength(120).IsRequired();
+        builder.Property(t => t.NiveauMaitrise).IsRequired();
+    }
+}
+
 public class HistoriqueXPConfiguration : IEntityTypeConfiguration<HistoriqueXP>
 {
     public void Configure(EntityTypeBuilder<HistoriqueXP> builder)
@@ -127,6 +167,42 @@ public class PersonnagePossessionConfiguration : IEntityTypeConfiguration<Person
         builder.Property(p => p.Nom).HasMaxLength(200).IsRequired();
         builder.Property(p => p.Type).HasConversion<string>().HasMaxLength(10);
         builder.HasIndex(p => p.PersonnageId);
+    }
+}
+
+public class PersonnageSortConfiguration : IEntityTypeConfiguration<PersonnageSort>
+{
+    public void Configure(EntityTypeBuilder<PersonnageSort> builder)
+    {
+        builder.HasIndex(s => new { s.PersonnageId, s.SortReferenceId }).IsUnique();
+
+        builder.HasOne(s => s.Personnage)
+               .WithMany(p => p.Sorts)
+               .HasForeignKey(s => s.PersonnageId)
+               .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(s => s.SortReference)
+               .WithMany()
+               .HasForeignKey(s => s.SortReferenceId)
+               .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class PersonnageParcheminConfiguration : IEntityTypeConfiguration<PersonnageParchemin>
+{
+    public void Configure(EntityTypeBuilder<PersonnageParchemin> builder)
+    {
+        builder.HasIndex(p => new { p.PersonnageId, p.SortReferenceId }).IsUnique();
+
+        builder.HasOne(p => p.Personnage)
+               .WithMany(p => p.Parchemins)
+               .HasForeignKey(p => p.PersonnageId)
+               .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(p => p.SortReference)
+               .WithMany()
+               .HasForeignKey(p => p.SortReferenceId)
+               .OnDelete(DeleteBehavior.Restrict);
     }
 }
 

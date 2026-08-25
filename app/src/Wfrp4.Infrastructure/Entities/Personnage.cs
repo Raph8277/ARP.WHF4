@@ -7,6 +7,7 @@ public class Personnage
     public int Id { get; set; }
     public string KeycloakId { get; set; } = null!;
     public string Nom { get; set; } = null!;
+    public GenrePersonnage Genre { get; set; } = GenrePersonnage.Masculin;
 
     public int EspeceId { get; set; }
     public Espece Espece { get; set; } = null!;
@@ -29,6 +30,10 @@ public class Personnage
     public int SousCuivre { get; set; }
 
     public string? Motivation { get; set; }
+    public int? TitreBaseReferenceId { get; set; }
+    public TitreBaseReference? TitreBaseReference { get; set; }
+    public int? TitreQualificatifReferenceId { get; set; }
+    public TitreQualificatifReference? TitreQualificatifReference { get; set; }
     public string? AmbitionCourtTerme { get; set; }
     public string? AmbitionLongTerme { get; set; }
     public string? GroupeNom { get; set; }
@@ -52,4 +57,6 @@ public class Personnage
     public ICollection<PersonnageCarriere> Carrieres { get; set; } = [];
     public ICollection<PersonnagePartage> Partages { get; set; } = [];
     public ICollection<PersonnagePossession> Possessions { get; set; } = [];
+    public ICollection<PersonnageSort> Sorts { get; set; } = [];
+    public ICollection<PersonnageParchemin> Parchemins { get; set; } = [];
 }
