@@ -9,4 +9,5 @@ public class AvanceRequest
     public int? CompetenceId { get; set; }
     public int? TalentId { get; set; }
     public int? NiveauCarriereId { get; set; }
+    public int NombrePoints { get; set; } = 1;
 }

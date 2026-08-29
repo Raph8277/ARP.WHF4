@@ -50,7 +50,7 @@ try {
 
     if ($Up) {
         Write-Section "Starting compose stack"
-        $upArgs = @("compose", "up")
+        $upArgs = @("compose", "up", "--force-recreate")
         if ($Detached) {
             $upArgs += "-d"
         }

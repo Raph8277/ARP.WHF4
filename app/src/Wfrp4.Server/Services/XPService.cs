@@ -39,9 +39,57 @@ public class XPService
         return total;
     }
 
+    public int CalculerCoutCaracteristiqueTotal(int avancesActuelles, int nombrePoints)
+    {
+        var total = 0;
+        if (nombrePoints >= 0)
+        {
+            for (var i = 0; i < nombrePoints; i++)
+                total += CalculerCoutCaracteristique(avancesActuelles + i);
+        }
+        else
+        {
+            for (var i = 0; i < -nombrePoints; i++)
+                total -= CalculerCoutCaracteristique(avancesActuelles - 1 - i);
+        }
+        return total;
+    }
+
+    public int CalculerCoutCompetenceTotal(int avancesActuelles, int nombrePoints)
+    {
+        var total = 0;
+        if (nombrePoints >= 0)
+        {
+            for (var i = 0; i < nombrePoints; i++)
+                total += CalculerCoutCompetence(avancesActuelles + i);
+        }
+        else
+        {
+            for (var i = 0; i < -nombrePoints; i++)
+                total -= CalculerCoutCompetence(avancesActuelles - 1 - i);
+        }
+        return total;
+    }
+
     public int CalculerCoutTalent(int foisActuelles)
     {
-        return 100 + (foisActuelles * 100);
+        return 100 + (Math.Max(0, foisActuelles) * 100);
+    }
+
+    public int CalculerCoutTalentTotal(int foisActuelles, int nombreFois)
+    {
+        var total = 0;
+        if (nombreFois >= 0)
+        {
+            for (var i = 0; i < nombreFois; i++)
+                total += CalculerCoutTalent(foisActuelles + i);
+        }
+        else
+        {
+            for (var i = 0; i < -nombreFois; i++)
+                total -= CalculerCoutTalent(foisActuelles - 1 - i);
+        }
+        return total;
     }
 
     public int CalculerCoutChangementCarriere(

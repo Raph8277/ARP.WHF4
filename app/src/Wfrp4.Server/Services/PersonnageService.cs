@@ -207,8 +207,12 @@ public class PersonnageService
         personnage.BlessuresMax = (force / 10) + 2 * (endurance / 10) + (volonte / 10);
     }
 
-    public async Task<int> AvancerCaracteristique(int personnageId, string codeCarac)
+    public async Task<int> AvancerCaracteristique(int personnageId, string codeCarac, int nombrePoints = 1)
     {
+        nombrePoints = Math.Clamp(nombrePoints, -50, 50);
+        if (nombrePoints == 0)
+            throw new InvalidOperationException("Aucune avance à appliquer.");
+
         var personnage = await _db.Personnages
             .Include(p => p.Caracteristiques)
             .FirstOrDefaultAsync(p => p.Id == personnageId)
@@ -217,12 +221,11 @@ public class PersonnageService
         var carac = personnage.Caracteristiques.FirstOrDefault(c => c.Code == codeCarac)
             ?? throw new InvalidOperationException($"Caractéristique '{codeCarac}' introuvable.");
 
-        var cout = _xpService.CalculerCoutCaracteristique(carac.Avances);
-        var xpRestant = personnage.XpTotal - personnage.XpDepense;
-        if (cout > xpRestant)
-            throw new InvalidOperationException($"XP insuffisant ({xpRestant} disponible, {cout} requis).");
+        if (carac.Avances + nombrePoints > 50)
+            throw new InvalidOperationException("Impossible de dépasser 50 avances.");
 
-        carac.Avances++;
+        var cout = _xpService.CalculerCoutCaracteristiqueTotal(carac.Avances, nombrePoints);
+        carac.Avances += nombrePoints;
         personnage.XpDepense += cout;
         personnage.UpdatedAt = DateTime.UtcNow;
 
@@ -232,7 +235,7 @@ public class PersonnageService
             AuteurKeycloakId = personnage.KeycloakId,
             Montant = -cout,
             Type = TypeXP.Caracteristique,
-            Cible = codeCarac,
+            Cible = nombrePoints == 1 ? codeCarac : $"{codeCarac} ({nombrePoints:+#;-#;0})",
             CreatedAt = DateTime.UtcNow,
         });
 
@@ -240,8 +243,12 @@ public class PersonnageService
         return cout;
     }
 
-    public async Task<int> AvancerCompetence(int personnageId, int competenceId)
+    public async Task<int> AvancerCompetence(int personnageId, int competenceId, int nombrePoints = 1)
     {
+        nombrePoints = Math.Clamp(nombrePoints, -50, 50);
+        if (nombrePoints == 0)
+            throw new InvalidOperationException("Aucune avance à appliquer.");
+
         var personnage = await _db.Personnages
             .Include(p => p.Competences)
             .FirstOrDefaultAsync(p => p.Id == personnageId)
@@ -259,12 +266,11 @@ public class PersonnageService
             personnage.Competences.Add(comp);
         }
 
-        var cout = _xpService.CalculerCoutCompetence(comp.Avances);
-        var xpRestant = personnage.XpTotal - personnage.XpDepense;
-        if (cout > xpRestant)
-            throw new InvalidOperationException($"XP insuffisant ({xpRestant} disponible, {cout} requis).");
+        if (comp.Avances + nombrePoints > 50)
+            throw new InvalidOperationException("Impossible de dépasser 50 avances.");
 
-        comp.Avances++;
+        var cout = _xpService.CalculerCoutCompetenceTotal(comp.Avances, nombrePoints);
+        comp.Avances += nombrePoints;
         personnage.XpDepense += cout;
         personnage.UpdatedAt = DateTime.UtcNow;
 
@@ -274,7 +280,7 @@ public class PersonnageService
             AuteurKeycloakId = personnage.KeycloakId,
             Montant = -cout,
             Type = TypeXP.Competence,
-            Cible = competenceId.ToString(),
+            Cible = nombrePoints == 1 ? competenceId.ToString() : $"{competenceId} ({nombrePoints:+#;-#;0})",
             CreatedAt = DateTime.UtcNow,
         });
 

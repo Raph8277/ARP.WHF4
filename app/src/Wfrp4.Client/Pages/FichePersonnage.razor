@@ -116,6 +116,9 @@ else
                     <div class="old-world-tab-body">
                         <MudText Class="old-world-kicker">Chapitre IV</MudText>
                         <MudText Typo="Typo.h5" Class="mb-3">Caractéristiques</MudText>
+                        <MudText Typo="Typo.body2" Color="@CouleurXpDisponible" Class="mb-2">
+                            XP disponibles : <strong>@_personnage.XpRestant</strong>
+                        </MudText>
                         <MudSimpleTable Dense="true" Hover="true" Class="old-world-table">
                             <thead>
                                 <tr>
@@ -123,6 +126,9 @@ else
                                     <th>Initial</th>
                                     <th>Avances</th>
                                     <th>Actuel</th>
+                                    <th>Ajustement</th>
+                                    <th>Impact XP</th>
+                                    <th>Après</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -137,8 +143,31 @@ else
                                         <td>
                                             @if (_personnage.PeutAvancer)
                                             {
-                                                <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small"
-                                                               OnClick="() => OuvrirAvancementCaracteristique(c.Code)" />
+                                                <div class="d-flex align-center gap-1">
+                                                   <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small"
+                                                                   OnClick="() => ChangerPointsCaracteristique(c, GetPointsCaracteristique(c.Code) - 1)"
+                                                                   Disabled="@(_enregistrementAvancement || GetPointsCaracteristique(c.Code) <= MinAjustement)" />
+                                                    <MudNumericField T="int" Value="GetPointsCaracteristique(c.Code)"
+                                                                     ValueChanged="value => ChangerPointsCaracteristique(c, value)"
+                                                                     Min="@MinAjustement" Max="@MaxPointsCaracteristique(c)"
+                                                                     Immediate="true"
+                                                                     Style="width:96px" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary"
+                                                                   OnClick="() => ChangerPointsCaracteristique(c, GetPointsCaracteristique(c.Code) + 1)"
+                                                                   Disabled="@(_enregistrementAvancement || GetPointsCaracteristique(c.Code) >= MaxPointsCaracteristique(c))" />
+                                                </div>
+                                            }
+                                        </td>
+                                        <td>@FormatImpactXp(CalculerCoutCaracteristiqueTotal(c.Avances, GetPointsCaracteristique(c.Code)))</td>
+                                        <td>@(_personnage.XpRestant - CalculerCoutCaracteristiqueTotal(c.Avances, GetPointsCaracteristique(c.Code))) XP</td>
+                                        <td>
+                                            @if (_personnage.PeutAvancer)
+                                            {
+                                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                           OnClick="() => ValiderAvancementCaracteristique(c)"
+                                                           Disabled="@(!PeutValiderCaracteristique(c))">
+                                                    Valider
+                                                </MudButton>
                                             }
                                         </td>
                                     </tr>
@@ -153,28 +182,62 @@ else
                     <div class="old-world-tab-body">
                         <MudText Class="old-world-kicker">Chapitre V</MudText>
                         <div class="d-flex align-center justify-space-between mb-3">
-                            <MudText Typo="Typo.h5">Compétences de carrière</MudText>
+                            <div>
+                                <MudText Typo="Typo.h5">Compétences de carrière</MudText>
+                                <MudText Typo="Typo.body2" Color="@CouleurXpDisponible">
+                                    XP disponibles : <strong>@_personnage.XpRestant</strong>
+                                </MudText>
+                            </div>
                             <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
                                        StartIcon="@Icons.Material.Filled.Add" OnClick="OuvrirAjoutCompetence">
                                 Ajouter
                             </MudButton>
                         </div>
-                        <MudDataGrid Items="@_personnage.Competences" Dense="true" Hover="true">
-                            <Columns>
-                                <PropertyColumn Property="x => x.CompetenceNom" Title="Compétence" />
-                                <PropertyColumn Property="x => x.Caracteristique" Title="Carac." />
-                                <PropertyColumn Property="x => x.Avances" Title="Avances" />
-                                <TemplateColumn Title="">
-                                    <CellTemplate>
-                                        @if (_personnage.PeutAvancer)
-                                        {
-                                            <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small"
-                                                           OnClick="() => OuvrirAvancementCompetence(context.Item)" />
-                                        }
-                                    </CellTemplate>
-                                </TemplateColumn>
-                            </Columns>
-                        </MudDataGrid>
+                        <MudSimpleTable Dense="true" Hover="true" Class="old-world-table">
+                            <thead>
+                                <tr><th>Compétence</th><th>Carac.</th><th>Avances</th><th>Ajustement</th><th>Impact XP</th><th>Après</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var competence in _personnage.Competences)
+                                {
+                                    <tr>
+                                        <td>@competence.CompetenceNom</td>
+                                        <td>@competence.Caracteristique</td>
+                                        <td>@competence.Avances</td>
+                                        <td>
+                                            @if (_personnage.PeutAvancer)
+                                            {
+                                                <div class="d-flex align-center gap-1">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small"
+                                                                   OnClick="() => ChangerPointsCompetence(competence, GetPointsCompetence(competence.CompetenceId) - 1)"
+                                                                   Disabled="@(_enregistrementAvancement || GetPointsCompetence(competence.CompetenceId) <= MinAjustement)" />
+                                                    <MudNumericField T="int" Value="GetPointsCompetence(competence.CompetenceId)"
+                                                                     ValueChanged="value => ChangerPointsCompetence(competence, value)"
+                                                                     Min="@MinAjustement" Max="@MaxPointsCompetence(competence)"
+                                                                     Immediate="true"
+                                                                     Style="width:96px" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary"
+                                                                   OnClick="() => ChangerPointsCompetence(competence, GetPointsCompetence(competence.CompetenceId) + 1)"
+                                                                   Disabled="@(_enregistrementAvancement || GetPointsCompetence(competence.CompetenceId) >= MaxPointsCompetence(competence))" />
+                                                </div>
+                                            }
+                                        </td>
+                                        <td>@FormatImpactXp(CalculerCoutCompetenceTotal(competence.Avances, GetPointsCompetence(competence.CompetenceId)))</td>
+                                        <td>@(_personnage.XpRestant - CalculerCoutCompetenceTotal(competence.Avances, GetPointsCompetence(competence.CompetenceId))) XP</td>
+                                        <td>
+                                            @if (_personnage.PeutAvancer)
+                                            {
+                                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                           OnClick="() => ValiderAvancementCompetence(competence)"
+                                                           Disabled="@(!PeutValiderCompetence(competence))">
+                                                    Valider
+                                                </MudButton>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
                     </div>
                 </MudTabPanel>
 
@@ -183,18 +246,61 @@ else
                     <div class="old-world-tab-body">
                         <MudText Class="old-world-kicker">Chapitre VI</MudText>
                         <div class="d-flex align-center justify-space-between mb-3">
-                            <MudText Typo="Typo.h5">Talents acquis</MudText>
+                            <div>
+                                <MudText Typo="Typo.h5">Talents acquis</MudText>
+                                <MudText Typo="Typo.body2" Color="@CouleurXpDisponible">
+                                    XP disponibles : <strong>@_personnage.XpRestant</strong>
+                                </MudText>
+                            </div>
                             <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
                                        StartIcon="@Icons.Material.Filled.Add" OnClick="OuvrirAjoutTalent">
                                 Ajouter
                             </MudButton>
                         </div>
-                        <MudDataGrid Items="@_personnage.Talents" Dense="true" Hover="true">
-                            <Columns>
-                                <PropertyColumn Property="x => x.TalentNom" Title="Talent" />
-                                <PropertyColumn Property="x => x.Fois" Title="Fois" />
-                            </Columns>
-                        </MudDataGrid>
+                        <MudSimpleTable Dense="true" Hover="true" Class="old-world-table">
+                            <thead>
+                                <tr><th>Talent</th><th>Fois</th><th>Ajustement</th><th>Impact XP</th><th>Après</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var talent in _personnage.Talents)
+                                {
+                                    <tr>
+                                        <td>@talent.TalentNom</td>
+                                        <td>@talent.Fois</td>
+                                        <td>
+                                            @if (_personnage.PeutAvancer)
+                                            {
+                                                <div class="d-flex align-center gap-1">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small"
+                                                                   OnClick="() => ChangerFoisTalent(talent, GetFoisTalent(talent.TalentId) - 1)"
+                                                                   Disabled="@(_enregistrementAvancement || GetFoisTalent(talent.TalentId) <= MinAjustement)" />
+                                                    <MudNumericField T="int" Value="GetFoisTalent(talent.TalentId)"
+                                                                     ValueChanged="value => ChangerFoisTalent(talent, value)"
+                                                                     Min="@MinAjustement" Max="50"
+                                                                     Immediate="true"
+                                                                     Style="width:96px" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary"
+                                                                   OnClick="() => ChangerFoisTalent(talent, GetFoisTalent(talent.TalentId) + 1)"
+                                                                   Disabled="@(_enregistrementAvancement || GetFoisTalent(talent.TalentId) >= 50)" />
+                                                </div>
+                                            }
+                                        </td>
+                                        <td>@FormatImpactXp(CalculerCoutTalentTotal(talent.Fois, GetFoisTalent(talent.TalentId)))</td>
+                                        <td>@(_personnage.XpRestant - CalculerCoutTalentTotal(talent.Fois, GetFoisTalent(talent.TalentId))) XP</td>
+                                        <td>
+                                            @if (_personnage.PeutAvancer)
+                                            {
+                                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                           OnClick="() => ValiderAjoutTalent(talent)"
+                                                           Disabled="@(!PeutValiderTalent(talent))">
+                                                    Valider
+                                                </MudButton>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
                     </div>
                 </MudTabPanel>
 
@@ -504,6 +610,9 @@ else
             @* Onglet Caractéristiques *@
             <MudTabPanel Text="Caractéristiques">
                 <div class="old-world-tab-body">
+                <MudText Typo="Typo.body2" Color="@CouleurXpDisponible" Class="mb-2">
+                    XP disponibles : <strong>@_personnage.XpRestant</strong>
+                </MudText>
                 <MudSimpleTable Dense="true" Hover="true" Class="old-world-table">
                     <thead>
                         <tr>
@@ -511,6 +620,9 @@ else
                             <th>Initial</th>
                             <th>Avances</th>
                             <th>Actuel</th>
+                            <th>Ajustement</th>
+                            <th>Impact XP</th>
+                            <th>Après</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -525,8 +637,31 @@ else
                                 <td>
                                     @if (_personnage.PeutAvancer)
                                     {
-                                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small"
-                                                       OnClick="() => OuvrirAvancementCaracteristique(c.Code)" />
+                                        <div class="d-flex align-center gap-1">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small"
+                                                           OnClick="() => ChangerPointsCaracteristique(c, GetPointsCaracteristique(c.Code) - 1)"
+                                                           Disabled="@(_enregistrementAvancement || GetPointsCaracteristique(c.Code) <= MinAjustement)" />
+                                            <MudNumericField T="int" Value="GetPointsCaracteristique(c.Code)"
+                                                             ValueChanged="value => ChangerPointsCaracteristique(c, value)"
+                                                             Min="@MinAjustement" Max="@MaxPointsCaracteristique(c)"
+                                                             Immediate="true"
+                                                             Style="width:96px" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary"
+                                                           OnClick="() => ChangerPointsCaracteristique(c, GetPointsCaracteristique(c.Code) + 1)"
+                                                           Disabled="@(_enregistrementAvancement || GetPointsCaracteristique(c.Code) >= MaxPointsCaracteristique(c))" />
+                                        </div>
+                                    }
+                                </td>
+                                <td>@FormatImpactXp(CalculerCoutCaracteristiqueTotal(c.Avances, GetPointsCaracteristique(c.Code)))</td>
+                                <td>@(_personnage.XpRestant - CalculerCoutCaracteristiqueTotal(c.Avances, GetPointsCaracteristique(c.Code))) XP</td>
+                                <td>
+                                    @if (_personnage.PeutAvancer)
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                   OnClick="() => ValiderAvancementCaracteristique(c)"
+                                                   Disabled="@(!PeutValiderCaracteristique(c))">
+                                            Valider
+                                        </MudButton>
                                     }
                                 </td>
                             </tr>
@@ -539,34 +674,107 @@ else
             @* Onglet Compétences *@
             <MudTabPanel Text="Compétences">
                 <div class="old-world-tab-body">
-                <MudDataGrid Items="@_personnage.Competences" Dense="true" Hover="true">
-                    <Columns>
-                        <PropertyColumn Property="x => x.CompetenceNom" Title="Compétence" />
-                        <PropertyColumn Property="x => x.Caracteristique" Title="Carac." />
-                        <PropertyColumn Property="x => x.Avances" Title="Avances" />
-                        <TemplateColumn Title="">
-                            <CellTemplate>
-                                @if (_personnage.PeutAvancer)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small"
-                                                   OnClick="() => OuvrirAvancementCompetence(context.Item)" />
-                                }
-                            </CellTemplate>
-                        </TemplateColumn>
-                    </Columns>
-                </MudDataGrid>
+                <MudText Typo="Typo.body2" Color="@CouleurXpDisponible" Class="mb-2">
+                    XP disponibles : <strong>@_personnage.XpRestant</strong>
+                </MudText>
+                <MudSimpleTable Dense="true" Hover="true" Class="old-world-table">
+                    <thead>
+                        <tr><th>Compétence</th><th>Carac.</th><th>Avances</th><th>Ajustement</th><th>Impact XP</th><th>Après</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var competence in _personnage.Competences)
+                        {
+                            <tr>
+                                <td>@competence.CompetenceNom</td>
+                                <td>@competence.Caracteristique</td>
+                                <td>@competence.Avances</td>
+                                <td>
+                                    @if (_personnage.PeutAvancer)
+                                    {
+                                        <div class="d-flex align-center gap-1">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small"
+                                                           OnClick="() => ChangerPointsCompetence(competence, GetPointsCompetence(competence.CompetenceId) - 1)"
+                                                           Disabled="@(_enregistrementAvancement || GetPointsCompetence(competence.CompetenceId) <= MinAjustement)" />
+                                            <MudNumericField T="int" Value="GetPointsCompetence(competence.CompetenceId)"
+                                                             ValueChanged="value => ChangerPointsCompetence(competence, value)"
+                                                             Min="@MinAjustement" Max="@MaxPointsCompetence(competence)"
+                                                             Immediate="true"
+                                                             Style="width:96px" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary"
+                                                           OnClick="() => ChangerPointsCompetence(competence, GetPointsCompetence(competence.CompetenceId) + 1)"
+                                                           Disabled="@(_enregistrementAvancement || GetPointsCompetence(competence.CompetenceId) >= MaxPointsCompetence(competence))" />
+                                        </div>
+                                    }
+                                </td>
+                                <td>@FormatImpactXp(CalculerCoutCompetenceTotal(competence.Avances, GetPointsCompetence(competence.CompetenceId)))</td>
+                                <td>@(_personnage.XpRestant - CalculerCoutCompetenceTotal(competence.Avances, GetPointsCompetence(competence.CompetenceId))) XP</td>
+                                <td>
+                                    @if (_personnage.PeutAvancer)
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                   OnClick="() => ValiderAvancementCompetence(competence)"
+                                                   Disabled="@(!PeutValiderCompetence(competence))">
+                                            Valider
+                                        </MudButton>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
                 </div>
             </MudTabPanel>
 
             @* Onglet Talents *@
             <MudTabPanel Text="Talents">
                 <div class="old-world-tab-body">
-                <MudDataGrid Items="@_personnage.Talents" Dense="true" Hover="true">
-                    <Columns>
-                        <PropertyColumn Property="x => x.TalentNom" Title="Talent" />
-                        <PropertyColumn Property="x => x.Fois" Title="Fois" />
-                    </Columns>
-                </MudDataGrid>
+                <MudText Typo="Typo.body2" Color="@CouleurXpDisponible" Class="mb-2">
+                    XP disponibles : <strong>@_personnage.XpRestant</strong>
+                </MudText>
+                <MudSimpleTable Dense="true" Hover="true" Class="old-world-table">
+                    <thead>
+                        <tr><th>Talent</th><th>Fois</th><th>Ajustement</th><th>Impact XP</th><th>Après</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var talent in _personnage.Talents)
+                        {
+                            <tr>
+                                <td>@talent.TalentNom</td>
+                                <td>@talent.Fois</td>
+                                <td>
+                                    @if (_personnage.PeutAvancer)
+                                    {
+                                        <div class="d-flex align-center gap-1">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small"
+                                                           OnClick="() => ChangerFoisTalent(talent, GetFoisTalent(talent.TalentId) - 1)"
+                                                           Disabled="@(_enregistrementAvancement || GetFoisTalent(talent.TalentId) <= MinAjustement)" />
+                                            <MudNumericField T="int" Value="GetFoisTalent(talent.TalentId)"
+                                                             ValueChanged="value => ChangerFoisTalent(talent, value)"
+                                                             Min="@MinAjustement" Max="50"
+                                                             Immediate="true"
+                                                             Style="width:96px" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary"
+                                                           OnClick="() => ChangerFoisTalent(talent, GetFoisTalent(talent.TalentId) + 1)"
+                                                           Disabled="@(_enregistrementAvancement || GetFoisTalent(talent.TalentId) >= 50)" />
+                                        </div>
+                                    }
+                                </td>
+                                <td>@FormatImpactXp(CalculerCoutTalentTotal(talent.Fois, GetFoisTalent(talent.TalentId)))</td>
+                                <td>@(_personnage.XpRestant - CalculerCoutTalentTotal(talent.Fois, GetFoisTalent(talent.TalentId))) XP</td>
+                                <td>
+                                    @if (_personnage.PeutAvancer)
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                   OnClick="() => ValiderAjoutTalent(talent)"
+                                                   Disabled="@(!PeutValiderTalent(talent))">
+                                            Valider
+                                        </MudButton>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
                 </div>
             </MudTabPanel>
 
@@ -895,6 +1103,13 @@ else
     private int _deltaCO = 1;
     private int _deltaPA = 1;
     private int _deltaSC = 1;
+    private const int MinAjustement = -50;
+    private bool _enregistrementAvancement;
+    private readonly Dictionary<string, int> _pointsCaracteristiques = new();
+    private readonly Dictionary<int, int> _pointsCompetences = new();
+    private readonly Dictionary<int, int> _foisTalents = new();
+
+    private Color CouleurXpDisponible => (_personnage?.XpRestant ?? 0) >= 0 ? Color.Secondary : Color.Error;
 
     private int NiveauMaitriseTitreMax =>
         _personnage?.Carrieres.FirstOrDefault(c => c.EstCourante)?.Niveau
@@ -949,6 +1164,9 @@ else
                 Psychologie = _personnage.Psychologie,
                 CorruptionMutations = _personnage.CorruptionMutations,
             };
+            _pointsCaracteristiques.Clear();
+            _pointsCompetences.Clear();
+            _foisTalents.Clear();
         }
         _loading = false;
     }
@@ -956,6 +1174,233 @@ else
     private void BasculerEdition() => _editionActive = !_editionActive;
 
     private void OuvrirFichePdf() => Navigation.NavigateTo($"/personnage/{Id}/fiche-pdf");
+
+    private static int CalculerCoutCaracteristique(int avancesActuelles) =>
+        CalculerCoutAvance(avancesActuelles, competence: false);
+
+    private static int CalculerCoutCompetence(int avancesActuelles) =>
+        CalculerCoutAvance(avancesActuelles, competence: true);
+
+    private static int CalculerCoutTalent(int foisActuelles) => 100 + (Math.Max(0, foisActuelles) * 100);
+
+    private static string FormatImpactXp(int cout)
+    {
+        if (cout < 0)
+            return $"+{-cout} XP";
+        if (cout > 0)
+            return $"-{cout} XP";
+        return "0 XP";
+    }
+
+    private static int CalculerCoutCaracteristiqueTotal(int avancesActuelles, int nombrePoints) =>
+        CalculerCoutAvanceTotal(avancesActuelles, nombrePoints, competence: false);
+
+    private static int CalculerCoutCompetenceTotal(int avancesActuelles, int nombrePoints) =>
+        CalculerCoutAvanceTotal(avancesActuelles, nombrePoints, competence: true);
+
+    private static int CalculerCoutTalentTotal(int foisActuelles, int nombreFois)
+    {
+        var total = 0;
+        if (nombreFois >= 0)
+        {
+            for (var i = 0; i < nombreFois; i++)
+                total += CalculerCoutTalent(foisActuelles + i);
+        }
+        else
+        {
+            for (var i = 0; i < -nombreFois; i++)
+                total -= CalculerCoutTalent(foisActuelles - 1 - i);
+        }
+        return total;
+    }
+
+    private static int CalculerCoutAvanceTotal(int avancesActuelles, int nombrePoints, bool competence)
+    {
+        var total = 0;
+        if (nombrePoints >= 0)
+        {
+            for (var i = 0; i < nombrePoints; i++)
+                total += CalculerCoutAvance(avancesActuelles + i, competence);
+        }
+        else
+        {
+            for (var i = 0; i < -nombrePoints; i++)
+                total -= CalculerCoutAvance(avancesActuelles - 1 - i, competence);
+        }
+        return total;
+    }
+
+    private static int CalculerCoutAvance(int avancesActuelles, bool competence)
+    {
+        if (avancesActuelles >= 50)
+            return 0;
+
+        var couts = new (int MaxAvances, int CoutCarac, int CoutCompetence)[]
+        {
+            (5, 25, 10),
+            (10, 30, 15),
+            (15, 40, 20),
+            (20, 50, 30),
+            (25, 70, 40),
+            (30, 90, 60),
+            (35, 120, 80),
+            (40, 150, 110),
+            (45, 190, 140),
+            (50, 230, 180),
+        };
+
+        var palier = couts.First(c => avancesActuelles < c.MaxAvances);
+        return competence ? palier.CoutCompetence : palier.CoutCarac;
+    }
+
+    private int GetPointsCaracteristique(string code) =>
+        _pointsCaracteristiques.GetValueOrDefault(code);
+
+    private int GetPointsCompetence(int competenceId) =>
+        _pointsCompetences.GetValueOrDefault(competenceId);
+
+    private int GetFoisTalent(int talentId) =>
+        _foisTalents.GetValueOrDefault(talentId);
+
+    private static int MaxPointsCaracteristique(CaracteristiqueDto caracteristique) =>
+        Math.Max(0, 50 - caracteristique.Avances);
+
+    private static int MaxPointsCompetence(PersonnageCompetenceDto competence) =>
+        Math.Max(0, 50 - competence.Avances);
+
+    private void ChangerPointsCaracteristique(CaracteristiqueDto caracteristique, int value)
+    {
+        var points = Math.Clamp(value, MinAjustement, MaxPointsCaracteristique(caracteristique));
+        if (points == 0)
+            _pointsCaracteristiques.Remove(caracteristique.Code);
+        else
+            _pointsCaracteristiques[caracteristique.Code] = points;
+    }
+
+    private void ChangerPointsCompetence(PersonnageCompetenceDto competence, int value)
+    {
+        var points = Math.Clamp(value, MinAjustement, MaxPointsCompetence(competence));
+        if (points == 0)
+            _pointsCompetences.Remove(competence.CompetenceId);
+        else
+            _pointsCompetences[competence.CompetenceId] = points;
+    }
+
+    private void ChangerFoisTalent(PersonnageTalentDto talent, int value)
+    {
+        var fois = Math.Clamp(value, MinAjustement, 50);
+        if (fois == 0)
+            _foisTalents.Remove(talent.TalentId);
+        else
+            _foisTalents[talent.TalentId] = fois;
+    }
+
+    private bool PeutValiderCaracteristique(CaracteristiqueDto caracteristique)
+    {
+        if (_personnage == null || _enregistrementAvancement) return false;
+        var points = GetPointsCaracteristique(caracteristique.Code);
+        return points != 0;
+    }
+
+    private bool PeutValiderCompetence(PersonnageCompetenceDto competence)
+    {
+        if (_personnage == null || _enregistrementAvancement) return false;
+        var points = GetPointsCompetence(competence.CompetenceId);
+        return points != 0;
+    }
+
+    private bool PeutValiderTalent(PersonnageTalentDto talent)
+    {
+        if (_personnage == null || _enregistrementAvancement) return false;
+        var fois = GetFoisTalent(talent.TalentId);
+        return fois != 0;
+    }
+
+    private async Task ValiderAvancementCaracteristique(CaracteristiqueDto caracteristique)
+    {
+        var points = GetPointsCaracteristique(caracteristique.Code);
+        if (_personnage == null || points == 0) return;
+
+        _enregistrementAvancement = true;
+        try
+        {
+            await Api.AvancerAsync(Id, new AvanceRequest
+            {
+                Type = TypeXP.Caracteristique,
+                CodeCaracteristique = caracteristique.Code,
+                NombrePoints = points,
+            });
+            Snackbar.Add(points > 0
+                ? $"{caracteristique.Code} avancé de {points} point(s)."
+                : $"{caracteristique.Code} réduit de {-points} point(s).", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _enregistrementAvancement = false;
+        }
+    }
+
+    private async Task ValiderAvancementCompetence(PersonnageCompetenceDto competence)
+    {
+        var points = GetPointsCompetence(competence.CompetenceId);
+        if (_personnage == null || points == 0) return;
+
+        _enregistrementAvancement = true;
+        try
+        {
+            await Api.AvancerAsync(Id, new AvanceRequest
+            {
+                Type = TypeXP.Competence,
+                CompetenceId = competence.CompetenceId,
+                NombrePoints = points,
+            });
+            Snackbar.Add(points > 0
+                ? $"{competence.CompetenceNom} avancée de {points} point(s)."
+                : $"{competence.CompetenceNom} réduite de {-points} point(s).", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _enregistrementAvancement = false;
+        }
+    }
+
+    private async Task ValiderAjoutTalent(PersonnageTalentDto talent)
+    {
+        var fois = GetFoisTalent(talent.TalentId);
+        if (_personnage == null || fois == 0) return;
+
+        _enregistrementAvancement = true;
+        try
+        {
+            await Api.AjouterTalentAsync(Id, new AjoutTalentRequest
+            {
+                TalentId = talent.TalentId,
+                NombreFois = fois,
+            });
+            Snackbar.Add(fois > 0
+                ? $"{talent.TalentNom} ajouté {fois} fois."
+                : $"{talent.TalentNom} retiré {-fois} fois.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _enregistrementAvancement = false;
+        }
+    }
 
     private async Task SauvegarderEdition()
     {
@@ -985,13 +1430,17 @@ else
         }
     }
 
-    private async Task OuvrirAvancementCaracteristique(string codeCarac)
+    private async Task OuvrirAvancementCaracteristique(CaracteristiqueDto caracteristique)
     {
+        if (_personnage == null) return;
+
         var parameters = new DialogParameters<Components.AvancementDialog>
         {
             { x => x.PersonnageId, Id },
-            { x => x.CodeCaracteristique, codeCarac },
-            { x => x.Libelle, codeCarac },
+            { x => x.CodeCaracteristique, caracteristique.Code },
+            { x => x.Libelle, caracteristique.Code },
+            { x => x.AvancesActuelles, caracteristique.Avances },
+            { x => x.XpDisponible, _personnage.XpRestant },
         };
 
         var dialog = await Dialog.ShowAsync<Components.AvancementDialog>("Avancement", parameters);
@@ -1005,12 +1454,16 @@ else
 
     private async Task OuvrirAvancementCompetence(PersonnageCompetenceDto competence)
     {
+        if (_personnage == null) return;
+
         var parameters = new DialogParameters<Components.AvancementDialog>
         {
             { x => x.PersonnageId, Id },
             { x => x.CompetenceId, competence.CompetenceId },
             { x => x.Libelle, competence.CompetenceNom },
             { x => x.CodeCaracteristique, string.Empty },
+            { x => x.AvancesActuelles, competence.Avances },
+            { x => x.XpDisponible, _personnage.XpRestant },
         };
 
         var dialog = await Dialog.ShowAsync<Components.AvancementDialog>("Avancement", parameters);
@@ -1062,6 +1515,7 @@ else
         {
             { x => x.PersonnageId, Id },
             { x => x.CompetencesExistantes, _personnage.Competences.Select(c => c.CompetenceId).ToList() },
+            { x => x.XpDisponible, _personnage.XpRestant },
         };
 
         var dialog = await Dialog.ShowAsync<Components.AjoutCompetenceDialog>("Ajouter une compétence", parameters);
@@ -1080,6 +1534,8 @@ else
         var parameters = new DialogParameters<Components.AjoutTalentDialog>
         {
             { x => x.PersonnageId, Id },
+            { x => x.TalentsExistants, _personnage.Talents.ToDictionary(t => t.TalentId, t => t.Fois) },
+            { x => x.XpDisponible, _personnage.XpRestant },
         };
 
         var dialog = await Dialog.ShowAsync<Components.AjoutTalentDialog>("Ajouter un talent", parameters);

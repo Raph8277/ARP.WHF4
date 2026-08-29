@@ -167,11 +167,13 @@ public class AjoutPossessionRequest
 public class AjoutCompetenceRequest
 {
     public int CompetenceId { get; set; }
+    public int NombrePoints { get; set; }
 }
 
 public class AjoutTalentRequest
 {
     public int TalentId { get; set; }
+    public int NombreFois { get; set; } = 1;
 }
 
 public class AjoutSortRequest

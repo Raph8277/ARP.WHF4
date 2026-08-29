@@ -17,11 +17,13 @@ public class PersonnagesController : ControllerBase
 {
     private readonly Wfrp4DbContext _db;
     private readonly PersonnageService _personnageService;
+    private readonly XPService _xpService;
 
-    public PersonnagesController(Wfrp4DbContext db, PersonnageService personnageService)
+    public PersonnagesController(Wfrp4DbContext db, PersonnageService personnageService, XPService xpService)
     {
         _db = db;
         _personnageService = personnageService;
+        _xpService = xpService;
     }
 
     private string GetKeycloakId() =>
@@ -592,15 +594,33 @@ public class PersonnagesController : ControllerBase
         var competence = await _db.Competences.FindAsync(request.CompetenceId);
         if (competence == null) return BadRequest(new { Error = "Compétence introuvable." });
 
+        var nombrePoints = Math.Clamp(request.NombrePoints, -50, 50);
+        var cout = _xpService.CalculerCoutCompetenceTotal(0, nombrePoints);
+
         personnage.Competences.Add(new Infrastructure.Entities.PersonnageCompetence
         {
             CompetenceId = request.CompetenceId,
-            Avances = 0,
+            Avances = nombrePoints,
         });
+        personnage.XpDepense += cout;
         personnage.UpdatedAt = DateTime.UtcNow;
+
+        if (cout > 0)
+        {
+            _db.HistoriqueXPs.Add(new Infrastructure.Entities.HistoriqueXP
+            {
+                PersonnageId = id,
+                AuteurKeycloakId = personnage.KeycloakId,
+                Montant = -cout,
+                Type = TypeXP.Competence,
+                Cible = $"{request.CompetenceId} (+{nombrePoints})",
+                CreatedAt = DateTime.UtcNow,
+            });
+        }
+
         await _db.SaveChangesAsync();
 
-        return Ok();
+        return Ok(new { CoutXP = cout });
     }
 
     [HttpPost("{id}/talents")]
@@ -613,10 +633,17 @@ public class PersonnagesController : ControllerBase
         if (personnage == null) return NotFound();
         if (!IsOwnerOrAdmin(personnage.KeycloakId)) return Forbid();
 
+        var nombreFois = Math.Clamp(request.NombreFois, -50, 50);
+        if (nombreFois == 0)
+            return BadRequest(new { Error = "Aucun talent à appliquer." });
+
         var existant = personnage.Talents.FirstOrDefault(t => t.TalentId == request.TalentId);
+
+        var cout = _xpService.CalculerCoutTalentTotal(existant?.Fois ?? 0, nombreFois);
+
         if (existant != null)
         {
-            existant.Fois++;
+            existant.Fois += nombreFois;
         }
         else
         {
@@ -626,12 +653,23 @@ public class PersonnagesController : ControllerBase
             personnage.Talents.Add(new Infrastructure.Entities.PersonnageTalent
             {
                 TalentId = request.TalentId,
-                Fois = 1,
+                Fois = nombreFois,
             });
         }
 
+        personnage.XpDepense += cout;
         personnage.UpdatedAt = DateTime.UtcNow;
+        _db.HistoriqueXPs.Add(new Infrastructure.Entities.HistoriqueXP
+        {
+            PersonnageId = id,
+            AuteurKeycloakId = personnage.KeycloakId,
+            Montant = -cout,
+            Type = TypeXP.Talent,
+            Cible = nombreFois == 1 ? request.TalentId.ToString() : $"{request.TalentId} ({nombreFois:+#;-#;0})",
+            CreatedAt = DateTime.UtcNow,
+        });
+
         await _db.SaveChangesAsync();
-        return Ok();
+        return Ok(new { CoutXP = cout });
     }
 }

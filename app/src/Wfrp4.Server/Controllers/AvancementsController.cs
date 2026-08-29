@@ -46,9 +46,9 @@ public class AvancementsController : ControllerBase
             int cout = request.Type switch
             {
                 TypeXP.Caracteristique when request.CodeCaracteristique != null =>
-                    await _personnageService.AvancerCaracteristique(id, request.CodeCaracteristique),
+                    await _personnageService.AvancerCaracteristique(id, request.CodeCaracteristique, request.NombrePoints),
                 TypeXP.Competence when request.CompetenceId.HasValue =>
-                    await _personnageService.AvancerCompetence(id, request.CompetenceId.Value),
+                    await _personnageService.AvancerCompetence(id, request.CompetenceId.Value, request.NombrePoints),
                 _ => throw new InvalidOperationException("Type d'avance non supporté."),
             };
 
