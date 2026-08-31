@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Wfrp4.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Wfrp4.Infrastructure.Data;
 namespace Wfrp4.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(Wfrp4DbContext))]
-    partial class Wfrp4DbContextModelSnapshot : ModelSnapshot
+    [Migration("20260830153645_AddCreatureReference")]
+    partial class AddCreatureReference
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -418,11 +421,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<int>("AvancesCompetenceGratuitesRestantes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
                     b.Property<int>("BlessuresMax")
                         .HasColumnType("integer");
 
@@ -513,11 +511,6 @@ namespace Wfrp4.Infrastructure.Data.Migrations
 
                     b.Property<int?>("TailleCm")
                         .HasColumnType("integer");
-
-                    b.Property<int>("TalentsGratuitsRestants")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
 
                     b.Property<int?>("TitreBaseReferenceId")
                         .HasColumnType("integer");

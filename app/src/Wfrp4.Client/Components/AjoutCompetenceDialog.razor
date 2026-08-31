@@ -41,6 +41,7 @@
             </div>
             <MudPaper Class="pa-3 mt-3" Outlined="true">
                 <MudText Typo="Typo.subtitle2">XP disponibles : <strong>@XpDisponible</strong></MudText>
+                <MudText Typo="Typo.subtitle2">Avances gratuites restantes : <strong>@AvancesGratuitesDisponibles</strong></MudText>
                 <MudText Typo="Typo.subtitle2">Impact XP : <strong>@FormatImpactXp(CoutXp)</strong></MudText>
                 <MudText Typo="Typo.body2" Color="@(_xpSuffisante ? Color.Secondary : Color.Error)">
                     Après confirmation : @(XpDisponible - CoutXp) XP
@@ -67,6 +68,7 @@
     [Parameter] public int PersonnageId { get; set; }
     [Parameter] public List<int> CompetencesExistantes { get; set; } = [];
     [Parameter] public int XpDisponible { get; set; }
+    [Parameter] public int AvancesGratuitesDisponibles { get; set; }
 
     private List<Wfrp4.Shared.DTOs.CompetenceDto>? _competences;
     private List<Wfrp4.Shared.DTOs.CompetenceDto> _competencesDisponibles = [];
@@ -74,7 +76,7 @@
     private int _nombrePoints;
     private bool _submitting;
     private const int MinAjustement = -50;
-    private int CoutXp => CalculerCoutCompetenceTotal(0, _nombrePoints);
+    private int CoutXp => CalculerCoutCompetenceAvecGratuit(0, _nombrePoints);
     private bool _xpSuffisante => CoutXp <= 0 || XpDisponible >= CoutXp;
 
     protected override async Task OnInitializedAsync()
@@ -136,6 +138,15 @@
                 total -= CalculerCoutCompetence(avancesActuelles - 1 - i);
         }
         return total;
+    }
+
+    private int CalculerCoutCompetenceAvecGratuit(int avancesActuelles, int nombrePoints)
+    {
+        if (nombrePoints <= 0)
+            return CalculerCoutCompetenceTotal(avancesActuelles, nombrePoints);
+
+        var gratuits = Math.Min(nombrePoints, AvancesGratuitesDisponibles);
+        return CalculerCoutCompetenceTotal(avancesActuelles + gratuits, nombrePoints - gratuits);
     }
 
     private static int CalculerCoutCompetence(int avancesActuelles)

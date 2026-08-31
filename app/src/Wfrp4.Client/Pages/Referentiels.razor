@@ -562,6 +562,35 @@
         }
     </MudTabPanel>
 
+    <MudTabPanel Text="Créatures">
+        @if (_creatures != null)
+        {
+            <div class="old-world-tab-body">
+            <MudDataGrid Items="@_creatures" Dense="true" Hover="true" Filterable="true" Groupable="true">
+                <Columns>
+                    <PropertyColumn Property="x => x.Categorie" Title="Catégorie" Groupable="true" />
+                    <PropertyColumn Property="x => x.Nom" Title="Nom" />
+                    <PropertyColumn Property="x => x.M" Title="M" />
+                    <PropertyColumn Property="x => x.CC" Title="CC" />
+                    <PropertyColumn Property="x => x.CT" Title="CT" />
+                    <PropertyColumn Property="x => x.F" Title="F" />
+                    <PropertyColumn Property="x => x.E" Title="E" />
+                    <PropertyColumn Property="x => x.I" Title="I" />
+                    <PropertyColumn Property="x => x.Ag" Title="Ag" />
+                    <PropertyColumn Property="x => x.Dex" Title="Dex" />
+                    <PropertyColumn Property="x => x.Int" Title="Int" />
+                    <PropertyColumn Property="x => x.FM" Title="FM" />
+                    <PropertyColumn Property="x => x.Soc" Title="Soc" />
+                    <PropertyColumn Property="x => x.B" Title="B" />
+                    <PropertyColumn Property="x => x.Traits" Title="Traits" />
+                    <PropertyColumn Property="x => x.TraitsOptionnels" Title="Optionnels" />
+                    <PropertyColumn Property="x => x.Page" Title="Page" />
+                </Columns>
+            </MudDataGrid>
+            </div>
+        }
+    </MudTabPanel>
+
     <MudTabPanel Text="Sorts">
         @if (_sorts != null)
         {
@@ -632,6 +661,7 @@
     private List<TalentDto>? _talents;
     private List<ArmeReferenceDto>? _armes;
     private List<SortReferenceDto>? _sorts;
+    private List<CreatureReferenceDto>? _creatures;
     private List<TitreBaseReferenceDto>? _titresBase;
     private List<TitreQualificatifReferenceDto>? _titresQualificatifs;
 
@@ -645,8 +675,9 @@
         var t6 = Api.GetSortsAsync();
         var t7 = Api.GetTitresBaseAsync();
         var t8 = Api.GetTitresQualificatifsAsync();
+        var t9 = Api.GetCreaturesAsync();
 
-        await Task.WhenAll(t1, t2, t3, t4, t5, t6, t7, t8);
+        await Task.WhenAll(t1, t2, t3, t4, t5, t6, t7, t8, t9);
 
         _especes = t1.Result;
         _carrieres = t2.Result;
@@ -656,6 +687,7 @@
         _sorts = t6.Result;
         _titresBase = t7.Result;
         _titresQualificatifs = t8.Result;
+        _creatures = t9.Result;
     }
 
     private async Task ShowSortDetails(SortReferenceDto sort)

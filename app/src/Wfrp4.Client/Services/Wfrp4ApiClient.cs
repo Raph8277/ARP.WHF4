@@ -191,6 +191,9 @@ public class Wfrp4ApiClient
     public Task<List<SortReferenceDto>?> GetSortsAsync() =>
         _http.GetFromJsonAsync<List<SortReferenceDto>>("api/sorts");
 
+    public Task<List<CreatureReferenceDto>?> GetCreaturesAsync() =>
+        _http.GetFromJsonAsync<List<CreatureReferenceDto>>("api/creatures");
+
     public Task<List<TitreBaseReferenceDto>?> GetTitresBaseAsync() =>
         _http.GetFromJsonAsync<List<TitreBaseReferenceDto>>("api/titres/bases");
 

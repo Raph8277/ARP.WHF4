@@ -1,8 +1,8 @@
 ﻿{
   "LayoutName": "Defaut",
   "DefaultFont": "Cinzel Decorative",
-  "RenderCharacteristicAdvances": false,
-  "RenderCharacteristicCurrent": false,
+  "RenderCharacteristicAdvances": true,
+  "RenderCharacteristicCurrent": true,
   "Fields": [
     {
       "Key": "identity.name",

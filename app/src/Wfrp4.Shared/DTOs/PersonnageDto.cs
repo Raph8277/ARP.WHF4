@@ -14,6 +14,8 @@ public class PersonnageSummaryDto
     public int XpTotal { get; set; }
     public int XpDepense { get; set; }
     public int XpRestant => XpTotal - XpDepense;
+    public int AvancesCompetenceGratuitesRestantes { get; set; }
+    public int TalentsGratuitsRestants { get; set; }
     public bool EstActif { get; set; }
     public bool EstPartage { get; set; }
     public PermissionPartage? PermissionPartage { get; set; }
@@ -34,6 +36,8 @@ public class PersonnageDetailDto
     public int XpTotal { get; set; }
     public int XpDepense { get; set; }
     public int XpRestant => XpTotal - XpDepense;
+    public int AvancesCompetenceGratuitesRestantes { get; set; }
+    public int TalentsGratuitsRestants { get; set; }
 
     public int BlessuresMax { get; set; }
     public int Destin { get; set; }
@@ -97,6 +101,8 @@ public class PersonnageCompetenceDto
     public int CompetenceId { get; set; }
     public string CompetenceNom { get; set; } = null!;
     public string Caracteristique { get; set; } = null!;
+    public bool EstAvancee { get; set; }
+    public bool EstGroupee { get; set; }
     public int Avances { get; set; }
 }
 

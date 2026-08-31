@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Wfrp4.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Wfrp4.Infrastructure.Data;
 namespace Wfrp4.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(Wfrp4DbContext))]
-    partial class Wfrp4DbContextModelSnapshot : ModelSnapshot
+    [Migration("20260830175001_ClampNegativeXpSpent")]
+    partial class ClampNegativeXpSpent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

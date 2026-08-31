@@ -4,8 +4,8 @@ public class PdfSheetLayoutDto
 {
     public string LayoutName { get; set; } = "Defaut";
     public string DefaultFont { get; set; } = "Helvetica";
-    public bool RenderCharacteristicAdvances { get; set; }
-    public bool RenderCharacteristicCurrent { get; set; }
+    public bool RenderCharacteristicAdvances { get; set; } = true;
+    public bool RenderCharacteristicCurrent { get; set; } = true;
     public List<PdfSheetFieldLayoutDto> Fields { get; set; } = [];
 }
 

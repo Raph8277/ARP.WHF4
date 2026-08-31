@@ -116,6 +116,19 @@ public class SortReferenceConfiguration : IEntityTypeConfiguration<SortReference
     }
 }
 
+public class CreatureReferenceConfiguration : IEntityTypeConfiguration<CreatureReference>
+{
+    public void Configure(EntityTypeBuilder<CreatureReference> builder)
+    {
+        builder.HasIndex(c => c.Code).IsUnique();
+        builder.Property(c => c.Code).HasMaxLength(80).IsRequired();
+        builder.Property(c => c.Nom).HasMaxLength(120).IsRequired();
+        builder.Property(c => c.Categorie).HasMaxLength(60).IsRequired();
+        builder.Property(c => c.Traits).HasMaxLength(1000).IsRequired();
+        builder.Property(c => c.TraitsOptionnels).HasMaxLength(1000);
+    }
+}
+
 public class TitreBaseReferenceConfiguration : IEntityTypeConfiguration<TitreBaseReference>
 {
     public void Configure(EntityTypeBuilder<TitreBaseReference> builder)

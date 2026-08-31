@@ -263,6 +263,97 @@ body.mud-theme-dark::before {
     background: var(--old-world-table-bg);
 }
 
+.xp-available-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.65rem;
+    width: max-content;
+    max-width: 100%;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid var(--mud-palette-lines-default);
+    background: color-mix(in srgb, var(--old-world-table-bg) 86%, var(--mud-palette-primary) 14%);
+    font-size: 0.85rem;
+}
+
+.xp-available-status__separator {
+    color: var(--mud-palette-text-secondary);
+}
+
+.xp-available-status__meta {
+    padding-left: 0.65rem;
+    border-left: 1px solid var(--mud-palette-lines-default);
+}
+
+.character-skills-sheet {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(16rem, 1.15fr);
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.character-skills-sheet__group {
+    min-width: 0;
+}
+
+.character-skills-sheet__title {
+    padding: 0.35rem 0.5rem;
+    text-align: center;
+    text-transform: uppercase;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-bottom: 0;
+    background: var(--old-world-table-bg);
+}
+
+.character-skills-sheet__table table {
+    table-layout: fixed;
+}
+
+.character-skills-sheet__table th,
+.character-skills-sheet__table td {
+    padding: 0.25rem 0.35rem;
+    vertical-align: middle;
+}
+
+.character-skills-sheet__table th:nth-child(1),
+.character-skills-sheet__table td:nth-child(1) {
+    width: 42%;
+}
+
+.character-skills-sheet__table th:nth-child(2),
+.character-skills-sheet__table td:nth-child(2),
+.character-skills-sheet__table th:nth-child(3),
+.character-skills-sheet__table td:nth-child(3),
+.character-skills-sheet__table th:nth-child(4),
+.character-skills-sheet__table td:nth-child(4) {
+    width: 3.25rem;
+    text-align: center;
+}
+
+.character-skills-sheet__table th:nth-child(5),
+.character-skills-sheet__table td:nth-child(5) {
+    width: 5.75rem;
+    text-align: right;
+}
+
+.character-skills-sheet__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.15rem;
+    min-height: 2rem;
+}
+
+.character-skills-sheet__adjust {
+    width: 3.35rem;
+}
+
+@media (max-width: 1100px) {
+    .character-skills-sheet {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 .pdf-designer-nudge {
     display: grid;
     grid-template-columns: 2rem 2rem 2rem;

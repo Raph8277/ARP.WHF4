@@ -29,7 +29,7 @@ else if ((_especes?.Count ?? 0) == 0 || (_classes?.Count ?? 0) == 0 || (_carrier
 else
 {
     <MudPaper Class="old-world-panel old-world-stepper-shell pa-6">
-    <MudStepper @bind-ActiveIndex="_activeStep" Linear="true" Color="Color.Primary" Class="old-world-stepper">
+    <MudStepper @bind-ActiveIndex="ActiveStep" Linear="true" Color="Color.Primary" Class="old-world-stepper">
         @* Étape 1 : Espèce *@
         <MudStep Title="Espèce">
             <div class="old-world-section-header">
@@ -124,7 +124,7 @@ else
 
                 @if (_carriereMode == "manuel")
                 {
-                    <MudSelect T="int" Label="Carrière" @bind-Value="_selectedCarriereId" Required="true">
+                    <MudSelect T="int" Label="Carrière" Value="_selectedCarriereId" ValueChanged="OnCarriereChanged" Required="true">
                         @foreach (var c in CarrieresDeLaClasse)
                         {
                             <MudSelectItem T="int" Value="@c.Id">@c.Nom</MudSelectItem>
@@ -238,15 +238,14 @@ else
             }
             else
             {
-                <MudText Typo="Typo.body2" Class="mb-4">
-                    Voici les compétences accessibles au niveau 1 de votre carrière.
-                    Cochez celles que vous souhaitez acquérir et ajustez les avances initiales.
-                </MudText>
+                <MudAlert Severity="@CouleurValidationCompetences" Dense="true" Class="mb-4">
+                    <strong>@TotalAvancesCompetencesCreation / 40</strong> avances gratuites réparties entre les 8 compétences de carrière.
+                    Reste à répartir : <strong>@AvancesCompetenceGratuitesRestantes</strong>.
+                </MudAlert>
 
                 <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
                     <thead>
                         <tr>
-                            <th></th>
                             <th>Compétence</th>
                             <th>Caractéristique</th>
                             <th>Type</th>
@@ -256,12 +255,7 @@ else
                     <tbody>
                         @foreach (var comp in CompetencesCarriere)
                         {
-                            var isSelected = _selectedCompetences.ContainsKey(comp.Id);
                             <tr>
-                                <td>
-                                    <MudCheckBox T="bool" Value="isSelected"
-                                                 ValueChanged="v => OnCompetenceToggled(comp.Id, v)" />
-                                </td>
                                 <td>
                                     <MudText Typo="Typo.body2"><strong>@comp.Nom</strong></MudText>
                                     @if (!string.IsNullOrEmpty(comp.Description))
@@ -285,13 +279,10 @@ else
                                     }
                                 </td>
                                 <td>
-                                    @if (isSelected)
-                                    {
-                                        <MudNumericField T="int"
-                                                         Value="_selectedCompetences[comp.Id]"
-                                                         ValueChanged="v => OnCompetenceAvancesChanged(comp.Id, v)"
-                                                         Min="0" Max="10" Dense="true" />
-                                    }
+                                    <MudNumericField T="int"
+                                                     Value="GetCompetenceCreationAvances(comp.Id)"
+                                                     ValueChanged="v => OnCompetenceAvancesChanged(comp.Id, v)"
+                                                     Min="0" Max="10" Dense="true" />
                                 </td>
                             </tr>
                         }
@@ -299,7 +290,7 @@ else
                 </MudSimpleTable>
 
                 <MudText Typo="Typo.caption" Class="mt-2" Color="Color.Secondary">
-                    @_selectedCompetences.Count compétence(s) sélectionnée(s) — @_selectedCompetences.Values.Sum() avance(s) au total
+                    @_selectedCompetences.Count / @CompetencesCarriere.Count compétence(s) de carrière — @TotalAvancesCompetencesCreation / 40 avance(s) gratuite(s) répartie(s)
                 </MudText>
             }
         </MudStep>
@@ -319,10 +310,10 @@ else
             }
             else
             {
-                <MudText Typo="Typo.body2" Class="mb-4">
-                    Voici les talents accessibles au niveau 1 de votre carrière.
-                    Cochez ceux que vous souhaitez acquérir.
-                </MudText>
+                <MudAlert Severity="@CouleurValidationTalents" Dense="true" Class="mb-4">
+                    Choisissez exactement 1 talent de carrière gratuit.
+                    Reste : <strong>@TalentsGratuitsRestants</strong>.
+                </MudAlert>
 
                 <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
                     <thead>
@@ -368,7 +359,7 @@ else
                 </MudSimpleTable>
 
                 <MudText Typo="Typo.caption" Class="mt-2" Color="Color.Secondary">
-                    @_selectedTalents.Count talent(s) sélectionné(s)
+                    @_selectedTalents.Count / 1 talent(s) sélectionné(s)
                 </MudText>
             }
         </MudStep>
@@ -609,7 +600,7 @@ else
             }
 
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4"
-                       OnClick="CreerPersonnage" Disabled="_submitting">
+                       OnClick="CreerPersonnage" Disabled="@(_submitting || !CreationValide)">
                 @if (_submitting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
                 Créer le Personnage
             </MudButton>
@@ -620,6 +611,17 @@ else
 
 @code {
     private int _activeStep;
+    private int ActiveStep
+    {
+        get => _activeStep;
+        set
+        {
+            _activeStep = value;
+            if (_activeStep == 4)
+                EnsureCompetencesCarriereInitialisees();
+        }
+    }
+
     private bool _submitting;
     private bool _referentielsCharges;
     private CreatePersonnageRequest _request = new();
@@ -645,6 +647,21 @@ else
     // Compétences et talents sélectionnés
     private Dictionary<int, int> _selectedCompetences = new();
     private HashSet<int> _selectedTalents = new();
+
+    private int TotalAvancesCompetencesCreation => _selectedCompetences.Values.Sum();
+    private int AvancesCompetenceGratuitesRestantes => 40 - TotalAvancesCompetencesCreation;
+    private int TalentsGratuitsRestants => 1 - _selectedTalents.Count;
+    private bool CompetencesCreationValides =>
+        CompetencesCarriere.Count == 0
+        || (_selectedCompetences.Keys.ToHashSet().SetEquals(CompetencesCarriere.Select(c => c.Id))
+            && TotalAvancesCompetencesCreation == 40
+            && _selectedCompetences.Values.All(v => v is >= 0 and <= 10));
+    private bool TalentsCreationValides =>
+        TalentsCarriere.Count == 0
+        || (_selectedTalents.Count == 1 && _selectedTalents.All(id => TalentsCarriere.Any(t => t.Id == id)));
+    private Severity CouleurValidationCompetences => CompetencesCreationValides ? Severity.Success : Severity.Warning;
+    private Severity CouleurValidationTalents => TalentsCreationValides ? Severity.Success : Severity.Warning;
+    private bool CreationValide => CompetencesCreationValides && TalentsCreationValides;
 
     // Bonus fixes par espèce selon WFRP4 (ajouté à 2d10 pour chaque carac)
     private static readonly Dictionary<string, Dictionary<string, int>> _bonusDes = new()
@@ -790,7 +807,12 @@ else
         var carrieresPossibles = CarrieresDeLaClasse.ToList();
         if (carrieresPossibles.Count == 0) return;
         var carriere = carrieresPossibles[_rng.Next(carrieresPossibles.Count)];
-        _selectedCarriereId = carriere.Id;
+        OnCarriereChanged(carriere.Id);
+    }
+
+    private void OnCarriereChanged(int carriereId)
+    {
+        _selectedCarriereId = carriereId;
         ResetCompetencesEtTalents();
     }
 
@@ -829,28 +851,43 @@ else
     {
         _selectedCompetences.Clear();
         _selectedTalents.Clear();
+        EnsureCompetencesCarriereInitialisees();
     }
 
-    private void OnCompetenceToggled(int competenceId, bool selected)
+    private void EnsureCompetencesCarriereInitialisees()
     {
-        if (selected)
-            _selectedCompetences[competenceId] = 0;
-        else
-            _selectedCompetences.Remove(competenceId);
+        if (_selectedCarriereId <= 0 || CompetencesCarriere.Count == 0 || _selectedCompetences.Count > 0)
+            return;
+
+        foreach (var competence in CompetencesCarriere)
+        {
+            _selectedCompetences[competence.Id] = 5;
+        }
     }
+
+    private int GetCompetenceCreationAvances(int competenceId) =>
+        _selectedCompetences.GetValueOrDefault(competenceId);
 
     private void OnCompetenceAvancesChanged(int competenceId, int avances)
     {
-        if (_selectedCompetences.ContainsKey(competenceId))
-            _selectedCompetences[competenceId] = Math.Clamp(avances, 0, 10);
+        EnsureCompetencesCarriereInitialisees();
+        var autresAvances = _selectedCompetences
+            .Where(kvp => kvp.Key != competenceId)
+            .Sum(kvp => kvp.Value);
+        _selectedCompetences[competenceId] = Math.Clamp(avances, 0, Math.Min(10, 40 - autresAvances));
     }
 
     private void OnTalentToggled(int talentId, bool selected)
     {
         if (selected)
+        {
+            _selectedTalents.Clear();
             _selectedTalents.Add(talentId);
+        }
         else
+        {
             _selectedTalents.Remove(talentId);
+        }
     }
 
     private async Task CreerPersonnage()
@@ -882,6 +919,18 @@ else
 
         if (carriere?.Niveaux.Count > 0)
             _request.NiveauCarriereId = carriere.Niveaux[0].Id;
+
+        if (!CompetencesCreationValides)
+        {
+            Snackbar.Add("Répartissez exactement 40 avances gratuites entre les compétences de carrière.", Severity.Warning);
+            return;
+        }
+
+        if (!TalentsCreationValides)
+        {
+            Snackbar.Add("Choisissez exactement 1 talent de carrière gratuit.", Severity.Warning);
+            return;
+        }
 
         if (_request.TitreBaseReferenceId.HasValue != _request.TitreQualificatifReferenceId.HasValue)
         {

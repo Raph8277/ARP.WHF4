@@ -29,7 +29,13 @@ public sealed class UserThemeService
     {
         get
         {
-            var list = new List<ThemePreset>(Wfrp4Theme.BuiltInPresets);
+            var userIds = new HashSet<string>(_userPresets.Select(p => p.Id));
+            var list = new List<ThemePreset>();
+            foreach (var bp in Wfrp4Theme.BuiltInPresets)
+            {
+                if (!userIds.Contains(bp.Id))
+                    list.Add(bp);
+            }
             list.AddRange(_userPresets);
             return list;
         }
@@ -90,9 +96,13 @@ public sealed class UserThemeService
     public async Task ToggleDarkModeAsync()
     {
         _active.IsDarkMode = !_active.IsDarkMode;
+        if (_active.IsBuiltIn)
+        {
+            _active.IsBuiltIn = false;
+            _userPresets.Add(_active);
+        }
         RebuildTheme();
-        if (!_active.IsBuiltIn)
-            await PersistPresetsAsync();
+        await PersistPresetsAsync();
         await PersistActiveAsync();
         await ApplyAllAsync();
         OnChange?.Invoke();
@@ -100,15 +110,22 @@ public sealed class UserThemeService
 
     public async Task UpdateActivePresetAsync(ThemePreset updated)
     {
-        if (_active.IsBuiltIn) return;
-
-        var idx = _userPresets.FindIndex(p => p.Id == updated.Id);
-        if (idx >= 0)
-            _userPresets[idx] = updated;
+        if (updated.IsBuiltIn)
+        {
+            updated.IsBuiltIn = false;
+            _userPresets.Add(updated);
+        }
+        else
+        {
+            var idx = _userPresets.FindIndex(p => p.Id == updated.Id);
+            if (idx >= 0)
+                _userPresets[idx] = updated;
+        }
 
         _active = updated;
         RebuildTheme();
         await PersistPresetsAsync();
+        await PersistActiveAsync();
         await ApplyAllAsync();
         OnChange?.Invoke();
     }

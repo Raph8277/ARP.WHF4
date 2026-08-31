@@ -17,13 +17,11 @@ public class PersonnagesController : ControllerBase
 {
     private readonly Wfrp4DbContext _db;
     private readonly PersonnageService _personnageService;
-    private readonly XPService _xpService;
 
-    public PersonnagesController(Wfrp4DbContext db, PersonnageService personnageService, XPService xpService)
+    public PersonnagesController(Wfrp4DbContext db, PersonnageService personnageService)
     {
         _db = db;
         _personnageService = personnageService;
-        _xpService = xpService;
     }
 
     private string GetKeycloakId() =>
@@ -57,6 +55,8 @@ public class PersonnagesController : ControllerBase
                 StatutNumerique = p.CarriereCourante != null ? p.CarriereCourante.StatutNumerique : null,
                 XpTotal = p.XpTotal,
                 XpDepense = p.XpDepense,
+                AvancesCompetenceGratuitesRestantes = p.AvancesCompetenceGratuitesRestantes,
+                TalentsGratuitsRestants = p.TalentsGratuitsRestants,
                 EstActif = p.EstActif,
                 EstPartage = false,
                 CreatedAt = p.CreatedAt,
@@ -89,6 +89,8 @@ public class PersonnagesController : ControllerBase
                 StatutNumerique = pp.Personnage.CarriereCourante != null ? pp.Personnage.CarriereCourante.StatutNumerique : null,
                 XpTotal = pp.Personnage.XpTotal,
                 XpDepense = pp.Personnage.XpDepense,
+                AvancesCompetenceGratuitesRestantes = pp.Personnage.AvancesCompetenceGratuitesRestantes,
+                TalentsGratuitsRestants = pp.Personnage.TalentsGratuitsRestants,
                 EstActif = pp.Personnage.EstActif,
                 EstPartage = true,
                 PermissionPartage = pp.Permission,
@@ -141,6 +143,32 @@ public class PersonnagesController : ControllerBase
             ? new List<string>()
             : dotationsRaw.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
+        var competencesPersonnage = personnage.Competences.ToDictionary(c => c.CompetenceId);
+        var competencesAcquisesIds = competencesPersonnage.Keys.ToList();
+        var competencesReferenceAffichees = await _db.Competences
+            .AsNoTracking()
+            .Where(c => !c.EstAvancee || competencesAcquisesIds.Contains(c.Id))
+            .OrderBy(c => c.Nom)
+            .ToListAsync();
+        var competencesAffichees = competencesReferenceAffichees
+            .Select(c =>
+            {
+                var avances = competencesPersonnage.TryGetValue(c.Id, out var competencePersonnage)
+                    ? competencePersonnage.Avances
+                    : 0;
+
+                return new PersonnageCompetenceDto
+                {
+                    CompetenceId = c.Id,
+                    CompetenceNom = c.Nom,
+                    Caracteristique = c.Caracteristique,
+                    EstAvancee = c.EstAvancee,
+                    EstGroupee = c.EstGroupee,
+                    Avances = c.EstAvancee ? avances : Math.Max(5, avances),
+                };
+            })
+            .ToList();
+
         var dto = new PersonnageDetailDto
         {
             Id = personnage.Id,
@@ -154,6 +182,8 @@ public class PersonnagesController : ControllerBase
             Dotations = dotationsList,
             XpTotal = personnage.XpTotal,
             XpDepense = personnage.XpDepense,
+            AvancesCompetenceGratuitesRestantes = personnage.AvancesCompetenceGratuitesRestantes,
+            TalentsGratuitsRestants = personnage.TalentsGratuitsRestants,
             BlessuresMax = personnage.BlessuresMax,
             Destin = personnage.Destin,
             Fortune = personnage.Fortune,
@@ -192,13 +222,7 @@ public class PersonnagesController : ControllerBase
                 ValeurInitiale = c.ValeurInitiale,
                 Avances = c.Avances,
             }).ToList(),
-            Competences = personnage.Competences.Select(c => new PersonnageCompetenceDto
-            {
-                CompetenceId = c.CompetenceId,
-                CompetenceNom = c.Competence.Nom,
-                Caracteristique = c.Competence.Caracteristique,
-                Avances = c.Avances,
-            }).ToList(),
+            Competences = competencesAffichees,
             Talents = personnage.Talents.Select(t => new PersonnageTalentDto
             {
                 TalentId = t.TalentId,
@@ -594,32 +618,7 @@ public class PersonnagesController : ControllerBase
         var competence = await _db.Competences.FindAsync(request.CompetenceId);
         if (competence == null) return BadRequest(new { Error = "Compétence introuvable." });
 
-        var nombrePoints = Math.Clamp(request.NombrePoints, -50, 50);
-        var cout = _xpService.CalculerCoutCompetenceTotal(0, nombrePoints);
-
-        personnage.Competences.Add(new Infrastructure.Entities.PersonnageCompetence
-        {
-            CompetenceId = request.CompetenceId,
-            Avances = nombrePoints,
-        });
-        personnage.XpDepense += cout;
-        personnage.UpdatedAt = DateTime.UtcNow;
-
-        if (cout > 0)
-        {
-            _db.HistoriqueXPs.Add(new Infrastructure.Entities.HistoriqueXP
-            {
-                PersonnageId = id,
-                AuteurKeycloakId = personnage.KeycloakId,
-                Montant = -cout,
-                Type = TypeXP.Competence,
-                Cible = $"{request.CompetenceId} (+{nombrePoints})",
-                CreatedAt = DateTime.UtcNow,
-            });
-        }
-
-        await _db.SaveChangesAsync();
-
+        var cout = await _personnageService.AvancerCompetence(id, request.CompetenceId, request.NombrePoints);
         return Ok(new { CoutXP = cout });
     }
 
@@ -633,43 +632,16 @@ public class PersonnagesController : ControllerBase
         if (personnage == null) return NotFound();
         if (!IsOwnerOrAdmin(personnage.KeycloakId)) return Forbid();
 
-        var nombreFois = Math.Clamp(request.NombreFois, -50, 50);
-        if (nombreFois == 0)
-            return BadRequest(new { Error = "Aucun talent à appliquer." });
-
-        var existant = personnage.Talents.FirstOrDefault(t => t.TalentId == request.TalentId);
-
-        var cout = _xpService.CalculerCoutTalentTotal(existant?.Fois ?? 0, nombreFois);
-
-        if (existant != null)
+        int cout;
+        try
         {
-            existant.Fois += nombreFois;
+            cout = await _personnageService.AvancerTalent(id, request.TalentId, request.NombreFois);
         }
-        else
+        catch (InvalidOperationException ex)
         {
-            var talent = await _db.Talents.FindAsync(request.TalentId);
-            if (talent == null) return BadRequest(new { Error = "Talent introuvable." });
-
-            personnage.Talents.Add(new Infrastructure.Entities.PersonnageTalent
-            {
-                TalentId = request.TalentId,
-                Fois = nombreFois,
-            });
+            return BadRequest(new { Error = ex.Message });
         }
 
-        personnage.XpDepense += cout;
-        personnage.UpdatedAt = DateTime.UtcNow;
-        _db.HistoriqueXPs.Add(new Infrastructure.Entities.HistoriqueXP
-        {
-            PersonnageId = id,
-            AuteurKeycloakId = personnage.KeycloakId,
-            Montant = -cout,
-            Type = TypeXP.Talent,
-            Cible = nombreFois == 1 ? request.TalentId.ToString() : $"{request.TalentId} ({nombreFois:+#;-#;0})",
-            CreatedAt = DateTime.UtcNow,
-        });
-
-        await _db.SaveChangesAsync();
         return Ok(new { CoutXP = cout });
     }
 }

@@ -26,6 +26,7 @@ public class Wfrp4DbContext : DbContext
     public DbSet<Talent> Talents => Set<Talent>();
     public DbSet<ArmeReference> ArmesReference => Set<ArmeReference>();
     public DbSet<SortReference> SortsReference => Set<SortReference>();
+    public DbSet<CreatureReference> CreaturesReference => Set<CreatureReference>();
     public DbSet<TitreBaseReference> TitresBaseReference => Set<TitreBaseReference>();
     public DbSet<TitreQualificatifReference> TitresQualificatifReference => Set<TitreQualificatifReference>();
 

@@ -210,6 +210,40 @@ public class ReferentielsController : ControllerBase
         return Ok(sorts);
     }
 
+    [HttpGet("creatures")]
+    public async Task<ActionResult<List<CreatureReferenceDto>>> GetCreatures()
+    {
+        var creatures = await _db.CreaturesReference
+            .AsNoTracking()
+            .Select(c => new CreatureReferenceDto
+            {
+                Id = c.Id,
+                Code = c.Code,
+                Nom = c.Nom,
+                Categorie = c.Categorie,
+                M = c.M,
+                CC = c.CC,
+                CT = c.CT,
+                F = c.F,
+                E = c.E,
+                I = c.I,
+                Ag = c.Ag,
+                Dex = c.Dex,
+                Int = c.Int,
+                FM = c.FM,
+                Soc = c.Soc,
+                B = c.B,
+                Traits = c.Traits,
+                TraitsOptionnels = c.TraitsOptionnels,
+                Page = c.Page,
+            })
+            .OrderBy(c => c.Categorie)
+            .ThenBy(c => c.Nom)
+            .ToListAsync();
+
+        return Ok(creatures);
+    }
+
     [HttpGet("titres/bases")]
     public async Task<ActionResult<List<TitreBaseReferenceDto>>> GetTitresBase()
     {

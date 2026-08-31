@@ -17,6 +17,8 @@ public class Personnage
 
     public int XpTotal { get; set; }
     public int XpDepense { get; set; }
+    public int AvancesCompetenceGratuitesRestantes { get; set; }
+    public int TalentsGratuitsRestants { get; set; }
 
     public int BlessuresMax { get; set; }
     public int Destin { get; set; }

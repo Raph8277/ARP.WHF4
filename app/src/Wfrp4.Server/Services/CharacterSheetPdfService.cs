@@ -300,7 +300,12 @@ public class CharacterSheetPdfService
                 continue;
             DrawField(page1, fields, $"carac.{code}.initial", c.ValeurInitiale.ToString(CultureInfo.InvariantCulture), defaultFont);
             if (layout.RenderCharacteristicAdvances)
-                DrawField(page1, fields, $"carac.{code}.advance", c.Avances.ToString(CultureInfo.InvariantCulture), defaultFont);
+                DrawField(
+                    page1,
+                    fields,
+                    $"carac.{code}.advance",
+                    c.Avances == 0 ? string.Empty : c.Avances.ToString(CultureInfo.InvariantCulture),
+                    defaultFont);
             if (layout.RenderCharacteristicCurrent)
                 DrawField(page1, fields, $"carac.{code}.current", (c.ValeurInitiale + c.Avances).ToString(CultureInfo.InvariantCulture), defaultFont);
         }
@@ -372,30 +377,51 @@ public class CharacterSheetPdfService
         var advancedY = 620;
         foreach (var pc in p.Competences.OrderBy(c => c.Competence.Nom))
         {
-            var name = PdfText.ToAscii(pc.Competence.Nom);
-            var total = pc.Avances + (caracs.TryGetValue(pc.Competence.Caracteristique, out var carac)
+            var name = NormalizeBaseCompetenceName(pc.Competence.Nom);
+            var characteristicBase = caracs.TryGetValue(pc.Competence.Caracteristique, out var carac)
                 ? carac.ValeurInitiale + carac.Avances
-                : 0);
+                : 0;
+            var total = pc.Avances + characteristicBase;
 
             if (baseLeft.TryGetValue(name, out var y))
             {
+                page.TextCenteredPx(315, y, 8, characteristicBase.ToString(CultureInfo.InvariantCulture));
                 page.TextCenteredPx(345, y, 8, pc.Avances.ToString(CultureInfo.InvariantCulture));
                 page.TextCenteredPx(405, y, 8, total.ToString(CultureInfo.InvariantCulture));
             }
             else if (baseMiddle.TryGetValue(name, out y))
             {
-                page.TextCenteredPx(745, y, 8, pc.Avances.ToString(CultureInfo.InvariantCulture));
-                page.TextCenteredPx(805, y, 8, total.ToString(CultureInfo.InvariantCulture));
+                page.TextCenteredPx(675, y, 8, characteristicBase.ToString(CultureInfo.InvariantCulture));
+                page.TextCenteredPx(715, y, 8, pc.Avances.ToString(CultureInfo.InvariantCulture));
+                page.TextCenteredPx(765, y, 8, total.ToString(CultureInfo.InvariantCulture));
             }
-            else if (advancedY < 1010)
+            else if (pc.Competence.EstAvancee && advancedY < 1010)
             {
-                page.TextPx(860, advancedY, 7, pc.Competence.Nom, 155);
-                page.TextCenteredPx(1042, advancedY, 7, pc.Competence.Caracteristique);
-                page.TextCenteredPx(1110, advancedY, 7, pc.Avances.ToString(CultureInfo.InvariantCulture));
-                page.TextCenteredPx(1170, advancedY, 7, total.ToString(CultureInfo.InvariantCulture));
+                page.TextPx(815, advancedY, 7, pc.Competence.Nom, 130);
+                page.TextCenteredPx(980, advancedY, 7, $"{pc.Competence.Caracteristique} {characteristicBase}");
+                page.TextCenteredPx(1034, advancedY, 7, pc.Avances.ToString(CultureInfo.InvariantCulture));
+                page.TextCenteredPx(1103, advancedY, 7, total.ToString(CultureInfo.InvariantCulture));
                 advancedY += 30;
             }
         }
+    }
+
+    private static string NormalizeBaseCompetenceName(string name)
+    {
+        var normalized = PdfText.ToAscii(name);
+        return normalized.ToUpperInvariant() switch
+        {
+            "CANOTAGE" => "Ramer",
+            "COMMERAGES" => "Ragot",
+            "CONDUITE" => "Conduite d'attelage",
+            "CORRUPTION" => "Subornation",
+            "EMPRISE SUR LES ANIMAUX" => "Emprise animaux",
+            "EQUITATION" => "Chevaucher",
+            "INTERPRETATION" => "Divertissement",
+            "JEU" => "Pari",
+            "MELEE" => "Corps a corps (base)",
+            _ => normalized,
+        };
     }
 
     private static void DrawTalents(
@@ -664,6 +690,8 @@ public class CharacterSheetPdfService
         {
             LayoutName = "Defaut",
             DefaultFont = "Helvetica",
+            RenderCharacteristicAdvances = true,
+            RenderCharacteristicCurrent = true,
             Fields = fields,
         };
     }

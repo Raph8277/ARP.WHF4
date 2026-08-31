@@ -807,6 +807,41 @@ public static class Wfrp4DataSeeder
                 await db.SaveChangesAsync(cancellationToken);
         }
 
+        {
+            var existingCreatures = await db.CreaturesReference.ToDictionaryAsync(c => c.Code, cancellationToken);
+
+            foreach (var creature in GetCreaturesReference())
+            {
+                if (existingCreatures.TryGetValue(creature.Code, out var existing))
+                {
+                    existing.Nom = creature.Nom;
+                    existing.Categorie = creature.Categorie;
+                    existing.M = creature.M;
+                    existing.CC = creature.CC;
+                    existing.CT = creature.CT;
+                    existing.F = creature.F;
+                    existing.E = creature.E;
+                    existing.I = creature.I;
+                    existing.Ag = creature.Ag;
+                    existing.Dex = creature.Dex;
+                    existing.Int = creature.Int;
+                    existing.FM = creature.FM;
+                    existing.Soc = creature.Soc;
+                    existing.B = creature.B;
+                    existing.Traits = creature.Traits;
+                    existing.TraitsOptionnels = creature.TraitsOptionnels;
+                    existing.Page = creature.Page;
+                }
+                else
+                {
+                    db.CreaturesReference.Add(creature);
+                }
+            }
+
+            if (db.ChangeTracker.HasChanges())
+                await db.SaveChangesAsync(cancellationToken);
+        }
+
         await SeedTraitsPhysiquesAsync(db, cancellationToken);
 
         if (!await db.Personnages.AnyAsync(p => p.KeycloakId == DemoJoueurId, cancellationToken))
@@ -1502,4 +1537,207 @@ public static class Wfrp4DataSeeder
         },
         _ => null,
     };
+
+    private static IEnumerable<CreatureReference> GetCreaturesReference()
+    {
+        var creatures = new List<CreatureReference>();
+
+        void Add(string categorie, string nom, int page, int m, int cc, int ct, int f, int e, int i, int ag, int dex, int intel, int fm, int soc, int b, string traits, string? optionnels = null)
+        {
+            creatures.Add(new CreatureReference
+            {
+                Code = $"{categorie}:{nom}",
+                Nom = nom,
+                Categorie = categorie,
+                Page = page,
+                M = m, CC = cc, CT = ct, F = f, E = e, I = i, Ag = ag, Dex = dex, Int = intel, FM = fm, Soc = soc, B = b,
+                Traits = traits,
+                TraitsOptionnels = optionnels,
+            });
+        }
+
+        // --- Peuples du Reikland ---
+        Add("Peuples du Reikland", "Humains", 311, 4, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 12,
+            "Préjudice (choisir un), Arme+7",
+            "Maladie, Distance+8 (50), Lanceur de Sorts");
+        Add("Peuples du Reikland", "Nains", 311, 3, 40, 30, 30, 40, 30, 20, 40, 30, 50, 20, 16,
+            "Animosité (choisir un), Haine (Peaux-Verte), Résistance Magique (1), Vision Nocturne, Préjudice (choisir un), Arme+7",
+            "Fureur, Distance+8 (50)");
+        Add("Peuples du Reikland", "Halflings", 311, 3, 20, 40, 20, 30, 30, 30, 40, 30, 40, 40, 10,
+            "Vision Nocturne, Taille (Petit), Arme+5",
+            "Distance+7 (25), Discret");
+        Add("Peuples du Reikland", "Elfes", 311, 5, 40, 40, 30, 30, 50, 40, 40, 40, 40, 30, 13,
+            "Animosité (choisir un), Préjudice (choisir deux), Vision Nocturne, Arme+7",
+            "Arboricole, Magique, Résistance Magique, Distance+9 (150), Discret, Lanceur de Sorts (n'importe lequel), Traqueur");
+        Add("Peuples du Reikland", "Ogres", 312, 6, 30, 20, 45, 45, 10, 25, 20, 20, 30, 20, 30,
+            "Armure 1, Affamé, Préjudice (Peuple Mince), Vision Nocturne, Taille (Grand), Arme+8",
+            "Belliqueux, Infecté, Traqueur");
+
+        // --- Exemples de PNJ ---
+        Add("Exemples de PNJ", "Pol Dankels", 312, 4, 24, 26, 27, 46, 49, 26, 34, 65, 47, 44, 14,
+            "Ruse, Intelligent, Préjudice (Sigmarites), Lanceur de Sorts (Sorcellerie), Dure, Arme+5");
+        Add("Exemples de PNJ", "Bella la Noir", 313, 3, 32, 35, 41, 45, 30, 25, 29, 27, 34, 33, 19,
+            "Animosité (les Riches, Hommes-Bêtes), Arboricole, Armure (Légère 2), Préjudice (Huissiers, Avocats), Distance+8 (50), Brute, Robuste, Arme+8");
+
+        // --- Bêtes du Reikland ---
+        Add("Bêtes du Reikland", "Sanglier", 314, 7, 35, 0, 33, 35, 33, 35, 0, 10, 10, 0, 10,
+            "Armure 1, Bestial, Cornes (Défenses), Vision Nocturne, Nerveux, Foulée, Arme+6",
+            "Belliqueux, Frénésie, Infecté, Infesté, Taille (Grand), Territorial, Entraîné (Brisé, Magique, Monture, Guerre)");
+        Add("Bêtes du Reikland", "Ours", 314, 4, 35, 0, 55, 45, 20, 25, 15, 10, 15, 0, 28,
+            "Armure 1, Bestial, Morsure+9, Vision Nocturne, Taille (Grand), Nerveux, Foulée, Arme+8",
+            "Affamé, Infecté, Infestation, Taille (Énorme), Territorial, Entraîné (Brisé, Divertir, Guerre)");
+        Add("Bêtes du Reikland", "Chiens", 315, 4, 25, 0, 20, 20, 35, 30, 0, 15, 10, 15, 5,
+            "Bestial, Vision Nocturne, Nerveux, Taille (Petit), Foulée, Arme+5",
+            "Armure 1, Frénésie, Infecté, Taille (Petit à Moyen), Territorial, Traqueur, Entraîné (Brisé, Divertir, Chercher, Garde, Magie, Guerre)");
+        Add("Bêtes du Reikland", "Rats Géants", 315, 4, 25, 0, 30, 25, 25, 35, 0, 15, 15, 0, 5,
+            "Bestial, Infecté, Vision Nocturne, Taille (Petite), Nerveux, Foulée, Arme+4",
+            "Armure 1, Maladie (fièvre de rat ou peste noire), Taille (Petite à Moyenne), Essaim, Entraîné (Guerre)");
+        Add("Bêtes du Reikland", "Araignées Géantes", 315, 5, 35, 25, 15, 25, 10, 35, 30, 5, 25, 0, 2,
+            "Bestial, Vision Nocturne, Taille (Petite), Marcher sur les Murs, Toile 40, Arme+3",
+            "Armure 1, Arboricole, Morsure, Taille (Petite à Énorme), Essaim, Venin (Moyen), Entraîné (Brisé, Garde, Magie, Monture, Guerre)");
+        Add("Bêtes du Reikland", "Chevaux", 316, 7, 25, 0, 45, 35, 15, 30, 0, 10, 10, 10, 22,
+            "Bestial, Taille (Large), Nerveux, Foulée, Arme+7",
+            "Armure, Entraîné (Brisé, Conduire, Divertir, Magie, Monture, Guerre)");
+        Add("Bêtes du Reikland", "Pigeons", 316, 2, 15, 0, 5, 15, 25, 40, 0, 10, 20, 10, 1,
+            "Bestial, Vol 100, Taille (Minuscule), Nerveux, Arme+0",
+            "Taille (Petite), Entraîné (Brisé, À la maison)");
+        Add("Bêtes du Reikland", "Serpents", 316, 3, 40, 0, 30, 25, 25, 40, 0, 5, 45, 0, 8,
+            "Armure 1, Bestial, Sang-Froid, Rapide, Taille (Petite), Arme+5",
+            "Constricteur, Taille (Minuscule à Énorme), Arpenteur de Marécage, Essaim, Venin (Très facile à Très difficile)");
+        Add("Bêtes du Reikland", "Loups", 316, 4, 35, 0, 35, 30, 35, 30, 0, 15, 15, 0, 10,
+            "Armure 1, Bestial, Vision Nocturne, Nerveux, Foulée, Traqueur, Arme+6",
+            "Frénésie, Infecté, Taille (Grande), Territorial, Entraîné (Brisé, Conduit, Va chercher, Garde, Magie, Monture, Guerre)");
+
+        // --- Bêtes Monstrueuses du Reikland ---
+        Add("Bêtes Monstrueuses", "Basilic", 317, 4, 45, 35, 55, 55, 25, 15, 0, 15, 15, 0, 64,
+            "Armure 2, Bestial, Morsure+9, Sang-Froid, Immunité (poison), Infecté, Vision Nocturne, Regard Pétrifiant, Taille (Énorme), Foulée, Queue+8, Venin, Arme+9",
+            "Mutant, Territorial");
+        Add("Bêtes Monstrueuses", "Pieuvre des Marais", 318, 3, 35, 0, 80, 75, 15, 55, 0, 5, 65, 0, 56,
+            "Amphibie, Bestial, Constricteur, Taille (Grande), Discret, Arpenteur de Marécage, 8×Tentacules+9",
+            "Taille (Énorme à Monstrueux), Territorial");
+        Add("Bêtes Monstrueuses", "Squigs des Cavernes", 318, 4, 45, 0, 50, 30, 10, 40, 0, 5, 15, 0, 12,
+            "Bestial, Rebond, Infecté, Vision Nocturne, Arme+9",
+            "Aquatique, Souffle (acide ou gaz), Vision Obscure, Frénésie, Fureur, Cornes, Taille (Mini à Énorme)");
+        Add("Bêtes Monstrueuses", "Demigryphes", 318, 7, 35, 0, 55, 40, 30, 45, 0, 15, 25, 0, 30,
+            "Armure 1, Bestial, Morsure+9, Vision Nocturne, Taille (Large), Foulée, Arme+9",
+            "Entraîné (Brisé, Conduite, Garde, Monture, Guerre)");
+        Add("Bêtes Monstrueuses", "Dragons", 319, 6, 65, 60, 65, 65, 60, 25, 15, 45, 85, 25, 104,
+            "Armure 5, Morsure+10, Souffle+15 (divers), Vol 80, Vision Nocturne, Taille (Énorme), Queue+9, Arme+10",
+            "Arboricole, Immunité (en choisir une), Infesté, Magie, Corruption mentale, Mutation, Taille (Monstrueux), Lanceur de Sorts (divers), Arpenteur de Marécage, Entraîné (Monture), Morts-vivants, Venin");
+        Add("Bêtes Monstrueuses", "Bêtes des Marais", 319, 5, 35, 0, 50, 55, 10, 15, 10, 0, 0, 0, 40,
+            "Fabriquer, Vision Obscure, Dure à Tuer, Infecté, Régénérer, Taille (Grande), Stupide, Arpenteur de Marécage, Instable, Arme+8",
+            "Frénésie, Affamé, Infesté, Territorial");
+        Add("Bêtes Monstrueuses", "Fimir", 320, 6, 35, 20, 45, 40, 30, 20, 20, 30, 30, 15, 30,
+            "Armure 2, Sang-Froid, Vision Nocturne, Taille (Large), Arpenteur de Marécage, Arme+8",
+            "Queue+7, Magie (Démonologie)");
+        Add("Bêtes Monstrueuses", "Géants", 320, 6, 30, 30, 65, 55, 30, 20, 15, 25, 25, 20, 72,
+            "Armure 1, Vision Nocturne, Taille (Énorme), Foulée, Solide, Arme+10",
+            "Bestial, Souffle (Vomissement ivre), Affamé, Infecté, Infesté, Taille (Monstrueux), Stupide");
+        Add("Bêtes Monstrueuses", "Griffons", 321, 6, 50, 0, 50, 50, 45, 60, 0, 20, 40, 0, 76,
+            "Armure 1, Bestial, Morsure+9, Vol 80, Vision Nocturne, Taille (Énorme), Arme+9",
+            "Entraîné (Brisé, Garde, Magie, Monture, Guerre)");
+        Add("Bêtes Monstrueuses", "Hippogryphes", 321, 7, 45, 0, 55, 50, 20, 55, 0, 5, 35, 0, 72,
+            "Animosité (Tout), Belliqueux, Bestial, Morsure+9, Vol 120, Vision Nocturne, Taille (Large), Foulée, Territorial, Arme+9",
+            "Brisé, Frénésie, Fureur, Haine (Tout), Entraîné (Brisé, Monture)");
+        Add("Bêtes Monstrueuses", "Hydre", 322, 6, 45, 0, 50, 55, 15, 35, 0, 15, 25, 0, 68,
+            "Armure 3, Bestial, Souffle+10 (Feu), Constricteur, Vision Nocturne, Régénération, Taille (Énorme), Discret, Foulée, Traqueur, Arme+9",
+            "Belliqueux, Territorial, Venin");
+        Add("Bêtes Monstrueuses", "Jabberslythe", 322, 7, 45, 40, 55, 50, 20, 35, 0, 10, 20, 0, 68,
+            "Armure 3, Bestial, Morsure+9, Rebond, Sang Corrosif, Distraction, Infecté, Vision Nocturne, Taille (Énorme), Queue+8, Langue+5 (12), Venin, Arme+9",
+            "Mutant, Territorial");
+        Add("Bêtes Monstrueuses", "Manticores", 323, 6, 55, 0, 55, 55, 50, 65, 0, 10, 35, 0, 72,
+            "Armure 2, Bestial, Morsure+9, Vol 80, Taille (Énorme), Queue+8, Territorial, Venin, Arme+9",
+            "Haine (Prédateurs), Mutant, Entraîné (Brisé, Magique, Monture)");
+        Add("Bêtes Monstrueuses", "Pégase", 323, 8, 35, 0, 45, 40, 30, 45, 0, 20, 25, 0, 28,
+            "Vol 100, Taille (Large), Foulée, Arme+7",
+            "Entraîné (Brisé, Conduit, Magique, Monture, Guerre)");
+        Add("Bêtes Monstrueuses", "Trolls", 324, 6, 30, 15, 55, 45, 10, 15, 15, 10, 20, 5, 30,
+            "Armure 2, Morsure+8, Dure à Tuer, Infecté, Régénérer, Taille (Grande), Stupide, Solide, Vomi, Arme+9",
+            "Aquatique, Bestial, Frénésie, Affamé, Infesté, Résistance Magique, Mutation, Vision Nocturne, Insensible, Discret, Arpenteur de Marécage");
+        Add("Bêtes Monstrueuses", "Wyvernes", 324, 4, 55, 0, 60, 55, 15, 45, 0, 10, 50, 0, 84,
+            "Armure 2, Bestial, Vol 90, Taille (Énorme), Venin, Arme+10",
+            "Souffle (Venin), Cornes, Queue+9, Entraîné (Brisé, Garde, Magie, Monture, Guerre)");
+
+        // --- Hordes des Peaux-Vertes ---
+        Add("Hordes des Peaux-Vertes", "Orques", 325, 4, 35, 30, 35, 45, 20, 25, 20, 25, 35, 20, 14,
+            "Armure 3, Animosité (Peaux-Vertes), Belliqueux, Dure à Tuer, Infecté, Vision Nocturne, Arme+8",
+            "Insensible, Distance+8 (50), Taille (Grand)");
+        Add("Hordes des Peaux-Vertes", "Gobelins", 326, 4, 25, 35, 30, 30, 20, 35, 30, 30, 20, 20, 11,
+            "Animosité (Peaux-Vertes), Armure 1, Peur (Elfes), Infecté, Vision Obscure, Arme+7",
+            "Arboricole, Haine (Nains), Vision Nocturne, Distance+7 (25), Venin");
+        Add("Hordes des Peaux-Vertes", "Snotlings", 326, 4, 25, 15, 25, 20, 20, 30, 0, 15, 30, 0, 7,
+            "Bestial, Infecté, Vision Nocturne, Taille (Petite), Arme+4",
+            "Brisé, Essaim, Entraîné (Brisé, Ramassé, Garde), Venin");
+
+        // --- La Mort Agitée ---
+        Add("La Mort Agitée", "Squelettes", 327, 4, 25, 25, 30, 30, 20, 20, 25, 0, 0, 0, 12,
+            "Armure 2, Fabriquer, Vision Obscure, Peur 2, Insensible, Morts-vivants, Instable, Arme+7",
+            "Corruption (Mineure), Infecté, Territorial");
+        Add("La Mort Agitée", "Zombies", 328, 4, 15, 0, 30, 30, 5, 10, 15, 0, 0, 0, 12,
+            "Fabriquer, Vision Obscure, Peur 2, Insensible, Morts-vivants, Instable, Arme+7",
+            "Armures, Corruption (Mineure), Malade, Distrayant, Infecté, Infesté, Territorial");
+        Add("La Mort Agitée", "Loups Épouvantable", 328, 9, 30, 0, 35, 35, 30, 30, 0, 0, 0, 0, 24,
+            "Armure 1, Fabriquer, Vision Obscure, Peur 2, Taille (Large), Foulée, Traqueur, Morts-vivants, Instable, Arme+6",
+            "Corruption (Mineure), Distrayant, Infecté, Insensible, Territorial");
+        Add("La Mort Agitée", "Ghouls de Crypte", 329, 4, 30, 0, 35, 30, 30, 35, 25, 20, 20, 5, 11,
+            "Morsure+5, Infecté, Vision Nocturne, Arme+6",
+            "Bestial, Insensible, Venin");
+        Add("La Mort Agitée", "Varghouls", 329, 8, 55, 0, 55, 55, 30, 50, 20, 10, 60, 0, 42,
+            "Armure 1, Bestial, Morsure+8, Peur 4, Vision Obscure, Haine (Vivant), Affamé, Régénération, Taille (Grande), Morts-vivants, Vampirique, Arme+9",
+            "Corruption (Mineure), Fuite, Fureur, Terreur 3, Territorial, Traqueur");
+        Add("La Mort Agitée", "Spectre de Cairn", 329, 6, 35, 0, 35, 30, 15, 30, 25, 25, 50, 15, 14,
+            "Étreinte Glaciale, Vision Obscure, Éthéré, Terreur 3, Morts-vivants, Instable, Arme+9",
+            "Bestial, Champion, Insensible, Territorial");
+        Add("La Mort Agitée", "Banshees de Tombes", 330, 6, 30, 0, 30, 30, 20, 30, 30, 25, 40, 20, 13,
+            "Vision Obscure, Éthéré, Hurlement Fantomatique, Terreur 3, Morts-vivants, Instable, Arme+7",
+            "Bestial, Fuite, Fureur, Insensible, Territorial");
+        Add("La Mort Agitée", "Vampires", 330, 6, 60, 40, 50, 40, 50, 70, 40, 40, 60, 40, 19,
+            "Morsure+8, Vision Nocturne, Morts-vivants, Vampirique, Arme+9",
+            "Bestial, Champion, Corruption (Mineure), Vision Obscure, Dure à Tuer, Distrayant, Peur, Vol, Frénésie, Fureur, Affamé, Corruption mentale, Insensible, Pétrifiant, Génération, Magie (Mort ou Nécromancie), Traqueur, Marcher sur les Murs");
+        Add("La Mort Agitée", "Fantômes", 330, 6, 30, 0, 30, 30, 10, 30, 20, 15, 15, 0, 10,
+            "Vision Obscure, Éthéré, Peur 2, Morts-vivants, Instable, Arme+6",
+            "Bestial, Fureur, Haine, Essaim, Territorial");
+
+        // --- Esclaves des Ténèbres ---
+        Add("Esclaves des Ténèbres", "Gors", 331, 4, 45, 30, 35, 45, 30, 35, 25, 25, 30, 25, 14,
+            "Arboricole, Armure 1, Fureur, Cornes+6, Vision Nocturne, Arme+7",
+            "Armure 2, Corruption (Mineure), Maladie (variole de la meute), Infecté, Infesté, Mutation, Taille (Grande), Lanceur de Sorts (Bêtes)");
+        Add("Esclaves des Ténèbres", "Ungors", 332, 4, 35, 30, 30, 35, 30, 35, 25, 25, 35, 25, 12,
+            "Arboricole, Vision Nocturne, Arme+6",
+            "Armure 1, Corruption (Mineure), Maladie (variole de la meute), Infecté, Infesté, Mutation, Distance+7 (25), Taille (Petite)");
+        Add("Esclaves des Ténèbres", "Minotaures", 332, 6, 45, 25, 44, 45, 20, 35, 25, 20, 30, 15, 30,
+            "Cornes+9, Affamé, Vision Nocturne, Taille (Grand), Arme+9",
+            "Arboricole, Belliqueux, Corruption (Mineure), Maladie (variole de la meute), Fureur, Infecté, Infesté, Mutation");
+        Add("Esclaves des Ténèbres", "Bray-Shaman", 333, 4, 40, 30, 30, 45, 40, 35, 25, 30, 50, 30, 16,
+            "Arboricole, Corruption (Mineure), Fureur, Cornes+6, Vision Nocturne, Magie (Bêtes, Tout Chaos, Mort ou Ombre), Arme+7",
+            "Maladie (variole de la meute), Infecté, Infesté, Mutation, Taille (Grande)");
+        Add("Esclaves des Ténèbres", "Mutants", 333, 4, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 12,
+            "Corruption (Mineure), Mutation, Arme+7",
+            "Tous les Traits de Créatures");
+        Add("Esclaves des Ténèbres", "Cultistes", 333, 4, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 12,
+            "Arme+6",
+            "Armure 1, Corruption (Mineure), Mutation, Magie (Chaos)");
+        Add("Esclaves des Ténèbres", "Guerriers du Chaos", 334, 4, 55, 30, 45, 45, 45, 55, 30, 35, 55, 25, 17,
+            "Armure 5, Champion, Corruption (Mineure), Arme+8",
+            "Belliqueux, Maladie, Distrayant, Frénésie, Corruption mentale, Mutation, Magie (Chaos)");
+        Add("Esclaves des Ténèbres", "Sanguinaires de Khorne", 335, 5, 55, 35, 45, 35, 60, 40, 30, 25, 70, 15, 17,
+            "Armure 5, Champion, Griffes, Corruption (Modérée), Démoniaque 8+, Peur 3, Frénésie, Cornes+8, Insensible, Instable, Arme+9");
+        Add("Esclaves des Ténèbres", "Demonettes de Slaanesh", 335, 4, 60, 50, 40, 30, 65, 60, 35, 30, 70, 45, 17,
+            "Champion, Corruption (Modérée), Démoniaque 8+, Distrayant, Peur 2, Vision Nocturne, Instable, Arme+9");
+        Add("Esclaves des Ténèbres", "Slenderthigh Fouetlangue", 336, 6, 95, 110, 115, 120, 100, 95, 40, 70, 85, 85, 86,
+            "Armure 1, Champion, Corruption (Majeure), Démoniaque 8+, Distrayant, Cornes+15, Vision Nocturne, Taille (Grand), Magie (Slaanesh), Terreur 3, Instable, Arme+16");
+        Add("Esclaves des Ténèbres", "Fr'hough Bouchesoufle", 336, 4, 70, 35, 120, 150, 50, 20, 30, 85, 120, 50, 108,
+            "Armure 4, Souffle+12 (Corrosion), Corruption (Majeure), Démoniaque 7+, Vision Obscure, Maladie (Variole purulente), Cornes+14, Infecté, Infesté, Taille (Grand), Magie (Nurgle), Terreur 3, Instable, Arme+15");
+        Add("Esclaves des Ténèbres", "Guerrier des Clans", 337, 5, 30, 30, 30, 30, 40, 35, 30, 30, 20, 20, 11,
+            "Armure 2, Infecté, Vision Nocturne, Arme+7",
+            "Maladie (fièvre de rat), Mutation, Craintif, Discrétion, Pisteur");
+        Add("Esclaves des Ténèbres", "Vermines de Choc", 337, 5, 45, 35, 35, 35, 55, 50, 30, 30, 25, 20, 11,
+            "Armure 4, Infecté, Vision Nocturne, Arme+8",
+            "Maladie (fièvre de rat), Mutation, Pisteur");
+        Add("Esclaves des Ténèbres", "Rat Ogres", 337, 5, 35, 10, 55, 45, 35, 45, 25, 10, 25, 15, 30,
+            "Armure 1, Infecté, Vision Nocturne, Taille (Grand), Stupide, Arme+9",
+            "Corruption (Mineure), Vision Obscure, Maladie (fièvre de rat), Infesté, Mutation, Queue+8, Traqueur, Entraîné (Brisé, Garde, Monture, Guerre)");
+
+        return creatures;
+    }
 }

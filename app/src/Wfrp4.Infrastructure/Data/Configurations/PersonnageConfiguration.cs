@@ -16,6 +16,8 @@ public class PersonnageConfiguration : IEntityTypeConfiguration<Personnage>
                .HasMaxLength(20)
                .HasDefaultValue(GenrePersonnage.Masculin);
         builder.Property(p => p.KeycloakId).HasMaxLength(100).IsRequired();
+        builder.Property(p => p.AvancesCompetenceGratuitesRestantes).HasDefaultValue(0);
+        builder.Property(p => p.TalentsGratuitsRestants).HasDefaultValue(0);
         builder.Property(p => p.StatutSocial).HasMaxLength(50);
         builder.Property(p => p.Age);
         builder.Property(p => p.CouleurYeux).HasMaxLength(50);

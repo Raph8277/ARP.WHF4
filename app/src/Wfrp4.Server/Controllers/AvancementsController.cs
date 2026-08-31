@@ -49,6 +49,8 @@ public class AvancementsController : ControllerBase
                     await _personnageService.AvancerCaracteristique(id, request.CodeCaracteristique, request.NombrePoints),
                 TypeXP.Competence when request.CompetenceId.HasValue =>
                     await _personnageService.AvancerCompetence(id, request.CompetenceId.Value, request.NombrePoints),
+                TypeXP.Talent when request.TalentId.HasValue =>
+                    await _personnageService.AvancerTalent(id, request.TalentId.Value, request.NombrePoints),
                 _ => throw new InvalidOperationException("Type d'avance non supporté."),
             };
 

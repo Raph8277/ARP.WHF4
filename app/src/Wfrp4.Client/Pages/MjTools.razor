@@ -183,7 +183,7 @@
                 <MudItem xs="12" sm="3">
                     <MudSelect T="string" @bind-Value="_pnjBestiaryChoice" Label="Creature" Dense="true" Disabled="@(_pnjSource != "Bestiaire")">
                         <MudSelectItem Value="@("Aleatoire")">Aleatoire</MudSelectItem>
-                        @foreach (var creature in Bestiary)
+                        @foreach (var creature in _allBestiary)
                         {
                             <MudSelectItem Value="@creature.Name">@creature.Name</MudSelectItem>
                         }
@@ -434,7 +434,7 @@
                                             <td class="@InactiveSetupCell(setup.Source == "Humanoide")">
                                                 <MudSelect T="string" @bind-Value="setup.BestiaryChoice" Dense="true" Disabled="@(_groupSourcesRandom || setup.Source == "Humanoide")">
                                                     <MudSelectItem Value="@("Aleatoire")">Aleatoire</MudSelectItem>
-                                                    @foreach (var creature in Bestiary)
+                                                    @foreach (var creature in _allBestiary)
                                                     {
                                                         <MudSelectItem Value="@creature.Name">@creature.Name</MudSelectItem>
                                                     }
@@ -662,9 +662,10 @@
     private List<ClasseDto> _classes = [];
     private List<CarriereDto> _carrieres = [];
     private Dictionary<string, CreatureStats> _generatedCreatureStats = [];
+    private IReadOnlyList<BestiaryEntry> _allBestiary = Bestiary;
 
     private IEnumerable<BestiaryEntry> FilteredBestiary =>
-        Bestiary.Where(c => string.IsNullOrWhiteSpace(_bestiarySearch)
+        _allBestiary.Where(c => string.IsNullOrWhiteSpace(_bestiarySearch)
             || c.Name.Contains(_bestiarySearch, StringComparison.OrdinalIgnoreCase)
             || c.Role.Contains(_bestiarySearch, StringComparison.OrdinalIgnoreCase)
             || c.Environment.Contains(_bestiarySearch, StringComparison.OrdinalIgnoreCase));
@@ -688,9 +689,39 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _especes = await Api.GetEspecesAsync() ?? [];
-        _classes = await Api.GetClassesAsync() ?? [];
-        _carrieres = await Api.GetCarrieresAsync() ?? [];
+        var t1 = Api.GetEspecesAsync();
+        var t2 = Api.GetClassesAsync();
+        var t3 = Api.GetCarrieresAsync();
+        var t4 = Api.GetCreaturesAsync();
+
+        await Task.WhenAll(t1, t2, t3, t4);
+
+        _especes = t1.Result ?? [];
+        _classes = t2.Result ?? [];
+        _carrieres = t3.Result ?? [];
+
+        var apiCreatures = t4.Result ?? [];
+        if (apiCreatures.Count > 0)
+        {
+            var existingNames = Bestiary.Select(b => b.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var converted = apiCreatures
+                .Where(c => !existingNames.Contains(c.Nom))
+                .Select(c => new BestiaryEntry(
+                    c.Nom,
+                    c.Categorie,
+                    EnvironmentFromCategorie(c.Categorie),
+                    DangerFromBlessures(c.B),
+                    VisualFromCategorie(c.Categorie),
+                    new CreatureStats(c.CC, c.CT, c.F, c.E, c.I, c.Ag, c.Dex, c.Int, c.FM, c.Soc, c.B, c.M),
+                    c.Traits,
+                    AttackFromTraits(c.Traits),
+                    DefenseFromTraits(c.Traits),
+                    c.TraitsOptionnels ?? "",
+                    $"Livre de base p. {c.Page}"))
+                .ToList();
+            _allBestiary = [.. Bestiary, .. converted];
+        }
+
         ToutGenerer();
     }
 
@@ -1487,17 +1518,17 @@
         return options.Count == 0 ? fallback : ["Aleatoire", .. options];
     }
 
-    private static BestiaryEntry PickBestiary(string selectedName, string danger)
+    private BestiaryEntry PickBestiary(string selectedName, string danger)
         => PickBestiary(selectedName, danger, null);
 
-    private static BestiaryEntry PickBestiary(string selectedName, string danger, string? tone)
+    private BestiaryEntry PickBestiary(string selectedName, string danger, string? tone)
     {
         if (selectedName != "Aleatoire")
-            return Bestiary.FirstOrDefault(c => c.Name == selectedName) ?? Bestiary[0];
+            return _allBestiary.FirstOrDefault(c => c.Name == selectedName) ?? _allBestiary[0];
 
         var candidates = danger == "Aleatoire"
-            ? Bestiary
-            : Bestiary.Where(c => c.Danger == danger).ToList();
+            ? _allBestiary
+            : _allBestiary.Where(c => c.Danger == danger).ToList();
 
         if (!string.IsNullOrWhiteSpace(tone) && tone != "Aleatoire")
         {
@@ -1506,7 +1537,7 @@
                 candidates = toneCandidates;
         }
 
-        return Pick(candidates.Count == 0 ? Bestiary : candidates);
+        return Pick(candidates.Count == 0 ? _allBestiary : candidates);
     }
 
     private static bool BestiaryMatchesTone(BestiaryEntry creature, string tone)
@@ -1813,6 +1844,63 @@
 
     private static CreatureStats S(int ws, int bs, int s, int t, int i, int ag, int dex, int intel, int wp, int fel, int wounds, int move) =>
         new(ws, bs, s, t, i, ag, dex, intel, wp, fel, wounds, move);
+
+    private static string DangerFromBlessures(int b) => b switch
+    {
+        <= 12 => "Faible",
+        <= 25 => "Moyenne",
+        _ => "Elevee",
+    };
+
+    private static string VisualFromCategorie(string cat) => cat switch
+    {
+        "Peuples du Reikland" or "Exemples de PNJ" => "human",
+        "Bêtes du Reikland" => "beast",
+        "Bêtes Monstrueuses" => "monster",
+        "Hordes des Peaux-Vertes" => "greenskin",
+        "La Mort Agitée" => "undead",
+        "Esclaves des Ténèbres" => "chaos",
+        _ => "monster",
+    };
+
+    private static string EnvironmentFromCategorie(string cat) => cat switch
+    {
+        "Peuples du Reikland" or "Exemples de PNJ" => "Urbain",
+        "Bêtes du Reikland" => "Foret",
+        "Bêtes Monstrueuses" => "Desolation",
+        "Hordes des Peaux-Vertes" => "Montagnes",
+        "La Mort Agitée" => "Cimetiere",
+        "Esclaves des Ténèbres" => "Occulte",
+        _ => "Ruines",
+    };
+
+    private static string AttackFromTraits(string traits)
+    {
+        var attacks = traits.Split(',', StringSplitOptions.TrimEntries)
+            .Where(t => t.StartsWith("Arme", StringComparison.OrdinalIgnoreCase)
+                     || t.StartsWith("Morsure", StringComparison.OrdinalIgnoreCase)
+                     || t.StartsWith("Cornes", StringComparison.OrdinalIgnoreCase)
+                     || t.StartsWith("Queue", StringComparison.OrdinalIgnoreCase)
+                     || t.StartsWith("Griffes", StringComparison.OrdinalIgnoreCase)
+                     || t.StartsWith("Souffle", StringComparison.OrdinalIgnoreCase)
+                     || t.StartsWith("Distance", StringComparison.OrdinalIgnoreCase)
+                     || t.Contains("Tentacules", StringComparison.OrdinalIgnoreCase)
+                     || t.StartsWith("Langue", StringComparison.OrdinalIgnoreCase));
+        return string.Join(", ", attacks);
+    }
+
+    private static string DefenseFromTraits(string traits)
+    {
+        var defense = traits.Split(',', StringSplitOptions.TrimEntries)
+            .Where(t => t.StartsWith("Armure", StringComparison.OrdinalIgnoreCase)
+                     || t.StartsWith("Taille", StringComparison.OrdinalIgnoreCase)
+                     || t.Contains("Régénér", StringComparison.OrdinalIgnoreCase)
+                     || t.Contains("Éthéré", StringComparison.OrdinalIgnoreCase)
+                     || t.Contains("Démoniaque", StringComparison.OrdinalIgnoreCase)
+                     || t.Contains("Dure à Tuer", StringComparison.OrdinalIgnoreCase)
+                     || t.Contains("Champion", StringComparison.OrdinalIgnoreCase));
+        return string.Join(", ", defense);
+    }
 
     private static readonly Dictionary<string, IReadOnlyList<string>> ProfessionsByTone = new()
     {

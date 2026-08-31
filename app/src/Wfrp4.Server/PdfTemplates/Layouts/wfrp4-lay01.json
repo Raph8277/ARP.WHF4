@@ -1,8 +1,8 @@
 ﻿{
   "LayoutName": "WFRP4-Lay01",
   "DefaultFont": "MedievalSharp",
-  "RenderCharacteristicAdvances": false,
-  "RenderCharacteristicCurrent": false,
+  "RenderCharacteristicAdvances": true,
+  "RenderCharacteristicCurrent": true,
   "Fields": [
     {
       "Key": "identity.name",

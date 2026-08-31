@@ -37,6 +37,7 @@
             </div>
             <MudPaper Class="pa-3 mt-3" Outlined="true">
                 <MudText Typo="Typo.subtitle2">XP disponibles : <strong>@XpDisponible</strong></MudText>
+                <MudText Typo="Typo.subtitle2">Talents gratuits restants : <strong>@TalentsGratuitsDisponibles</strong></MudText>
                 <MudText Typo="Typo.subtitle2">Impact XP : <strong>@FormatImpactXp(CoutTalentSelectionne)</strong></MudText>
                 <MudText Typo="Typo.body2" Color="@(_xpSuffisante ? Color.Secondary : Color.Error)">
                     Après confirmation : @(XpDisponible - CoutTalentSelectionne) XP
@@ -63,6 +64,7 @@
     [Parameter] public int PersonnageId { get; set; }
     [Parameter] public Dictionary<int, int> TalentsExistants { get; set; } = [];
     [Parameter] public int XpDisponible { get; set; }
+    [Parameter] public int TalentsGratuitsDisponibles { get; set; }
 
     private List<Wfrp4.Shared.DTOs.TalentDto>? _talents;
     private int? _selectedId;
@@ -70,8 +72,8 @@
     private bool _submitting;
     private const int MinNombreFois = -50;
     private int CoutTalentSelectionne => _selectedId.HasValue
-        ? CalculerCoutTalentTotal(TalentsExistants.GetValueOrDefault(_selectedId.Value), _nombreFois)
-        : 100;
+        ? CalculerCoutTalentAvecGratuit(TalentsExistants.GetValueOrDefault(_selectedId.Value), _nombreFois)
+        : CalculerCoutTalentAvecGratuit(0, _nombreFois);
     private bool _xpSuffisante => _nombreFois != 0 && (CoutTalentSelectionne <= 0 || XpDisponible >= CoutTalentSelectionne);
 
     protected override async Task OnInitializedAsync()
@@ -132,6 +134,15 @@
                 total -= CalculerCoutTalent(foisActuelles - 1 - i);
         }
         return total;
+    }
+
+    private int CalculerCoutTalentAvecGratuit(int foisActuelles, int nombreFois)
+    {
+        if (nombreFois <= 0)
+            return CalculerCoutTalentTotal(foisActuelles, nombreFois);
+
+        var gratuits = Math.Min(nombreFois, TalentsGratuitsDisponibles);
+        return CalculerCoutTalentTotal(foisActuelles + gratuits, nombreFois - gratuits);
     }
 
     private static int CalculerCoutTalent(int foisActuelles) => 100 + (Math.Max(0, foisActuelles) * 100);
