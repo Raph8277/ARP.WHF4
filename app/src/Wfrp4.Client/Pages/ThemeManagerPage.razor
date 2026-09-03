@@ -1,0 +1,16 @@
+@page "/theme"
+@using Wfrp4.Client.Components
+
+<PageTitle>Gestionnaire de thème — WFRP4</PageTitle>
+
+<section class="old-world-hero old-world-hero--theme mb-6">
+    <div>
+        <MudText Class="old-world-kicker">Personnalisation</MudText>
+        <MudText Typo="Typo.h2" Class="old-world-hero__title">Gestionnaire de thème</MudText>
+        <MudText Class="old-world-hero__text">Personnalisez les couleurs, polices et la mise en page de votre interface.</MudText>
+    </div>
+</section>
+
+<MudPaper Class="old-world-panel pa-4 pa-md-6">
+    <ThemeManagerPanel IsDrawerMode="false" />
+</MudPaper>

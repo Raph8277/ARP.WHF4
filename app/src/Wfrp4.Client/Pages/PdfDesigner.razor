@@ -1,0 +1,966 @@
+@page "/admin/pdf-designer"
+@attribute [Authorize]
+@using System.Text.Json
+@using Wfrp4.Client.Theme
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>Designer PDF - WFRP4</PageTitle>
+
+@if (_loading)
+{
+    <div class="old-world-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else if (_layout == null)
+{
+    <MudAlert Severity="Severity.Error">Designer PDF indisponible.</MudAlert>
+}
+else
+{
+    <section class="old-world-hero old-world-hero--sheet mb-4">
+        <div class="d-flex flex-wrap align-center justify-space-between gap-4">
+            <div>
+                <MudText Class="old-world-kicker">Atelier admin</MudText>
+                <MudText Typo="Typo.h2" Class="old-world-hero__title mb-2">Designer PDF</MudText>
+                <MudText Typo="Typo.subtitle1" Class="old-world-hero__text">
+                    Positionnement visuel des champs sur la fiche officielle.
+                </MudText>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="NouveauLayout">
+                    Nouveau
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ContentCopy"
+                           OnClick="DupliquerLayout">
+                    Dupliquer
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="EnregistrerLayout" Disabled="_saving">
+                    Enregistrer
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Visibility"
+                           OnClick="TesterRendu" Disabled="@(_testing || _selectedPersonnageId <= 0)">
+                    Tester rendu
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.DataObject"
+                           OnClick="CopierJson">
+                    Copier JSON
+                </MudButton>
+            </div>
+        </div>
+    </section>
+
+    <div class="pdf-winforms-viewport">
+    <div class="pdf-winforms-shell">
+        <aside class="pdf-winforms-panel pdf-winforms-panel--left">
+            <MudText Class="old-world-kicker mb-2">Layout</MudText>
+            <MudSelect T="string" Label="Layout sauvegarde" Value="_selectedLayoutProfileKey" ValueChanged="SelectionnerLayoutProfile" Dense="true" Class="mb-3">
+                @foreach (var profile in _layoutSummaries)
+                {
+                    <MudSelectItem Value="@profile.Key">
+                        @(profile.IsActive ? $"{profile.Name} (actif)" : profile.Name)
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField T="string" @bind-Value="_layout.LayoutName" Label="Nom du layout" Dense="true" Class="mb-3" />
+
+            <MudSelect T="int" Label="Personnage de test" Value="_selectedPersonnageId" ValueChanged="SelectionnerPersonnageTest" Dense="true" Class="mb-3">
+                @foreach (var personnage in _personnages)
+                {
+                    <MudSelectItem Value="@personnage.Id">@personnage.Nom</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudDivider Class="my-3" />
+
+            <MudText Class="old-world-kicker mb-2">Champs</MudText>
+            <MudTextField T="string" @bind-Value="_search" Label="Rechercher" Dense="true" Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-3" />
+
+            <div class="pdf-winforms-field-list">
+                @foreach (var group in FilteredFields.GroupBy(FieldGroup))
+                {
+                    <MudText Typo="Typo.caption" Class="pdf-winforms-group">@group.Key</MudText>
+                    @foreach (var field in group)
+                    {
+                        <button type="button"
+                                class="@FieldListClass(field)"
+                                @onclick="@((MouseEventArgs e) => SelectionnerChamp(field.Key, e.CtrlKey || e.MetaKey))">
+                            <span>@field.Label</span>
+                            <small>Page @(field.Page) - @field.X,@field.Y</small>
+                        </button>
+                    }
+                }
+            </div>
+        </aside>
+
+        <main class="pdf-winforms-workbench">
+            <div class="pdf-winforms-toolbar">
+                <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                    <MudButton Variant="@(_currentPage == 1 ? Variant.Filled : Variant.Outlined)" OnClick="@(() => ChangerPage(1))">Page 1</MudButton>
+                    <MudButton Variant="@(_currentPage == 2 ? Variant.Filled : Variant.Outlined)" OnClick="@(() => ChangerPage(2))">Page 2</MudButton>
+                </MudButtonGroup>
+
+                <MudSelect T="double" Label="Zoom" @bind-Value="_zoom" Dense="true" Class="pdf-winforms-zoom">
+                    <MudSelectItem Value="0.35">35%</MudSelectItem>
+                    <MudSelectItem Value="0.5">50%</MudSelectItem>
+                    <MudSelectItem Value="0.75">75%</MudSelectItem>
+                    <MudSelectItem Value="1.0">100%</MudSelectItem>
+                </MudSelect>
+
+                <MudCheckBox T="bool" @bind-Value="_showGrid" Label="Grille" Dense="true" />
+                <MudCheckBox T="bool" @bind-Value="_snapToGrid" Label="Aimantation" Dense="true" />
+            </div>
+
+            <div class="pdf-winforms-scroll">
+                <div class="@CanvasClass"
+                     style="@CanvasStyle"
+                     @onmousedown="DemarrerSelectionZone"
+                     @onmousemove="DeplacerSouris"
+                     @onmouseup="TerminerDrag"
+                     @onmouseleave="TerminerDrag">
+                    <img src="@CurrentTemplateSrc" alt="@($"Modele page {_currentPage}")" class="pdf-winforms-template" draggable="false" />
+
+                    @foreach (var field in CurrentPageFields)
+                    {
+                        <button type="button"
+                                class="@OverlayClass(field)"
+                                style="@OverlayStyle(field)"
+                                title="@field.Label"
+                                @onmousedown="@((MouseEventArgs e) => DemarrerDrag(field.Key, e))"
+                                @onmousedown:stopPropagation="true">
+                            <span>@SampleText(field)</span>
+                        </button>
+                    }
+
+                    @if (_boxSelecting)
+                    {
+                        <div class="pdf-winforms-selection-box" style="@SelectionBoxStyle"></div>
+                    }
+                </div>
+            </div>
+        </main>
+
+        <aside class="pdf-winforms-panel pdf-winforms-panel--right">
+            <MudText Class="old-world-kicker mb-2">Proprietes</MudText>
+
+            @if (SelectedField is null)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">Selectionnez un champ sur la fiche ou dans la liste.</MudAlert>
+            }
+            else
+            {
+                <MudText Typo="Typo.h5" Class="pdf-winforms-title">@SelectedField.Label</MudText>
+                <MudText Typo="Typo.caption" Class="d-block mb-3"><code>@SelectedField.Key</code></MudText>
+                @if (SelectedFields.Count > 1)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                        @SelectedFields.Count composants selectionnes. Les deplacements s'appliquent au groupe.
+                    </MudAlert>
+                }
+
+                <div class="pdf-winforms-nudge mb-3">
+                    <span></span>
+                    <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowUp" Size="Size.Small" Color="Color.Primary"
+                                   OnClick="@(() => DeplacerChamp(0, -1))" />
+                    <span></span>
+                    <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowLeft" Size="Size.Small" Color="Color.Primary"
+                                   OnClick="@(() => DeplacerChamp(-1, 0))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.CenterFocusStrong" Size="Size.Small" Color="Color.Secondary"
+                                   OnClick="CentrerSelection" />
+                    <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowRight" Size="Size.Small" Color="Color.Primary"
+                                   OnClick="@(() => DeplacerChamp(1, 0))" />
+                    <span></span>
+                    <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small" Color="Color.Primary"
+                                   OnClick="@(() => DeplacerChamp(0, 1))" />
+                    <span></span>
+                </div>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudNumericField T="int" Value="SelectedX" ValueChanged="ChangerX" Label="X" Min="0" Max="@TemplateWidth" Dense="true" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField T="int" Value="SelectedY" ValueChanged="ChangerY" Label="Y" Min="0" Max="@TemplateHeight" Dense="true" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField T="int" Value="SelectedWidth" ValueChanged="ChangerLargeur" Label="Largeur" Min="20" Max="@TemplateWidth" Dense="true" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField T="int" Value="SelectedSize" ValueChanged="ChangerTaille" Label="Taille" Min="4" Max="28" Dense="true" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudSelect T="string" Value="SelectedAlign" ValueChanged="ChangerAlignement" Label="Alignement" Dense="true">
+                            <MudSelectItem Value="@("Left")">Gauche</MudSelectItem>
+                            <MudSelectItem Value="@("Center")">Centre</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudSelect T="string" Value="SelectedFieldFontValue" ValueChanged="ChangerPoliceChamp" Label="Police" Dense="true">
+                            <MudSelectItem Value="@DefaultFontSentinel">Police par defaut</MudSelectItem>
+                            @foreach (var font in PdfDesignerFonts)
+                            {
+                                <MudSelectItem Value="@font.Name">
+                                    <span style="@($"font-family:'{font.Name}',sans-serif")">@font.Name</span>
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudCheckBox T="bool" Value="SelectedBold" ValueChanged="ChangerGras" Label="Gras" Dense="true" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudCheckBox T="bool" Value="SelectedItalic" ValueChanged="ChangerItalique" Label="Italique" Dense="true" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-4" />
+
+                <MudText Class="old-world-kicker mb-2">Global</MudText>
+                <MudSelect T="string" @bind-Value="_layout.DefaultFont" Label="Police par defaut" Dense="true" Class="mb-3">
+                    @foreach (var font in PdfDesignerFonts)
+                    {
+                        <MudSelectItem Value="@font.Name">
+                            <span style="@($"font-family:'{font.Name}',sans-serif")">@font.Name</span>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.FormatClear"
+                           OnClick="AppliquerPoliceParDefautPartout" Class="mb-3">
+                    Appliquer partout
+                </MudButton>
+
+                <MudStack Spacing="1">
+                    <MudCheckBox T="bool" @bind-Value="_layout.RenderCharacteristicAdvances"
+                                 Label="Afficher Avancees" Dense="true" />
+                    <MudCheckBox T="bool" @bind-Value="_layout.RenderCharacteristicCurrent"
+                                 Label="Afficher Courantes" Dense="true" />
+                </MudStack>
+            }
+        </aside>
+    </div>
+    </div>
+}
+
+@code {
+    private const int TemplateWidth = 1237;
+    private const int TemplateHeight = 1580;
+    private const string DefaultFontSentinel = "__default__";
+
+    [SupplyParameterFromQuery(Name = "personnageId")]
+    public int? PersonnageId { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _testing;
+    private bool _showGrid = true;
+    private bool _snapToGrid = true;
+    private int _currentPage = 1;
+    private int _selectedPersonnageId;
+    private double _zoom = 0.5;
+    private string? _search;
+    private string? _selectedLayoutProfileKey;
+    private string? _selectedFieldKey;
+    private HashSet<string> _selectedFieldKeys = new(StringComparer.OrdinalIgnoreCase);
+    private string? _page1TemplateSrc;
+    private string? _page2TemplateSrc;
+    private bool _dragging;
+    private bool _boxSelecting;
+    private bool _boxSelectionAdditive;
+    private double _selectionStartX;
+    private double _selectionStartY;
+    private double _selectionCurrentX;
+    private double _selectionCurrentY;
+    private PdfSheetLayoutDto? _layout;
+    private PersonnageDetailDto? _selectedPersonnage;
+    private List<PdfSheetLayoutSummaryDto> _layoutSummaries = [];
+    private List<PersonnageSummaryDto> _personnages = [];
+
+    private static IReadOnlyList<FontEntry> PdfDesignerFonts { get; } =
+        new[]
+        {
+            new FontEntry("Helvetica", "Helvetica", ["Arial", "sans-serif"], FontCategory.Sans),
+            new FontEntry("Times-Roman", "Times-Roman", ["Georgia", "serif"], FontCategory.Serif),
+            new FontEntry("Courier", "Courier", ["monospace"], FontCategory.Sans),
+        }
+        .Concat(FontCatalog.BodyFonts)
+        .Concat(FontCatalog.HeadingFonts)
+        .GroupBy(f => f.Name)
+        .Select(g => g.First())
+        .ToList();
+
+    private PdfSheetFieldLayoutDto? SelectedField =>
+        _layout?.Fields.FirstOrDefault(f => f.Key == _selectedFieldKey);
+
+    private List<PdfSheetFieldLayoutDto> SelectedFields =>
+        (_layout?.Fields ?? [])
+        .Where(f => _selectedFieldKeys.Contains(f.Key))
+        .ToList();
+
+    private IEnumerable<PdfSheetFieldLayoutDto> CurrentPageFields =>
+        _layout?.Fields.Where(f => f.Page == _currentPage) ?? [];
+
+    private IEnumerable<PdfSheetFieldLayoutDto> FilteredFields =>
+        (_layout?.Fields ?? [])
+        .Where(f => f.Page == _currentPage)
+        .Where(f => string.IsNullOrWhiteSpace(_search)
+            || f.Label.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || f.Key.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    private string CurrentTemplateSrc => _currentPage == 1 ? _page1TemplateSrc ?? "" : _page2TemplateSrc ?? "";
+    private string CanvasClass => _showGrid ? "pdf-winforms-canvas pdf-winforms-canvas--grid" : "pdf-winforms-canvas";
+    private string CanvasStyle => $"width:{TemplateWidth * _zoom:0.##}px;height:{TemplateHeight * _zoom:0.##}px;";
+    private string SelectionBoxStyle
+    {
+        get
+        {
+            var left = Math.Min(_selectionStartX, _selectionCurrentX) * _zoom;
+            var top = Math.Min(_selectionStartY, _selectionCurrentY) * _zoom;
+            var width = Math.Abs(_selectionCurrentX - _selectionStartX) * _zoom;
+            var height = Math.Abs(_selectionCurrentY - _selectionStartY) * _zoom;
+            return $"left:{left:0.##}px;top:{top:0.##}px;width:{width:0.##}px;height:{height:0.##}px;";
+        }
+    }
+    private string SelectedFieldFontValue => SelectedField?.Font ?? DefaultFontSentinel;
+    private int SelectedX => SelectedField?.X ?? 0;
+    private int SelectedY => SelectedField?.Y ?? 0;
+    private int SelectedWidth => SelectedField?.MaxWidth ?? 20;
+    private int SelectedSize => SelectedField?.Size ?? 8;
+    private string SelectedAlign => SelectedField?.Align ?? "Left";
+    private bool SelectedBold => SelectedField?.IsBold ?? false;
+    private bool SelectedItalic => SelectedField?.IsItalic ?? false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _layout = await Api.GetFichePdfLayoutAsync();
+            _layoutSummaries = await Api.GetFichePdfLayoutsAsync() ?? [];
+            _personnages = await Api.GetMesPersonnagesAsync() ?? [];
+            _selectedLayoutProfileKey = _layoutSummaries.FirstOrDefault(s => s.IsActive)?.Key
+                ?? _layoutSummaries.FirstOrDefault()?.Key;
+            _selectedFieldKey = _layout?.Fields.FirstOrDefault()?.Key;
+            SynchroniserSelection();
+            _currentPage = SelectedField?.Page ?? 1;
+            _selectedPersonnageId = PersonnageId ?? _personnages.FirstOrDefault()?.Id ?? 0;
+            if (_selectedPersonnageId > 0)
+                _selectedPersonnage = await Api.GetPersonnageAsync(_selectedPersonnageId);
+            _page1TemplateSrc = await LoadTemplateSrc(1);
+            _page2TemplateSrc = await LoadTemplateSrc(2);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chargement du designer impossible : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task<string> LoadTemplateSrc(int page)
+    {
+        var bytes = await Api.GetFichePdfTemplateAsync(page);
+        return $"data:image/jpeg;base64,{Convert.ToBase64String(bytes)}";
+    }
+
+    private async Task SelectionnerPersonnageTest(int id)
+    {
+        _selectedPersonnageId = id;
+        _selectedPersonnage = id > 0 ? await Api.GetPersonnageAsync(id) : null;
+    }
+
+    private async Task SelectionnerLayoutProfile(string key)
+    {
+        _selectedLayoutProfileKey = key;
+        try
+        {
+            _layout = await Api.GetFichePdfLayoutAsync(key);
+            _selectedFieldKey = _layout?.Fields.FirstOrDefault()?.Key;
+            SynchroniserSelection();
+            _currentPage = SelectedField?.Page ?? 1;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chargement du layout impossible : {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void NouveauLayout()
+    {
+        if (_layout == null)
+            return;
+
+        _layout.LayoutName = $"Nouveau layout {DateTime.Now:HHmm}";
+        foreach (var field in _layout.Fields)
+        {
+            field.Font = null;
+            field.IsBold = false;
+            field.IsItalic = false;
+        }
+        Snackbar.Add("Nouveau layout prepare depuis la base active.", Severity.Info);
+    }
+
+    private void DupliquerLayout()
+    {
+        if (_layout == null)
+            return;
+
+        _layout.LayoutName = $"{_layout.LayoutName} copie";
+        Snackbar.Add("Layout duplique. Renommez-le puis enregistrez.", Severity.Info);
+    }
+
+    private void ChangerPage(int page)
+    {
+        _currentPage = page;
+        if (SelectedField?.Page != page)
+        {
+            _selectedFieldKey = CurrentPageFields.FirstOrDefault()?.Key;
+            SynchroniserSelection();
+        }
+    }
+
+    private void SelectionnerChamp(string key, bool toggle = false)
+    {
+        if (toggle)
+        {
+            if (!_selectedFieldKeys.Add(key))
+                _selectedFieldKeys.Remove(key);
+
+            _selectedFieldKey = _selectedFieldKeys.Contains(key)
+                ? key
+                : _selectedFieldKeys.LastOrDefault();
+        }
+        else
+        {
+            _selectedFieldKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { key };
+            _selectedFieldKey = key;
+        }
+
+        if (SelectedField is not null)
+            _currentPage = SelectedField.Page;
+    }
+
+    private void DemarrerDrag(string key, MouseEventArgs e)
+    {
+        _boxSelecting = false;
+        var toggle = e.CtrlKey || e.MetaKey;
+        if (toggle || !_selectedFieldKeys.Contains(key))
+            SelectionnerChamp(key, toggle);
+
+        _dragging = _selectedFieldKeys.Count > 0;
+    }
+
+    private void DemarrerSelectionZone(MouseEventArgs e)
+    {
+        _dragging = false;
+        _boxSelecting = true;
+        _boxSelectionAdditive = e.CtrlKey || e.MetaKey;
+        _selectionStartX = ClampCanvasCoordinate(e.OffsetX / _zoom, TemplateWidth);
+        _selectionStartY = ClampCanvasCoordinate(e.OffsetY / _zoom, TemplateHeight);
+        _selectionCurrentX = _selectionStartX;
+        _selectionCurrentY = _selectionStartY;
+
+        if (!_boxSelectionAdditive)
+        {
+            _selectedFieldKeys.Clear();
+            _selectedFieldKey = null;
+        }
+    }
+
+    private void DeplacerSouris(MouseEventArgs e)
+    {
+        if (_boxSelecting)
+        {
+            _selectionCurrentX = ClampCanvasCoordinate(e.OffsetX / _zoom, TemplateWidth);
+            _selectionCurrentY = ClampCanvasCoordinate(e.OffsetY / _zoom, TemplateHeight);
+            return;
+        }
+
+        if (!_dragging || SelectedFields.Count == 0)
+            return;
+
+        var deltaX = (int)Math.Round(e.MovementX / _zoom);
+        var deltaY = (int)Math.Round(e.MovementY / _zoom);
+        MoveSelected(deltaX, deltaY);
+    }
+
+    private void TerminerDrag()
+    {
+        if (_boxSelecting)
+            TerminerSelectionZone();
+
+        _dragging = false;
+    }
+
+    private void DeplacerChamp(int deltaX, int deltaY)
+    {
+        MoveSelected(deltaX, deltaY);
+    }
+
+    private void MoveSelected(int deltaX, int deltaY, bool useSnap = true)
+    {
+        var selectedFields = SelectedFields;
+        if (selectedFields.Count == 0)
+            return;
+
+        foreach (var field in selectedFields)
+        {
+            var x = field.X + deltaX;
+            var y = field.Y + deltaY;
+            if (_snapToGrid && useSnap)
+            {
+                x = Snap(x);
+                y = Snap(y);
+            }
+
+            field.X = Math.Clamp(x, 0, TemplateWidth);
+            field.Y = Math.Clamp(y, 0, TemplateHeight);
+        }
+    }
+
+    private void CentrerSelection()
+    {
+        var selectedFields = SelectedFields;
+        if (selectedFields.Count == 0)
+            return;
+
+        var minX = selectedFields.Min(f => f.X);
+        var maxX = selectedFields.Max(f => f.X);
+        var minY = selectedFields.Min(f => f.Y);
+        var maxY = selectedFields.Max(f => f.Y);
+        var deltaX = TemplateWidth / 2 - (minX + maxX) / 2;
+        var deltaY = TemplateHeight / 2 - (minY + maxY) / 2;
+        MoveSelected(deltaX, deltaY);
+    }
+
+    private void SynchroniserSelection()
+    {
+        _selectedFieldKeys = string.IsNullOrWhiteSpace(_selectedFieldKey)
+            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase) { _selectedFieldKey };
+    }
+
+    private static int Snap(int value) => (int)Math.Round(value / 5.0) * 5;
+
+    private void TerminerSelectionZone()
+    {
+        var minX = Math.Min(_selectionStartX, _selectionCurrentX);
+        var maxX = Math.Max(_selectionStartX, _selectionCurrentX);
+        var minY = Math.Min(_selectionStartY, _selectionCurrentY);
+        var maxY = Math.Max(_selectionStartY, _selectionCurrentY);
+        var hasSelectionArea = maxX - minX >= 2 || maxY - minY >= 2;
+
+        if (!hasSelectionArea)
+        {
+            _boxSelecting = false;
+            return;
+        }
+
+        var selectedInBox = CurrentPageFields
+            .Where(field => IntersectsSelection(field, minX, minY, maxX, maxY))
+            .Select(field => field.Key)
+            .ToList();
+
+        if (_boxSelectionAdditive)
+        {
+            foreach (var key in selectedInBox)
+                _selectedFieldKeys.Add(key);
+        }
+        else
+        {
+            _selectedFieldKeys = new HashSet<string>(selectedInBox, StringComparer.OrdinalIgnoreCase);
+        }
+
+        _selectedFieldKey = selectedInBox.LastOrDefault()
+            ?? _selectedFieldKeys.LastOrDefault();
+        _boxSelecting = false;
+    }
+
+    private static double ClampCanvasCoordinate(double value, int max)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value))
+            return 0;
+
+        return Math.Clamp(value, 0, max);
+    }
+
+    private bool IntersectsSelection(PdfSheetFieldLayoutDto field, double minX, double minY, double maxX, double maxY)
+    {
+        var fieldLeft = field.Align.Equals("Center", StringComparison.OrdinalIgnoreCase)
+            ? field.X - field.MaxWidth / 2.0
+            : field.X;
+        var fieldTop = field.Y - field.Size;
+        var fieldRight = fieldLeft + field.MaxWidth;
+        var fieldBottom = fieldTop + field.Size + 4;
+
+        return fieldRight >= minX
+            && fieldLeft <= maxX
+            && fieldBottom >= minY
+            && fieldTop <= maxY;
+    }
+
+    private List<PdfSheetFieldLayoutDto> TargetFields()
+    {
+        var selectedFields = SelectedFields;
+        if (selectedFields.Count > 0)
+            return selectedFields;
+
+        return SelectedField is null ? [] : [SelectedField];
+    }
+
+    private void ChangerX(int value)
+    {
+        if (SelectedField is null)
+            return;
+
+        MoveSelected(value - SelectedField.X, 0, useSnap: false);
+    }
+
+    private void ChangerY(int value)
+    {
+        if (SelectedField is null)
+            return;
+
+        MoveSelected(0, value - SelectedField.Y, useSnap: false);
+    }
+
+    private void ChangerLargeur(int value)
+    {
+        foreach (var field in TargetFields())
+            field.MaxWidth = Math.Clamp(value, 20, TemplateWidth);
+    }
+
+    private void ChangerTaille(int value)
+    {
+        foreach (var field in TargetFields())
+            field.Size = Math.Clamp(value, 4, 28);
+    }
+
+    private void ChangerAlignement(string align)
+    {
+        var normalized = string.Equals(align, "Center", StringComparison.OrdinalIgnoreCase) ? "Center" : "Left";
+        foreach (var field in TargetFields())
+            field.Align = normalized;
+    }
+
+    private void ChangerPoliceChamp(string font)
+    {
+        var value = font == DefaultFontSentinel ? null : font;
+        foreach (var field in TargetFields())
+            field.Font = value;
+    }
+
+    private void ChangerGras(bool value)
+    {
+        foreach (var field in TargetFields())
+            field.IsBold = value;
+    }
+
+    private void ChangerItalique(bool value)
+    {
+        foreach (var field in TargetFields())
+            field.IsItalic = value;
+    }
+
+    private void AppliquerPoliceParDefautPartout()
+    {
+        if (_layout == null)
+            return;
+
+        foreach (var field in _layout.Fields)
+            field.Font = null;
+
+        Snackbar.Add("Police par defaut appliquee a tous les champs.", Severity.Info);
+    }
+
+    private async Task EnregistrerLayout()
+    {
+        if (_layout == null)
+            return;
+
+        _saving = true;
+        try
+        {
+            await Api.EnregistrerFichePdfLayoutAsync(_layout);
+            _layoutSummaries = await Api.GetFichePdfLayoutsAsync() ?? [];
+            _selectedLayoutProfileKey = _layoutSummaries.FirstOrDefault(s => s.IsActive)?.Key
+                ?? _layoutSummaries.FirstOrDefault()?.Key;
+            Snackbar.Add("Layout PDF enregistre.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Enregistrement impossible : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task TesterRendu()
+    {
+        if (_layout == null || _selectedPersonnageId <= 0)
+            return;
+
+        _testing = true;
+        try
+        {
+            var content = await Api.PrevisualiserFichePdfAsync(_selectedPersonnageId, _layout);
+            await JS.InvokeVoidAsync("openWfrp4Pdf", "application/pdf", Convert.ToBase64String(content));
+            Snackbar.Add("Rendu de test ouvert.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Test de rendu impossible : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private async Task CopierJson()
+    {
+        if (_layout == null)
+            return;
+
+        var json = JsonSerializer.Serialize(_layout, new JsonSerializerOptions { WriteIndented = true });
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", json);
+        Snackbar.Add("JSON copie.", Severity.Success);
+    }
+
+    private string OverlayStyle(PdfSheetFieldLayoutDto field)
+    {
+        var left = field.Align.Equals("Center", StringComparison.OrdinalIgnoreCase)
+            ? (field.X - field.MaxWidth / 2.0) * _zoom
+            : field.X * _zoom;
+        var top = (field.Y - field.Size) * _zoom;
+        var width = Math.Max(24, field.MaxWidth * _zoom);
+        var height = Math.Max(12, (field.Size + 4) * _zoom);
+        var size = Math.Max(7, field.Size * _zoom);
+        var font = field.Font ?? _layout?.DefaultFont ?? "Helvetica";
+        var align = field.Align.Equals("Center", StringComparison.OrdinalIgnoreCase) ? "center" : "left";
+        var weight = field.IsBold ? "700" : "400";
+        var style = field.IsItalic ? "italic" : "normal";
+        return $"left:{left:0.##}px;top:{top:0.##}px;width:{width:0.##}px;height:{height:0.##}px;font-size:{size:0.##}px;line-height:1;text-align:{align};font-family:'{font}',serif;font-weight:{weight};font-style:{style};";
+    }
+
+    private string SampleText(PdfSheetFieldLayoutDto field)
+    {
+        if (_selectedPersonnage is null)
+            return field.Label;
+
+        var p = _selectedPersonnage;
+        return field.Key switch
+        {
+            "identity.name" => p.Nom,
+            "identity.race" => p.EspeceNom,
+            "identity.class" => p.ClasseNom ?? string.Empty,
+            "identity.career" => p.CarriereCouranteIntitule ?? string.Empty,
+            "identity.echelon" => p.CarriereCouranteIntitule ?? string.Empty,
+            "identity.status" => p.StatutTier.HasValue ? $"{p.StatutTier} {p.StatutNumerique}" : string.Empty,
+            "identity.age" => p.Age?.ToString() ?? string.Empty,
+            "identity.height" => p.TailleCm.HasValue ? $"{p.TailleCm} cm" : string.Empty,
+            "identity.hair" => p.CouleurCheveux ?? string.Empty,
+            "identity.eyes" => p.CouleurYeux ?? string.Empty,
+            "destiny.destin" => p.Destin.ToString(),
+            "destiny.fortune" => p.Fortune.ToString(),
+            "resistance.resilience" => p.Resilience.ToString(),
+            "resistance.resolution" => p.Resolution.ToString(),
+            "resistance.motivation" => p.Motivation ?? string.Empty,
+            "xp.current" => p.XpRestant.ToString(),
+            "xp.spent" => p.XpDepense.ToString(),
+            "xp.total" => p.XpTotal.ToString(),
+            "movement.base" => p.Mouvement.ToString(),
+            "movement.walk" => (p.Mouvement * 2).ToString(),
+            "movement.run" => (p.Mouvement * 4).ToString(),
+            "ambition.short" => p.AmbitionCourtTerme ?? string.Empty,
+            "ambition.long" => p.AmbitionLongTerme ?? string.Empty,
+            "group.name" => p.GroupeNom ?? string.Empty,
+            "group.members" => p.GroupeMembres ?? string.Empty,
+            "psychology" => p.Psychologie ?? string.Empty,
+            "corruption" => p.CorruptionMutations ?? string.Empty,
+            "wealth.brass" => p.SousCuivre.ToString(),
+            "wealth.silver" => p.PistolesArgent.ToString(),
+            "wealth.gold" => p.CouronnesOr.ToString(),
+            "wounds.max" => p.BlessuresMax.ToString(),
+            _ when field.Key.StartsWith("carac.", StringComparison.OrdinalIgnoreCase) => SampleCarac(field.Key),
+            _ when field.Key.StartsWith("talent.", StringComparison.OrdinalIgnoreCase) => SampleTalent(field.Key),
+            _ when field.Key.StartsWith("possession.", StringComparison.OrdinalIgnoreCase) => SamplePossession(field.Key),
+            _ when field.Key.StartsWith("weapon.", StringComparison.OrdinalIgnoreCase) => SampleWeapon(field.Key),
+            _ when field.Key.StartsWith("spell.", StringComparison.OrdinalIgnoreCase) => SampleSpell(field.Key),
+            _ => field.Label,
+        };
+    }
+
+    private string SampleCarac(string key)
+    {
+        if (_selectedPersonnage is null)
+            return string.Empty;
+
+        var parts = key.Split('.');
+        if (parts.Length != 3)
+            return string.Empty;
+
+        var carac = _selectedPersonnage.Caracteristiques.FirstOrDefault(c => c.Code == parts[1]);
+        if (carac is null)
+            return string.Empty;
+
+        return parts[2] switch
+        {
+            "initial" => carac.ValeurInitiale.ToString(),
+            "advance" => carac.Avances.ToString(),
+            "current" => (carac.ValeurInitiale + carac.Avances).ToString(),
+            _ => string.Empty,
+        };
+    }
+
+    private string SampleTalent(string key)
+    {
+        if (_selectedPersonnage is null)
+            return string.Empty;
+
+        var parts = key.Split('.');
+        if (parts.Length != 3 || !int.TryParse(parts[1], out var index))
+            return string.Empty;
+
+        var talent = _selectedPersonnage.Talents
+            .OrderBy(t => t.TalentNom)
+            .Skip(index - 1)
+            .FirstOrDefault();
+        if (talent is null)
+            return parts[2] == "description" ? "Description" : string.Empty;
+
+        return parts[2] switch
+        {
+            "name" => talent.TalentNom,
+            "count" => talent.Fois.ToString(),
+            "description" => "Description",
+            _ => string.Empty,
+        };
+    }
+
+    private string SamplePossession(string key)
+    {
+        if (_selectedPersonnage is null)
+            return string.Empty;
+
+        var parts = key.Split('.');
+        if (parts.Length != 3 || !int.TryParse(parts[1], out var index))
+            return string.Empty;
+
+        var possession = _selectedPersonnage.Possessions
+            .Where(p => p.Type == Wfrp4.Shared.Models.TypePossession.Objet)
+            .OrderBy(p => p.Nom)
+            .Skip(index - 1)
+            .FirstOrDefault();
+        if (possession is null)
+            return parts[2] == "name" ? "Possession" : string.Empty;
+
+        return parts[2] switch
+        {
+            "name" => possession.Nom,
+            "quantity" => possession.Quantite.ToString(),
+            _ => string.Empty,
+        };
+    }
+
+    private string SampleWeapon(string key)
+    {
+        if (_selectedPersonnage is null)
+            return string.Empty;
+
+        var parts = key.Split('.');
+        if (parts.Length != 3 || !int.TryParse(parts[1], out var index))
+            return string.Empty;
+
+        var weapon = _selectedPersonnage.Possessions
+            .Where(p => p.Type == Wfrp4.Shared.Models.TypePossession.Arme)
+            .OrderBy(p => p.Nom)
+            .Skip(index - 1)
+            .FirstOrDefault();
+        if (weapon is null)
+            return parts[2] == "name" ? "Arme" : string.Empty;
+
+        return parts[2] switch
+        {
+            "name" => weapon.Nom,
+            "quantity" => weapon.Quantite.ToString(),
+            _ => string.Empty,
+        };
+    }
+
+    private string SampleSpell(string key)
+    {
+        if (_selectedPersonnage is null)
+            return string.Empty;
+
+        var parts = key.Split('.');
+        if (parts.Length != 3 || !int.TryParse(parts[1], out var index))
+            return string.Empty;
+
+        var spells = _selectedPersonnage.Sorts
+            .Select(s => new SpellSampleLine(
+                s.SortNom,
+                s.Cn,
+                s.Portee,
+                s.Cible,
+                s.Duree,
+                s.Resume))
+            .Concat(_selectedPersonnage.Parchemins.Select(p => new SpellSampleLine(
+                p.Quantite > 1 ? $"{{#P}} {p.SortNom} (x{p.Quantite})" : $"{{#P}} {p.SortNom}",
+                p.Cn,
+                p.Portee,
+                p.Cible,
+                p.Duree,
+                p.Resume)))
+            .OrderBy(s => s.Name.StartsWith("{#P}", StringComparison.Ordinal) ? 1 : 0)
+            .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var spell = spells.Skip(index - 1).FirstOrDefault();
+        if (spell is null)
+            return parts[2] == "name" ? "Sort ou priere" : string.Empty;
+
+        return parts[2] switch
+        {
+            "name" => spell.Name,
+            "ni" => spell.Cn?.ToString() ?? string.Empty,
+            "range" => spell.Range ?? string.Empty,
+            "target" => spell.Target ?? string.Empty,
+            "duration" => spell.Duration ?? string.Empty,
+            "effects" => spell.Effects ?? string.Empty,
+            _ => string.Empty,
+        };
+    }
+
+    private string OverlayClass(PdfSheetFieldLayoutDto field) =>
+        _selectedFieldKeys.Contains(field.Key)
+            ? "pdf-winforms-field pdf-winforms-field--selected"
+            : "pdf-winforms-field";
+
+    private string FieldListClass(PdfSheetFieldLayoutDto field) =>
+        _selectedFieldKeys.Contains(field.Key)
+            ? "pdf-winforms-field-row pdf-winforms-field-row--selected"
+            : "pdf-winforms-field-row";
+
+    private static string FieldGroup(PdfSheetFieldLayoutDto field)
+    {
+        var index = field.Label.IndexOf(" - ", StringComparison.Ordinal);
+        return index > 0 ? field.Label[..index] : "Autres";
+    }
+
+    private sealed record SpellSampleLine(
+        string Name,
+        int? Cn,
+        string? Range,
+        string? Target,
+        string? Duration,
+        string? Effects);
+}

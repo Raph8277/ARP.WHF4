@@ -1,0 +1,116 @@
+@page "/"
+@attribute [Authorize]
+@inject Wfrp4ApiClient Api
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Mes Personnages</PageTitle>
+
+<section class="old-world-hero old-world-hero--dashboard mb-6">
+    <div>
+        <MudText Class="old-world-kicker">Chroniques du Vieux Monde</MudText>
+        <MudText Typo="Typo.h2" Class="old-world-hero__title">Mes Personnages</MudText>
+        <MudText Class="old-world-hero__text">Consignez vos héros, suivez leurs blessures, leurs carrières et les faveurs durement gagnées dans le Reikland.</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/creation" Class="old-world-hero__action">
+        Forger un nouveau personnage
+    </MudButton>
+</section>
+
+@if (_loading)
+{
+    <div class="old-world-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else if ((_personnages == null || _personnages.Count == 0) && (_personnagesPartages == null || _personnagesPartages.Count == 0))
+{
+    <MudPaper Class="old-world-empty pa-6">
+        <MudText Class="old-world-kicker">Premier chapitre</MudText>
+        <MudText Typo="Typo.h4" Class="mb-2">Votre registre est encore vide</MudText>
+        <MudText Class="mb-4">Créez votre premier aventurier et commencez à consigner ses exploits, ses dettes et ses cicatrices.</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/creation">Créer un personnage</MudButton>
+    </MudPaper>
+}
+else
+{
+    @if (_personnages?.Count > 0)
+    {
+        <div class="old-world-section-header">
+            <MudText Class="old-world-kicker">Vos dossiers</MudText>
+            <MudText Typo="Typo.h4">Possédés</MudText>
+        </div>
+        <MudGrid Class="mb-6">
+            @foreach (var p in _personnages)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    @CartePersonnage(p)
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    @if (_personnagesPartages?.Count > 0)
+    {
+        <div class="old-world-section-header">
+            <MudText Class="old-world-kicker">Cercle de campagne</MudText>
+            <MudText Typo="Typo.h4">Partagés avec moi</MudText>
+        </div>
+        <MudGrid>
+            @foreach (var p in _personnagesPartages)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    @CartePersonnage(p)
+                </MudItem>
+            }
+        </MudGrid>
+    }
+}
+
+@code {
+    private List<PersonnageSummaryDto>? _personnages;
+    private List<PersonnageSummaryDto>? _personnagesPartages;
+    private bool _loading = true;
+    private bool _afficherPartages;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _afficherPartages = authState.User.IsInRole("wfrp4-maitre-jeu") || authState.User.IsInRole("wfrp4-admin");
+
+        _personnages = await Api.GetMesPersonnagesAsync();
+
+        if (_afficherPartages)
+        {
+            _personnagesPartages = await Api.GetPersonnagesPartagesAsync();
+        }
+
+        _loading = false;
+    }
+
+    private void NaviguerVers(int id) => Nav.NavigateTo("/personnage/" + id);
+
+    private RenderFragment CartePersonnage(PersonnageSummaryDto personnage) => @<MudCard Elevation="0" Class="cursor-pointer h-100 old-world-card" @onclick="() => NaviguerVers(personnage.Id)">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Class="old-world-kicker">@personnage.EspeceNom</MudText>
+                <MudText Typo="Typo.h5">@personnage.Nom</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <div class="d-flex align-center gap-2 mb-2">
+                <MudText>Carrière : @(personnage.CarriereCouranteIntitule ?? "---")</MudText>
+                <StatutBadge Tier="@personnage.StatutTier" Rang="@(personnage.StatutNumerique ?? 0)" />
+            </div>
+            <MudText>XP disponibles : @personnage.XpRestant / @personnage.XpTotal</MudText>
+            @if (personnage.EstPartage && personnage.PermissionPartage.HasValue)
+            {
+                <MudChip T="string" Color="Color.Info" Size="Size.Small" Class="mt-3">Partage @personnage.PermissionPartage</MudChip>
+            }
+            @if (!personnage.EstActif)
+            {
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Class="mt-3">Inactif</MudChip>
+            }
+        </MudCardContent>
+    </MudCard>;
+}

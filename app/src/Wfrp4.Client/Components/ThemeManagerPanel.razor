@@ -1,0 +1,358 @@
+@using Wfrp4.Client.Theme
+@using MudBlazor.Utilities
+@inject UserThemeService ThemeService
+
+@if (IsDrawerMode)
+{
+    <MudDrawerHeader Class="pa-4 pb-2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%">
+            <MudText Typo="Typo.h6">Gestionnaire de thème</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@OnCloseRequested" Size="Size.Small" />
+        </MudStack>
+    </MudDrawerHeader>
+}
+
+<div class="@HeaderClass">
+    <MudSelect T="string" Value="@ThemeService.ActivePreset.Id"
+               ValueChanged="OnPresetSelected"
+               Label="Preset" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2">
+        @foreach (var p in ThemeService.AllPresets.Where(p => p.IsBuiltIn))
+        {
+            <MudSelectItem T="string" Value="@p.Id">@p.Name</MudSelectItem>
+        }
+        @if (ThemeService.AllPresets.Any(p => !p.IsBuiltIn))
+        {
+            @foreach (var p in ThemeService.AllPresets.Where(p => !p.IsBuiltIn))
+            {
+                <MudSelectItem T="string" Value="@p.Id">@p.Name</MudSelectItem>
+            }
+        }
+    </MudSelect>
+
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.ContentCopy"
+                   OnClick="DuplicatePreset">
+            Dupliquer
+        </MudButton>
+        @if (!_isBuiltIn)
+        {
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Error"
+                       StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="DeletePreset">
+                Supprimer
+            </MudButton>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.LightMode" Size="Size.Small"
+                       Color="@(ThemeService.IsDarkMode ? Color.Default : Color.Warning)"
+                       OnClick="OnDarkModeToggle" />
+        <MudSwitch T="bool" Value="@ThemeService.IsDarkMode"
+                   ValueChanged="@(async _ => await OnDarkModeToggle())"
+                   Color="Color.Primary" Class="ma-0" />
+        <MudIconButton Icon="@Icons.Material.Filled.DarkMode" Size="Size.Small"
+                       Color="@(ThemeService.IsDarkMode ? Color.Info : Color.Default)"
+                       OnClick="OnDarkModeToggle" />
+    </MudStack>
+
+    @if (!_isBuiltIn)
+    {
+        <MudTextField T="string" Label="Nom du template"
+                      Value="@_preset.Name"
+                      ValueChanged="OnNameChanged"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2"
+                      Immediate="false" />
+    }
+
+    <div class="palette-strip mb-2">
+        <div class="palette-strip__color" style="background:@_preset.Primary" title="Primaire"></div>
+        <div class="palette-strip__color" style="background:@_preset.Secondary" title="Secondaire"></div>
+        <div class="palette-strip__color" style="background:@_preset.Tertiary" title="Tertiaire"></div>
+        <div class="palette-strip__color" style="background:@_preset.Info" title="Info"></div>
+        <div class="palette-strip__color" style="background:@_preset.Success" title="Succès"></div>
+        <div class="palette-strip__color" style="background:@_preset.Warning" title="Alerte"></div>
+        <div class="palette-strip__color" style="background:@_preset.Error" title="Erreur"></div>
+        <div class="palette-strip__color" style="background:@_preset.Background" title="Fond"></div>
+        <div class="palette-strip__color" style="background:@_preset.Surface" title="Surface"></div>
+        <div class="palette-strip__color" style="background:@_preset.AppbarBackground" title="Barre"></div>
+        <div class="palette-strip__color" style="background:@_preset.DrawerBackground" title="Tiroir"></div>
+        <div class="palette-strip__color" style="background:@_preset.TextPrimary" title="Texte"></div>
+        <div class="palette-strip__color" style="background:@_preset.TextSecondary" title="Texte 2"></div>
+    </div>
+
+</div>
+
+<div class="@BodyClass">
+    <MudExpansionPanels MultiExpansion="true" Dense="true" Elevation="0" Class="theme-manager-panels"
+                        Style="margin:0; padding:0;">
+
+        @* -- COULEURS DU THEME -- *@
+        <MudExpansionPanel Text="Couleurs du thème" Expanded="true"
+                           Class="theme-manager-section">
+            <div class="theme-color-grid pa-2">
+                <ColorField Label="Primaire" Value="@_preset.Primary"
+                            ValueChanged="v => SetColor(v, p => p.Primary = v)"
+                            />
+                <ColorField Label="Secondaire" Value="@_preset.Secondary"
+                            ValueChanged="v => SetColor(v, p => p.Secondary = v)"
+                            />
+                <ColorField Label="Tertiaire" Value="@_preset.Tertiary"
+                            ValueChanged="v => SetColor(v, p => p.Tertiary = v)"
+                            />
+                <ColorField Label="Info" Value="@_preset.Info"
+                            ValueChanged="v => SetColor(v, p => p.Info = v)"
+                            />
+                <ColorField Label="Succès" Value="@_preset.Success"
+                            ValueChanged="v => SetColor(v, p => p.Success = v)"
+                            />
+                <ColorField Label="Alerte" Value="@_preset.Warning"
+                            ValueChanged="v => SetColor(v, p => p.Warning = v)"
+                            />
+                <ColorField Label="Erreur" Value="@_preset.Error"
+                            ValueChanged="v => SetColor(v, p => p.Error = v)"
+                            />
+                <ColorField Label="Sombre" Value="@_preset.Dark"
+                            ValueChanged="v => SetColor(v, p => p.Dark = v)"
+                            />
+            </div>
+        </MudExpansionPanel>
+
+        @* -- COMPOSANTS -- *@
+        <MudExpansionPanel Text="Composants" Class="theme-manager-section">
+            <div class="theme-color-grid pa-2">
+                <ColorField Label="Texte barre" Value="@_preset.AppbarText"
+                            ValueChanged="v => SetColor(v, p => p.AppbarText = v)"
+                            />
+                <ColorField Label="Fond barre" Value="@_preset.AppbarBackground"
+                            ValueChanged="v => SetColor(v, p => p.AppbarBackground = v)"
+                            />
+                <ColorField Label="Texte tiroir" Value="@_preset.DrawerText"
+                            ValueChanged="v => SetColor(v, p => p.DrawerText = v)"
+                            />
+                <ColorField Label="Icônes tiroir" Value="@_preset.DrawerIcon"
+                            ValueChanged="v => SetColor(v, p => p.DrawerIcon = v)"
+                            />
+                <ColorField Label="Fond tiroir" Value="@_preset.DrawerBackground"
+                            ValueChanged="v => SetColor(v, p => p.DrawerBackground = v)"
+                            />
+            </div>
+        </MudExpansionPanel>
+
+        @* -- SURFACES & GENERAL -- *@
+        <MudExpansionPanel Text="Surfaces & lignes" Class="theme-manager-section">
+            <div class="theme-color-grid pa-2">
+                <ColorField Label="Surface" Value="@_preset.Surface"
+                            ValueChanged="v => SetColor(v, p => p.Surface = v)"
+                            />
+                <ColorField Label="Fond" Value="@_preset.Background"
+                            ValueChanged="v => SetColor(v, p => p.Background = v)"
+                            />
+                <ColorField Label="Fond gris" Value="@_preset.BackgroundGray"
+                            ValueChanged="v => SetColor(v, p => p.BackgroundGray = v)"
+                            />
+                <ColorField Label="Lignes défaut" Value="@_preset.LinesDefault"
+                            ValueChanged="v => SetColor(v, p => p.LinesDefault = v)"
+                            />
+                <ColorField Label="Lignes saisie" Value="@_preset.LinesInputs"
+                            ValueChanged="v => SetColor(v, p => p.LinesInputs = v)"
+                            />
+                <ColorField Label="Diviseur" Value="@_preset.Divider"
+                            ValueChanged="v => SetColor(v, p => p.Divider = v)"
+                            />
+                <ColorField Label="Diviseur léger" Value="@_preset.DividerLight"
+                            ValueChanged="v => SetColor(v, p => p.DividerLight = v)"
+                            />
+            </div>
+        </MudExpansionPanel>
+
+        @* -- TEXTE & ACTIONS -- *@
+        <MudExpansionPanel Text="Texte & actions" Class="theme-manager-section">
+            <div class="theme-color-grid pa-2">
+                <ColorField Label="Texte principal" Value="@_preset.TextPrimary"
+                            ValueChanged="v => SetColor(v, p => p.TextPrimary = v)"
+                            />
+                <ColorField Label="Texte secondaire" Value="@_preset.TextSecondary"
+                            ValueChanged="v => SetColor(v, p => p.TextSecondary = v)"
+                            />
+                <ColorField Label="Texte désactivé" Value="@_preset.TextDisabled"
+                            ValueChanged="v => SetColor(v, p => p.TextDisabled = v)"
+                            />
+                <ColorField Label="Action défaut" Value="@_preset.ActionDefault"
+                            ValueChanged="v => SetColor(v, p => p.ActionDefault = v)"
+                            />
+                <ColorField Label="Action désactivée" Value="@_preset.ActionDisabled"
+                            ValueChanged="v => SetColor(v, p => p.ActionDisabled = v)"
+                            />
+                <ColorField Label="Fond désactivé" Value="@_preset.ActionDisabledBackground"
+                            ValueChanged="v => SetColor(v, p => p.ActionDisabledBackground = v)"
+                            />
+            </div>
+        </MudExpansionPanel>
+
+        @* -- MISE EN PAGE -- *@
+        <MudExpansionPanel Text="Mise en page" Class="theme-manager-section">
+            <div class="pa-2">
+                <MudSelect T="DrawerClipMode" Label="Découpe du tiroir"
+                           Value="@_preset.DrawerClipMode" ValueChanged="OnDrawerClipModeChanged"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3"
+                          >
+                    <MudSelectItem T="DrawerClipMode" Value="DrawerClipMode.Never">Jamais</MudSelectItem>
+                    <MudSelectItem T="DrawerClipMode" Value="DrawerClipMode.Docked">Ancré</MudSelectItem>
+                    <MudSelectItem T="DrawerClipMode" Value="DrawerClipMode.Always">Toujours</MudSelectItem>
+                </MudSelect>
+
+                <MudSlider T="int" Value="@_preset.DefaultBorderRadius" ValueChanged="OnBorderRadiusChanged"
+                           Min="0" Max="25" Step="1" Color="Color.Primary" Class="mb-2">
+                    <MudText Typo="Typo.body2">Rayon de bordure : <b>@($"{_preset.DefaultBorderRadius}px")</b></MudText>
+                </MudSlider>
+                <MudSlider T="int" Value="@_preset.AppBarElevation" ValueChanged="OnAppBarElevationChanged"
+                           Min="0" Max="25" Step="1" Color="Color.Primary" Class="mb-2">
+                    <MudText Typo="Typo.body2">Élévation barre : <b>@_preset.AppBarElevation</b></MudText>
+                </MudSlider>
+                <MudSlider T="int" Value="@_preset.DrawerElevation" ValueChanged="OnDrawerElevationChanged"
+                           Min="0" Max="25" Step="1" Color="Color.Primary" Class="mb-2">
+                    <MudText Typo="Typo.body2">Élévation tiroir : <b>@_preset.DrawerElevation</b></MudText>
+                </MudSlider>
+                <MudSlider T="int" Value="@_preset.DefaultElevation" ValueChanged="OnDefaultElevationChanged"
+                           Min="0" Max="25" Step="1" Color="Color.Primary">
+                    <MudText Typo="Typo.body2">Élévation défaut : <b>@_preset.DefaultElevation</b></MudText>
+                </MudSlider>
+            </div>
+        </MudExpansionPanel>
+
+        @* -- POLICES -- *@
+        <MudExpansionPanel Text="Polices" Class="theme-manager-section">
+            <div class="pa-2">
+                <MudSelect T="string" Label="Police du corps" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3"
+                           Value="@_preset.BodyFont" ValueChanged="OnBodyFontChanged"
+                          >
+                    @foreach (var font in FontCatalog.BodyFonts)
+                    {
+                        <MudSelectItem T="string" Value="@font.Name">
+                            <span style="font-family:'@font.Name',sans-serif">@font.Name</span>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="string" Label="Police des titres" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Value="@_preset.HeadingFont" ValueChanged="OnHeadingFontChanged"
+                          >
+                    @foreach (var font in FontCatalog.HeadingFonts)
+                    {
+                        <MudSelectItem T="string" Value="@font.Name">
+                            <span style="font-family:'@font.Name',serif">@font.Name</span>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+        </MudExpansionPanel>
+
+    </MudExpansionPanels>
+
+    @* -- APERCU RAPIDE -- *@
+    <div class="pa-4">
+        <MudText Typo="Typo.overline" Class="mb-2">Aperçu</MudText>
+        <MudPaper Class="pa-3" Elevation="@_preset.DefaultElevation"
+                  Style="@_previewStyle">
+            <MudText Typo="Typo.h6" Style="@($"color:{_preset.TextPrimary};font-family:'{_preset.HeadingFont}',serif")">
+                Titre d'exemple
+            </MudText>
+            <MudText Typo="Typo.body2" Style="@($"color:{_preset.TextSecondary};font-family:'{_preset.BodyFont}',sans-serif")">
+                Texte secondaire d'aperçu
+            </MudText>
+            <MudStack Row="true" Spacing="1" Class="mt-2" Wrap="Wrap.Wrap">
+                <MudChip T="string" Style="@($"background:{_preset.Primary};color:white")" Size="Size.Small">Primaire</MudChip>
+                <MudChip T="string" Style="@($"background:{_preset.Secondary};color:white")" Size="Size.Small">Secondaire</MudChip>
+                <MudChip T="string" Style="@($"background:{_preset.Tertiary};color:white")" Size="Size.Small">Tertiaire</MudChip>
+                <MudChip T="string" Style="@($"background:{_preset.Success};color:white")" Size="Size.Small">Succès</MudChip>
+                <MudChip T="string" Style="@($"background:{_preset.Error};color:white")" Size="Size.Small">Erreur</MudChip>
+            </MudStack>
+        </MudPaper>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnCloseRequested { get; set; }
+    [Parameter] public bool IsDrawerMode { get; set; } = true;
+
+    private ThemePreset _preset => ThemeService.ActivePreset;
+    private bool _isBuiltIn => ThemeService.ActivePreset.IsBuiltIn;
+
+    private string HeaderClass => IsDrawerMode
+        ? "theme-manager-header px-4 pb-2"
+        : "theme-manager-header pb-4";
+
+    private string BodyClass => IsDrawerMode
+        ? "theme-manager-body"
+        : "theme-manager-body theme-manager-body--page";
+
+    private string _previewStyle =>
+        $"background:{_preset.Surface};border:1px solid {_preset.TextSecondary}30;border-radius:{_preset.DefaultBorderRadius}px;";
+
+    private async Task OnPresetSelected(string presetId)
+    {
+        if (string.IsNullOrEmpty(presetId)) return;
+        await ThemeService.SelectPresetAsync(presetId);
+    }
+
+    private async Task OnDarkModeToggle()
+    {
+        await ThemeService.ToggleDarkModeAsync();
+    }
+
+    private async Task OnNameChanged(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        await ThemeService.RenamePresetAsync(_preset.Id, name);
+    }
+
+    private async Task SetColor(string hex, Action<ThemePreset> assign)
+    {
+        assign(_preset);
+        await ThemeService.UpdateActivePresetAsync(_preset);
+    }
+
+    private async Task SetLayout(Action<ThemePreset> assign)
+    {
+        assign(_preset);
+        await ThemeService.UpdateActivePresetAsync(_preset);
+    }
+
+    private async Task OnDrawerClipModeChanged(DrawerClipMode value) =>
+        await SetLayout(p => p.DrawerClipMode = value);
+
+    private async Task OnBorderRadiusChanged(int value) =>
+        await SetLayout(p => p.DefaultBorderRadius = value);
+
+    private async Task OnAppBarElevationChanged(int value) =>
+        await SetLayout(p => p.AppBarElevation = value);
+
+    private async Task OnDrawerElevationChanged(int value) =>
+        await SetLayout(p => p.DrawerElevation = value);
+
+    private async Task OnDefaultElevationChanged(int value) =>
+        await SetLayout(p => p.DefaultElevation = value);
+
+    private async Task OnBodyFontChanged(string font)
+    {
+        if (string.IsNullOrEmpty(font)) return;
+        _preset.BodyFont = font;
+        await ThemeService.UpdateActivePresetAsync(_preset);
+    }
+
+    private async Task OnHeadingFontChanged(string font)
+    {
+        if (string.IsNullOrEmpty(font)) return;
+        _preset.HeadingFont = font;
+        await ThemeService.UpdateActivePresetAsync(_preset);
+    }
+
+    private async Task DuplicatePreset()
+    {
+        await ThemeService.DuplicateActiveAsync();
+    }
+
+    private async Task DeletePreset()
+    {
+        await ThemeService.DeletePresetAsync(_preset.Id);
+    }
+}

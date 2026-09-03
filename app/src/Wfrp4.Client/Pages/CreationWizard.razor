@@ -1,0 +1,1129 @@
+@page "/creation"
+@attribute [Authorize]
+@inject Wfrp4ApiClient Api
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Création de Personnage — WFRP4</PageTitle>
+
+<section class="old-world-hero old-world-hero--creation mb-6">
+    <div>
+        <MudText Class="old-world-kicker">Rite d'inscription</MudText>
+        <MudText Typo="Typo.h2" Class="old-world-hero__title">Création de Personnage</MudText>
+        <MudText Class="old-world-hero__text">Choisissez une espèce, gravez une carrière et consignez les premières lignes du destin de votre aventurier.</MudText>
+    </div>
+</section>
+
+@if (!_referentielsCharges)
+{
+    <div class="old-world-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else if ((_especes?.Count ?? 0) == 0 || (_classes?.Count ?? 0) == 0 || (_carrieres?.Count ?? 0) == 0)
+{
+    <MudAlert Severity="Severity.Warning">
+        Les référentiels ne sont pas encore disponibles. Vérifiez le démarrage de l'API et le seed automatique de la base.
+    </MudAlert>
+}
+else
+{
+    <MudPaper Class="old-world-panel old-world-stepper-shell pa-6">
+    <MudStepper @bind-ActiveIndex="ActiveStep" Linear="true" Color="Color.Primary" Class="old-world-stepper">
+        @* Étape 1 : Espèce *@
+        <MudStep Title="Espèce">
+            <div class="old-world-section-header">
+                <MudText Class="old-world-kicker">Chapitre I</MudText>
+                <MudText Typo="Typo.h4">Choisissez votre espèce</MudText>
+            </div>
+            <MudSelect T="int" Label="Espèce" Value="_request.EspeceId" ValueChanged="OnEspeceChanged" Required="true">
+                @foreach (var e in _especes!)
+                {
+                    <MudSelectItem T="int" Value="@e.Id">@e.Nom (Mouvement : @e.MouvementBase)</MudSelectItem>
+                }
+            </MudSelect>
+
+            @if (SelectedEspece?.CaracInitiales.Count > 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+                    Les caractéristiques de base de l'espèce ont été préremplies. Vous pouvez encore les ajuster avant validation.
+                </MudAlert>
+            }
+        </MudStep>
+
+        @* Étape 2 : Classe *@
+        <MudStep Title="Classe">
+            <div class="old-world-section-header">
+                <MudText Class="old-world-kicker">Chapitre II</MudText>
+                <MudText Typo="Typo.h4">Choisissez votre classe</MudText>
+            </div>
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4">
+                <MudToggleGroup T="string" @bind-Value="_classeMode" Color="Color.Primary" Rounded="true" CheckMark="true">
+                    <MudToggleItem T="string" Value="@("manuel")" Text="Manuel" />
+                    <MudToggleItem T="string" Value="@("aleatoire")" Text="Aléatoire" />
+                </MudToggleGroup>
+
+                @if (_classeMode == "aleatoire")
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Filled.Casino"
+                               OnClick="TirerClasseAleatoire">
+                        Tirer au sort
+                    </MudButton>
+                }
+            </MudStack>
+
+            @if (_classeMode == "manuel")
+            {
+                <MudSelect T="int" Label="Classe" Value="_selectedClasseId" ValueChanged="OnClasseChanged" Required="true">
+                    @foreach (var cl in _classes!.OrderBy(c => c.Nom))
+                    {
+                        <MudSelectItem T="int" Value="@cl.Id">@cl.Nom</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            else if (_selectedClasseId > 0)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true">
+                    Classe tirée au sort : <strong>@(SelectedClasse?.Nom ?? "—")</strong>
+                </MudAlert>
+            }
+        </MudStep>
+
+        @* Étape 3 : Carrière *@
+        <MudStep Title="Carrière">
+            <div class="old-world-section-header">
+                <MudText Class="old-world-kicker">Chapitre III</MudText>
+                <MudText Typo="Typo.h4">Choisissez votre carrière</MudText>
+            </div>
+
+            @if (_selectedClasseId <= 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true">
+                    Veuillez d'abord choisir une classe à l'étape précédente.
+                </MudAlert>
+            }
+            else
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4">
+                    <MudToggleGroup T="string" @bind-Value="_carriereMode" Color="Color.Primary" Rounded="true" CheckMark="true">
+                        <MudToggleItem T="string" Value="@("manuel")" Text="Manuel" />
+                        <MudToggleItem T="string" Value="@("aleatoire")" Text="Aléatoire" />
+                    </MudToggleGroup>
+
+                    @if (_carriereMode == "aleatoire")
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.Casino"
+                                   OnClick="TirerCarriereAleatoire">
+                            Tirer au sort
+                        </MudButton>
+                    }
+                </MudStack>
+
+                @if (_carriereMode == "manuel")
+                {
+                    <MudSelect T="int" Label="Carrière" Value="_selectedCarriereId" ValueChanged="OnCarriereChanged" Required="true">
+                        @foreach (var c in CarrieresDeLaClasse)
+                        {
+                            <MudSelectItem T="int" Value="@c.Id">@c.Nom</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else if (_selectedCarriereId > 0)
+                {
+                    <MudAlert Severity="Severity.Success" Dense="true">
+                        Carrière tirée au sort : <strong>@(SelectedCarriere?.Nom ?? "—")</strong>
+                    </MudAlert>
+                }
+
+                @if (SelectedCarriere?.Niveaux.Count > 0)
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Progression de carrière</MudText>
+                    <div class="career-progression">
+                        @foreach (var niveau in SelectedCarriere.Niveaux.OrderBy(n => n.Niveau))
+                        {
+                            <div class="career-progression__level @(niveau.Niveau == 1 ? "career-progression__level--active" : "")">
+                                <div class="d-flex align-center gap-2">
+                                    <MudText Typo="Typo.body2">
+                                        <strong>@niveau.Intitule</strong>
+                                    </MudText>
+                                    <StatutBadge Tier="@niveau.Statut" Rang="@niveau.StatutNumerique" />
+                                </div>
+                                <MudText Typo="Typo.caption">Niveau @niveau.Niveau</MudText>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </MudStep>
+
+        @* Étape 4 : Caractéristiques *@
+        <MudStep Title="Caractéristiques">
+            <div class="old-world-section-header">
+                <MudText Class="old-world-kicker">Chapitre IV</MudText>
+                <MudText Typo="Typo.h4">Définissez vos caractéristiques</MudText>
+            </div>
+
+            @* Tirage aléatoire *@
+            <MudPaper Outlined="true" Class="pa-4 mb-4">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true">
+                    <b>Tirage aléatoire</b> — 2d10 + bonus d'espèce
+                </MudText>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Filled.Casino"
+                               OnClick="TirerLesDes"
+                               Disabled="@(_request.EspeceId <= 0)">
+                        Tirer les dés
+                    </MudButton>
+                    @if (_desLances)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.Star">
+                            +@_xpBonusDes XP au départ
+                        </MudChip>
+                        @if (_xpBonusDes < 50)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Warning">
+                                (valeur modifiée — bonus réduit à +25 XP)
+                            </MudText>
+                        }
+                    }
+                </MudStack>
+                <MudText Typo="Typo.caption" Class="mt-2" Color="Color.Secondary">
+                    Accepter tous les dés : +50 XP · Modifier après tirage : +25 XP · Saisie manuelle : 0 XP
+                </MudText>
+            </MudPaper>
+
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudGrid>
+                        @foreach (var caracCode in _codesCarac)
+                        {
+                            <MudItem xs="6">
+                                <MudNumericField T="int" Label="@caracCode"
+                                                 Value="GetCaracValue(caracCode)"
+                                                 ValueChanged="v => OnCaracChanged(caracCode, v)"
+                                                 Min="1" Max="99" />
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <div class="carac-radar-container">
+                        <MudChart T="double" ChartType="ChartType.Radar"
+                                  ChartSeries="@CaracChartSeries"
+                                  ChartLabels="@_codesCarac"
+                                  Width="100%" Height="360px"
+                                  ChartOptions="@_radarOptions" />
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudStep>
+
+        @* Étape 5 : Compétences *@
+        <MudStep Title="Compétences">
+            <div class="old-world-section-header">
+                <MudText Class="old-world-kicker">Chapitre V</MudText>
+                <MudText Typo="Typo.h4">Compétences de carrière</MudText>
+            </div>
+
+            @if (CompetencesCarriere.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    Aucune compétence définie pour ce niveau de carrière. Vous pourrez en acquérir plus tard via la dépense d'XP.
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="@CouleurValidationCompetences" Dense="true" Class="mb-4">
+                    <strong>@TotalAvancesCompetencesCreation / 40</strong> avances gratuites réparties entre les 8 compétences de carrière.
+                    Reste à répartir : <strong>@AvancesCompetenceGratuitesRestantes</strong>.
+                </MudAlert>
+
+                <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                    <thead>
+                        <tr>
+                            <th>Compétence</th>
+                            <th>Caractéristique</th>
+                            <th>Type</th>
+                            <th style="width:120px">Avances</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var comp in CompetencesCarriere)
+                        {
+                            <tr>
+                                <td>
+                                    <MudText Typo="Typo.body2"><strong>@comp.Nom</strong></MudText>
+                                    @if (!string.IsNullOrEmpty(comp.Description))
+                                    {
+                                        <MudText Typo="Typo.caption">@comp.Description</MudText>
+                                    }
+                                </td>
+                                <td>@comp.Caracteristique</td>
+                                <td>
+                                    @if (comp.EstAvancee)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">Avancée</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default">De base</MudChip>
+                                    }
+                                    @if (comp.EstGroupee)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info">Groupée</MudChip>
+                                    }
+                                </td>
+                                <td>
+                                    <MudNumericField T="int"
+                                                     Value="GetCompetenceCreationAvances(comp.Id)"
+                                                     ValueChanged="v => OnCompetenceAvancesChanged(comp.Id, v)"
+                                                     Min="0" Max="10" Dense="true" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudText Typo="Typo.caption" Class="mt-2" Color="Color.Secondary">
+                    @_selectedCompetences.Count / @CompetencesCarriere.Count compétence(s) de carrière — @TotalAvancesCompetencesCreation / 40 avance(s) gratuite(s) répartie(s)
+                </MudText>
+            }
+        </MudStep>
+
+        @* Étape 6 : Talents *@
+        <MudStep Title="Talents">
+            <div class="old-world-section-header">
+                <MudText Class="old-world-kicker">Chapitre VI</MudText>
+                <MudText Typo="Typo.h4">Talents de carrière</MudText>
+            </div>
+
+            @if (TalentsCarriere.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    Aucun talent défini pour ce niveau de carrière. Vous pourrez en acquérir plus tard via la dépense d'XP.
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="@CouleurValidationTalents" Dense="true" Class="mb-4">
+                    Choisissez exactement 1 talent de carrière gratuit.
+                    Reste : <strong>@TalentsGratuitsRestants</strong>.
+                </MudAlert>
+
+                <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Talent</th>
+                            <th>Max</th>
+                            <th>Effet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var talent in TalentsCarriere)
+                        {
+                            var isSelected = _selectedTalents.Contains(talent.Id);
+                            <tr>
+                                <td>
+                                    <MudCheckBox T="bool" Value="isSelected"
+                                                 ValueChanged="v => OnTalentToggled(talent.Id, v)" />
+                                </td>
+                                <td>
+                                    <MudText Typo="Typo.body2"><strong>@talent.Nom</strong></MudText>
+                                    @if (!string.IsNullOrEmpty(talent.Description))
+                                    {
+                                        <MudText Typo="Typo.caption">@talent.Description</MudText>
+                                    }
+                                </td>
+                                <td>
+                                    @if (talent.MaxFois.HasValue)
+                                    {
+                                        @talent.MaxFois
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Illimité</MudText>
+                                    }
+                                </td>
+                                <td>
+                                    <MudText Typo="Typo.caption">@(talent.Effet ?? "—")</MudText>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudText Typo="Typo.caption" Class="mt-2" Color="Color.Secondary">
+                    @_selectedTalents.Count / 1 talent(s) sélectionné(s)
+                </MudText>
+            }
+        </MudStep>
+
+        @* Étape 7 : Dotations *@
+        <MudStep Title="Dotations">
+            <div class="old-world-section-header">
+                <MudText Class="old-world-kicker">Chapitre VII</MudText>
+                <MudText Typo="Typo.h4">Possessions de départ</MudText>
+            </div>
+
+            @if (DotationsCarriere.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    Aucune dotation définie pour ce niveau de carrière.
+                </MudAlert>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mb-4">
+                    Voici les possessions de départ du niveau 1 de votre carrière.
+                    Ces objets vous sont attribués automatiquement à la création.
+                </MudText>
+
+                <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                    <thead>
+                        <tr>
+                            <th>Objet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var objet in DotationsCarriere)
+                        {
+                            <tr>
+                                <td>
+                                    <MudText Typo="Typo.body2">@objet</MudText>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudText Typo="Typo.caption" Class="mt-2" Color="Color.Secondary">
+                    @DotationsCarriere.Count objet(s) de départ
+                </MudText>
+            }
+        </MudStep>
+
+        @* Étape 8 : Détails *@
+        <MudStep Title="Détails">
+            <div class="old-world-section-header">
+                <MudText Class="old-world-kicker">Chapitre VIII</MudText>
+                <MudText Typo="Typo.h4">Identité du personnage</MudText>
+            </div>
+
+            @if (SelectedEspece?.TraitsPhysiques != null)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.Casino"
+                           OnClick="TirerTousDetails" Class="mb-4">
+                    Tout tirer au sort
+                </MudButton>
+            }
+
+            <MudStack Row="true" AlignItems="AlignItems.End" Class="mb-2">
+                <MudTextField @bind-Value="_request.Nom" Label="Nom" Required="true" Style="flex:1" />
+                @if (SelectedEspece?.TraitsPhysiques != null)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Casino" OnClick="TirerNom"
+                                   Title="Tirer un nom au sort" />
+                }
+            </MudStack>
+
+            <MudSelect T="GenrePersonnage" @bind-Value="_request.Genre" Label="Genre" Class="mb-2">
+                <MudSelectItem T="GenrePersonnage" Value="GenrePersonnage.Masculin">Masculin</MudSelectItem>
+                <MudSelectItem T="GenrePersonnage" Value="GenrePersonnage.Feminin">Féminin</MudSelectItem>
+            </MudSelect>
+
+            <MudStack Row="true" AlignItems="AlignItems.End" Class="mb-2">
+                <MudNumericField T="int?" @bind-Value="_request.Age" Label="Âge" Min="@AgeMin" Style="flex:1" />
+                @if (SelectedEspece?.TraitsPhysiques != null)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Casino" OnClick="TirerAge"
+                                   Title="Tirer l'âge au sort" />
+                }
+            </MudStack>
+
+            <MudStack Row="true" AlignItems="AlignItems.End" Class="mb-2">
+                <MudSelect T="string" @bind-Value="_request.CouleurYeux" Label="Couleur des yeux" Style="flex:1">
+                    @foreach (var c in CouleursYeuxEspece)
+                    {
+                        <MudSelectItem T="string" Value="@c">@c</MudSelectItem>
+                    }
+                </MudSelect>
+                @if (SelectedEspece?.TraitsPhysiques != null)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Casino" OnClick="TirerCouleurYeux"
+                                   Title="Tirer la couleur des yeux au sort" />
+                }
+            </MudStack>
+
+            <MudStack Row="true" AlignItems="AlignItems.End" Class="mb-2">
+                <MudSelect T="string" @bind-Value="_request.CouleurCheveux" Label="Couleur des cheveux" Style="flex:1">
+                    @foreach (var c in CouleursCheveux)
+                    {
+                        <MudSelectItem T="string" Value="@c">@c</MudSelectItem>
+                    }
+                </MudSelect>
+                @if (SelectedEspece?.TraitsPhysiques != null)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Casino" OnClick="TirerCouleurCheveux"
+                                   Title="Tirer la couleur des cheveux au sort" />
+                }
+            </MudStack>
+
+            <MudStack Row="true" AlignItems="AlignItems.End" Class="mb-2">
+                <MudNumericField T="int?" @bind-Value="_request.TailleCm" Label="Taille (cm)"
+                                 Min="@TailleMin" Max="@TailleMax" Style="flex:1" />
+                @if (SelectedEspece?.TraitsPhysiques != null)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Casino" OnClick="TirerTaille"
+                                   Title="Tirer la taille au sort" />
+                }
+            </MudStack>
+
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_request.TitreBaseReferenceId" Label="Titre" Clearable="true">
+                        @foreach (var titre in TitresBaseAccessibles)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)titre.Id)">@TitreGenreHelper.AppliquerGenre(titre.Libelle, _request.Genre)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_request.TitreQualificatifReferenceId" Label="Qualificatif" Clearable="true">
+                        @foreach (var titre in TitresQualificatifsAccessibles)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)titre.Id)">@TitreGenreHelper.AppliquerGenre(titre.Libelle, _request.Genre)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudAutocomplete T="string" @bind-Value="_request.Motivation" Label="Motivation"
+                             SearchFunc="SuggererMotivations" CoerceText="true" CoerceValue="false"
+                             MaxItems="15" Lines="2" Class="mb-2" />
+        </MudStep>
+
+        @* Étape 9 : Résumé *@
+        <MudStep Title="Résumé">
+            <div class="old-world-section-header">
+                <MudText Class="old-world-kicker">Chapitre IX</MudText>
+                <MudText Typo="Typo.h4">Vérification</MudText>
+            </div>
+            <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                <tbody>
+                    <tr><td><strong>Nom</strong></td><td>@_request.Nom</td></tr>
+                    <tr><td><strong>Espèce</strong></td><td>@(SelectedEspece?.Nom ?? "—")</td></tr>
+                    <tr><td><strong>Classe</strong></td><td>@(SelectedClasse?.Nom ?? "—")</td></tr>
+                    <tr>
+                        <td><strong>Carrière</strong></td>
+                        <td class="d-flex align-center gap-2">
+                            @(SelectedCarriere?.Nom ?? "—")
+                            @if (NiveauUn != null)
+                            {
+                                <StatutBadge Tier="@NiveauUn.Statut" Rang="@NiveauUn.StatutNumerique" />
+                            }
+                        </td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+
+            <MudSimpleTable Dense="true" Class="mt-4 old-world-table">
+                <thead>
+                    <tr><th>Caractéristique</th><th>Valeur</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var caracCode in _codesCarac)
+                    {
+                        <tr>
+                            <td><strong>@caracCode</strong></td>
+                            <td>@GetCaracValue(caracCode)</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+
+            @if (_selectedCompetences.Count > 0)
+            {
+                <MudText Typo="Typo.h6" Class="mt-4 mb-2">Compétences</MudText>
+                <MudSimpleTable Dense="true" Class="old-world-table">
+                    <thead>
+                        <tr><th>Compétence</th><th>Avances</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var (compId, avances) in _selectedCompetences)
+                        {
+                            var comp = _competences?.FirstOrDefault(c => c.Id == compId);
+                            <tr>
+                                <td>@(comp?.Nom ?? $"#{compId}")</td>
+                                <td>@avances</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+
+            @if (_selectedTalents.Count > 0)
+            {
+                <MudText Typo="Typo.h6" Class="mt-4 mb-2">Talents</MudText>
+                <MudSimpleTable Dense="true" Class="old-world-table">
+                    <tbody>
+                        @foreach (var talentId in _selectedTalents)
+                        {
+                            var talent = _talents?.FirstOrDefault(t => t.Id == talentId);
+                            <tr>
+                                <td>@(talent?.Nom ?? $"#{talentId}")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+
+            @if (DotationsCarriere.Count > 0)
+            {
+                <MudText Typo="Typo.h6" Class="mt-4 mb-2">Dotations</MudText>
+                <MudSimpleTable Dense="true" Class="old-world-table">
+                    <tbody>
+                        @foreach (var objet in DotationsCarriere)
+                        {
+                            <tr>
+                                <td>@objet</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4"
+                       OnClick="CreerPersonnage" Disabled="@(_submitting || !CreationValide)">
+                @if (_submitting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                Créer le Personnage
+            </MudButton>
+        </MudStep>
+    </MudStepper>
+    </MudPaper>
+}
+
+@code {
+    private int _activeStep;
+    private int ActiveStep
+    {
+        get => _activeStep;
+        set
+        {
+            _activeStep = value;
+            if (_activeStep == 4)
+                EnsureCompetencesCarriereInitialisees();
+        }
+    }
+
+    private bool _submitting;
+    private bool _referentielsCharges;
+    private CreatePersonnageRequest _request = new();
+    private List<EspeceDto>? _especes;
+    private List<ClasseDto>? _classes;
+    private List<CarriereDto>? _carrieres;
+    private List<CompetenceDto>? _competences;
+    private List<TalentDto>? _talents;
+    private List<TitreBaseReferenceDto> _titresBase = [];
+    private List<TitreQualificatifReferenceDto> _titresQualificatifs = [];
+    private int _selectedClasseId;
+    private int _selectedCarriereId;
+
+    // Mode de sélection : "manuel" ou "aleatoire"
+    private string _classeMode = "manuel";
+    private string _carriereMode = "manuel";
+
+    // Tirage aléatoire
+    private static readonly Random _rng = new();
+    private bool _desLances = false;
+    private int _xpBonusDes = 0;
+
+    // Compétences et talents sélectionnés
+    private Dictionary<int, int> _selectedCompetences = new();
+    private HashSet<int> _selectedTalents = new();
+
+    private int TotalAvancesCompetencesCreation => _selectedCompetences.Values.Sum();
+    private int AvancesCompetenceGratuitesRestantes => 40 - TotalAvancesCompetencesCreation;
+    private int TalentsGratuitsRestants => 1 - _selectedTalents.Count;
+    private bool CompetencesCreationValides =>
+        CompetencesCarriere.Count == 0
+        || (_selectedCompetences.Keys.ToHashSet().SetEquals(CompetencesCarriere.Select(c => c.Id))
+            && TotalAvancesCompetencesCreation == 40
+            && _selectedCompetences.Values.All(v => v is >= 0 and <= 10));
+    private bool TalentsCreationValides =>
+        TalentsCarriere.Count == 0
+        || (_selectedTalents.Count == 1 && _selectedTalents.All(id => TalentsCarriere.Any(t => t.Id == id)));
+    private Severity CouleurValidationCompetences => CompetencesCreationValides ? Severity.Success : Severity.Warning;
+    private Severity CouleurValidationTalents => TalentsCreationValides ? Severity.Success : Severity.Warning;
+    private bool CreationValide => CompetencesCreationValides && TalentsCreationValides;
+
+    // Bonus fixes par espèce selon WFRP4 (ajouté à 2d10 pour chaque carac)
+    private static readonly Dictionary<string, Dictionary<string, int>> _bonusDes = new()
+    {
+        ["HUMAIN"]   = new() { ["CC"]=20,["CT"]=20,["F"]=20,["E"]=20,["I"]=20,["Ag"]=20,["Dex"]=20,["Int"]=20,["FM"]=20,["Soc"]=20 },
+        ["NAIN"]     = new() { ["CC"]=30,["CT"]=20,["F"]=20,["E"]=30,["I"]=20,["Ag"]=10,["Dex"]=30,["Int"]=20,["FM"]=40,["Soc"]=10 },
+        ["HALFLING"] = new() { ["CC"]=10,["CT"]=30,["F"]=10,["E"]=20,["I"]=30,["Ag"]=30,["Dex"]=30,["Int"]=20,["FM"]=20,["Soc"]=30 },
+        ["HAUT_ELFE"]= new() { ["CC"]=20,["CT"]=20,["F"]=20,["E"]=20,["I"]=40,["Ag"]=30,["Dex"]=30,["Int"]=30,["FM"]=30,["Soc"]=20 },
+        ["ELFE_BOIS"]= new() { ["CC"]=20,["CT"]=30,["F"]=20,["E"]=20,["I"]=40,["Ag"]=30,["Dex"]=30,["Int"]=20,["FM"]=20,["Soc"]=20 },
+    };
+
+    private static readonly string[] _codesCarac = ["CC", "CT", "F", "E", "I", "Ag", "Dex", "Int", "FM", "Soc"];
+
+    private readonly RadarChartOptions _radarOptions = new() { ShowAxisLabels = true };
+
+    private List<ChartSeries<double>> CaracChartSeries => new()
+    {
+        new ChartSeries<double>
+        {
+            Name = "Caractéristiques",
+            Data = _codesCarac.Select(c => (double)GetCaracValue(c)).ToArray()
+        }
+    };
+
+    private EspeceDto? SelectedEspece => _especes?.FirstOrDefault(e => e.Id == _request.EspeceId);
+    private ClasseDto? SelectedClasse => _classes?.FirstOrDefault(c => c.Id == _selectedClasseId);
+    private CarriereDto? SelectedCarriere => _carrieres?.FirstOrDefault(c => c.Id == _selectedCarriereId);
+
+    private NiveauCarriereDto? NiveauUn => SelectedCarriere?.Niveaux.FirstOrDefault(n => n.Niveau == 1)
+                                           ?? SelectedCarriere?.Niveaux.FirstOrDefault();
+
+    private List<CompetenceDto> CompetencesCarriere
+    {
+        get
+        {
+            var niveau = NiveauUn;
+            if (niveau == null || _competences == null) return [];
+            return _competences
+                .Where(c => niveau.CompetenceCodes.Contains(c.Code))
+                .OrderBy(c => c.Nom)
+                .ToList();
+        }
+    }
+
+    private List<TalentDto> TalentsCarriere
+    {
+        get
+        {
+            var niveau = NiveauUn;
+            if (niveau == null || _talents == null) return [];
+            return _talents
+                .Where(t => niveau.TalentCodes.Contains(t.Code))
+                .OrderBy(t => t.Nom)
+                .ToList();
+        }
+    }
+
+    private List<string> DotationsCarriere => NiveauUn?.Dotations ?? [];
+
+    private int NiveauMaitriseTitreMax => NiveauUn?.Niveau ?? 1;
+
+    private IEnumerable<TitreBaseReferenceDto> TitresBaseAccessibles =>
+        _titresBase.Where(t => t.NiveauMaitrise <= NiveauMaitriseTitreMax)
+            .OrderBy(t => t.NiveauMaitrise)
+            .ThenBy(t => t.Libelle);
+
+    private IEnumerable<TitreQualificatifReferenceDto> TitresQualificatifsAccessibles =>
+        _titresQualificatifs.Where(t => t.NiveauMaitrise <= NiveauMaitriseTitreMax)
+            .OrderBy(t => t.NiveauMaitrise)
+            .ThenBy(t => t.Libelle);
+
+    private IEnumerable<CarriereDto> CarrieresDeLaClasse =>
+        _carrieres?.Where(c => c.ClasseId == _selectedClasseId && EstCarriereAutorisee(c)).OrderBy(c => c.Nom) ?? Enumerable.Empty<CarriereDto>();
+
+    private bool EstCarriereAutorisee(CarriereDto carriere)
+    {
+        if (carriere.EspecesAutorisees.Count == 0) return true;
+        var espece = SelectedEspece;
+        return espece != null && carriere.EspecesAutorisees.Contains(espece.Code);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _especes = await Api.GetEspecesAsync();
+        _classes = await Api.GetClassesAsync();
+        _carrieres = await Api.GetCarrieresAsync();
+        _competences = await Api.GetCompetencesAsync();
+        _talents = await Api.GetTalentsAsync();
+        _titresBase = await Api.GetTitresBaseAsync() ?? [];
+        _titresQualificatifs = await Api.GetTitresQualificatifsAsync() ?? [];
+        _referentielsCharges = true;
+    }
+
+    private int GetCaracValue(string code) =>
+        _request.CaracteristiquesInitiales.TryGetValue(code, out var v) ? v : 0;
+
+    private void SetCaracValue(string code, int value) =>
+        _request.CaracteristiquesInitiales[code] = value;
+
+    private void OnCaracChanged(string code, int value)
+    {
+        SetCaracValue(code, value);
+        if (_desLances && _xpBonusDes == 50)
+            _xpBonusDes = 25;
+    }
+
+    private void TirerLesDes()
+    {
+        var espece = SelectedEspece;
+        if (espece == null) return;
+
+        if (!_bonusDes.TryGetValue(espece.Code, out var bonus))
+            bonus = _codesCarac.ToDictionary(c => c, _ => 20);
+
+        foreach (var caracCode in _codesCarac)
+        {
+            var b = bonus.TryGetValue(caracCode, out var bv) ? bv : 20;
+            _request.CaracteristiquesInitiales[caracCode] = _rng.Next(1, 11) + _rng.Next(1, 11) + b;
+        }
+
+        _desLances = true;
+        _xpBonusDes = 50;
+    }
+
+    private void OnClasseChanged(int classeId)
+    {
+        _selectedClasseId = classeId;
+        _selectedCarriereId = 0;
+        ResetCompetencesEtTalents();
+    }
+
+    private void TirerClasseAleatoire()
+    {
+        if (_classes == null || _classes.Count == 0) return;
+        var classe = _classes[_rng.Next(_classes.Count)];
+        _selectedClasseId = classe.Id;
+        _selectedCarriereId = 0;
+        ResetCompetencesEtTalents();
+    }
+
+    private void TirerCarriereAleatoire()
+    {
+        var carrieresPossibles = CarrieresDeLaClasse.ToList();
+        if (carrieresPossibles.Count == 0) return;
+        var carriere = carrieresPossibles[_rng.Next(carrieresPossibles.Count)];
+        OnCarriereChanged(carriere.Id);
+    }
+
+    private void OnCarriereChanged(int carriereId)
+    {
+        _selectedCarriereId = carriereId;
+        ResetCompetencesEtTalents();
+    }
+
+    private Task OnEspeceChanged(int especeId)
+    {
+        _request.EspeceId = especeId;
+        _desLances = false;
+        _xpBonusDes = 0;
+
+        // Réinitialiser la carrière si elle n'est plus autorisée pour cette espèce
+        if (_selectedCarriereId > 0)
+        {
+            var carriere = _carrieres?.FirstOrDefault(c => c.Id == _selectedCarriereId);
+            if (carriere != null && !EstCarriereAutorisee(carriere))
+            {
+                _selectedCarriereId = 0;
+                ResetCompetencesEtTalents();
+            }
+        }
+
+        var espece = _especes?.FirstOrDefault(e => e.Id == especeId);
+        if (espece?.CaracInitiales != null)
+        {
+            foreach (var caracCode in _codesCarac)
+            {
+                _request.CaracteristiquesInitiales[caracCode] = espece.CaracInitiales.TryGetValue(caracCode, out var valeur)
+                    ? valeur
+                    : 0;
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void ResetCompetencesEtTalents()
+    {
+        _selectedCompetences.Clear();
+        _selectedTalents.Clear();
+        EnsureCompetencesCarriereInitialisees();
+    }
+
+    private void EnsureCompetencesCarriereInitialisees()
+    {
+        if (_selectedCarriereId <= 0 || CompetencesCarriere.Count == 0 || _selectedCompetences.Count > 0)
+            return;
+
+        foreach (var competence in CompetencesCarriere)
+        {
+            _selectedCompetences[competence.Id] = 5;
+        }
+    }
+
+    private int GetCompetenceCreationAvances(int competenceId) =>
+        _selectedCompetences.GetValueOrDefault(competenceId);
+
+    private void OnCompetenceAvancesChanged(int competenceId, int avances)
+    {
+        EnsureCompetencesCarriereInitialisees();
+        var autresAvances = _selectedCompetences
+            .Where(kvp => kvp.Key != competenceId)
+            .Sum(kvp => kvp.Value);
+        _selectedCompetences[competenceId] = Math.Clamp(avances, 0, Math.Min(10, 40 - autresAvances));
+    }
+
+    private void OnTalentToggled(int talentId, bool selected)
+    {
+        if (selected)
+        {
+            _selectedTalents.Clear();
+            _selectedTalents.Add(talentId);
+        }
+        else
+        {
+            _selectedTalents.Remove(talentId);
+        }
+    }
+
+    private async Task CreerPersonnage()
+    {
+        if (string.IsNullOrWhiteSpace(_request.Nom))
+        {
+            Snackbar.Add("Le nom est obligatoire.", Severity.Warning);
+            return;
+        }
+
+        if (_request.EspeceId <= 0)
+        {
+            Snackbar.Add("Choisissez une espèce.", Severity.Warning);
+            return;
+        }
+
+        var carriere = SelectedCarriere;
+        if (carriere == null)
+        {
+            Snackbar.Add("Choisissez une carrière.", Severity.Warning);
+            return;
+        }
+
+        if (_codesCarac.Any(code => !_request.CaracteristiquesInitiales.ContainsKey(code)))
+        {
+            Snackbar.Add("Complétez les 10 caractéristiques avant de créer le personnage.", Severity.Warning);
+            return;
+        }
+
+        if (carriere?.Niveaux.Count > 0)
+            _request.NiveauCarriereId = carriere.Niveaux[0].Id;
+
+        if (!CompetencesCreationValides)
+        {
+            Snackbar.Add("Répartissez exactement 40 avances gratuites entre les compétences de carrière.", Severity.Warning);
+            return;
+        }
+
+        if (!TalentsCreationValides)
+        {
+            Snackbar.Add("Choisissez exactement 1 talent de carrière gratuit.", Severity.Warning);
+            return;
+        }
+
+        if (_request.TitreBaseReferenceId.HasValue != _request.TitreQualificatifReferenceId.HasValue)
+        {
+            Snackbar.Add("Choisissez les deux parties du titre, ou laissez le titre vide.", Severity.Warning);
+            return;
+        }
+
+        _request.XpBonus = _xpBonusDes;
+        _request.CompetencesInitiales = new Dictionary<int, int>(_selectedCompetences);
+        _request.TalentsInitiaux = _selectedTalents.ToList();
+
+        _submitting = true;
+        try
+        {
+            var result = await Api.CreerPersonnageAsync(_request);
+            if (result != null)
+            {
+                Snackbar.Add($"Personnage « {result.Nom} » créé !", Severity.Success);
+                Nav.NavigateTo($"/personnage/{result.Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    // ── Identité du personnage — propriétés calculées ──
+
+    private int? AgeMin => SelectedEspece?.TraitsPhysiques?.Age is { } a ? a.Base + a.NbDes : null;
+
+    private int? TailleMin => SelectedEspece?.TraitsPhysiques?.Taille is { } t
+        ? (int)Math.Round(t.BaseCm + t.NbDes * t.FacteurCm)
+        : null;
+
+    private int? TailleMax => SelectedEspece?.TraitsPhysiques?.Taille is { } t
+        ? (int)Math.Round(t.BaseCm + t.NbDes * 10 * t.FacteurCm + (t.DesSupSur10 ? 10 * t.FacteurCm : 0))
+        : null;
+
+    private List<string> CouleursYeuxEspece =>
+        SelectedEspece?.TraitsPhysiques?.CouleursYeux
+            .Select(e => e.Valeur).Distinct().ToList() ?? [];
+
+    private List<string> CouleursCheveux =>
+        SelectedEspece?.TraitsPhysiques?.CouleursCheveux
+            .Select(e => e.Valeur).Distinct().ToList() ?? [];
+
+    // ── Identité du personnage — tirage aléatoire ──
+
+    private void TirerTousDetails()
+    {
+        TirerNom();
+        TirerAge();
+        TirerCouleurYeux();
+        TirerCouleurCheveux();
+        TirerTaille();
+    }
+
+    private void TirerNom()
+    {
+        var traits = SelectedEspece?.TraitsPhysiques;
+        if (traits?.Noms == null) return;
+
+        _request.Nom = traits.Noms.Structure switch
+        {
+            NomStructure.PrenomNom =>
+                Pick(traits.Noms.Prenoms) + " " + Pick(traits.Noms.NomsFamille ?? traits.Noms.Prenoms),
+            NomStructure.PrenomPatronymeClan =>
+                Pick(traits.Noms.Prenoms)
+                + Pick(traits.Noms.SuffixesPatronymiques ?? [])
+                + " " + Pick(traits.Noms.Clans ?? []),
+            NomStructure.PrenomDiminutifClan =>
+                Pick(traits.Noms.Prenoms) + " " + Pick(traits.Noms.Clans ?? []),
+            NomStructure.GenerateurEpithete =>
+                GenererNomElfe(traits) + " " + Pick(traits.Noms.Epithetes ?? []),
+            _ => Pick(traits.Noms.Prenoms),
+        };
+    }
+
+    private string GenererNomElfe(EspeceTraitsDto traits)
+    {
+        var e1 = traits.Noms.Elements1 ?? [];
+        var e2 = traits.Noms.Elements2 ?? [];
+        var term = traits.Noms.Terminaisons ?? [];
+        if (e1.Count == 0 || e2.Count == 0 || term.Count == 0) return "Elfe";
+        return Pick(e1) + Pick(e2) + Pick(term);
+    }
+
+    private void TirerAge()
+    {
+        var f = SelectedEspece?.TraitsPhysiques?.Age;
+        if (f == null) return;
+        var total = 0;
+        for (var i = 0; i < f.NbDes; i++)
+            total += _rng.Next(1, 11);
+        _request.Age = f.Base + total * f.Multiplicateur;
+    }
+
+    private void TirerCouleurYeux()
+    {
+        var traits = SelectedEspece?.TraitsPhysiques;
+        if (traits?.CouleursYeux == null) return;
+        var couleur1 = TirerSurTable(traits.CouleursYeux);
+        if (traits.DoubleTirageYeux)
+        {
+            var couleur2 = TirerSurTable(traits.CouleursYeux);
+            _request.CouleurYeux = couleur1 == couleur2
+                ? couleur1
+                : $"{couleur1} moucheté de {couleur2}";
+        }
+        else
+        {
+            _request.CouleurYeux = couleur1;
+        }
+    }
+
+    private void TirerCouleurCheveux()
+    {
+        var table = SelectedEspece?.TraitsPhysiques?.CouleursCheveux;
+        if (table == null) return;
+        _request.CouleurCheveux = TirerSurTable(table);
+    }
+
+    private void TirerTaille()
+    {
+        var t = SelectedEspece?.TraitsPhysiques?.Taille;
+        if (t == null) return;
+        var totalDes = 0;
+        var aDesA10 = false;
+        for (var i = 0; i < t.NbDes; i++)
+        {
+            var d = _rng.Next(1, 11);
+            if (d == 10) aDesA10 = true;
+            totalDes += d;
+        }
+        if (t.DesSupSur10 && aDesA10)
+            totalDes += _rng.Next(1, 11);
+        _request.TailleCm = (int)Math.Round(t.BaseCm + totalDes * t.FacteurCm);
+    }
+
+    private string TirerSurTable(List<TableEntryDto> table)
+    {
+        var roll = _rng.Next(1, 11) + _rng.Next(1, 11);
+        return table.FirstOrDefault(e => roll >= e.Min && roll <= e.Max)?.Valeur ?? table[0].Valeur;
+    }
+
+    private static string Pick(List<string> list) =>
+        list.Count > 0 ? list[_rng.Next(list.Count)] : "";
+
+    // ── Motivation — suggestions contextuelles ──
+
+    private static readonly Dictionary<string, string[]> _motivationsEspece = new()
+    {
+        ["HUMAIN"]    = ["Ambition sociale", "Foi en Sigmar", "Loyauté impériale", "Vengeance personnelle", "Enrichissement"],
+        ["NAIN"]      = ["Honorer les ancêtres", "Rancune à assouvir", "Maîtrise de l'artisanat", "Retrouver un trésor perdu", "Fierté du clan"],
+        ["HALFLING"]  = ["Bonne chère et confort", "Protéger la communauté", "Curiosité insatiable", "Recette parfaite", "Retour au foyer"],
+        ["HAUT_ELFE"] = ["Noblesse oblige", "Préserver le savoir ancien", "Retour à Ulthuan", "Perfection martiale", "Mélancolie éternelle"],
+        ["ELFE_BOIS"] = ["Protéger Athel Loren", "Harmonie avec la nature", "Traque sans fin", "Méfiance des étrangers", "Cycle éternel"],
+    };
+
+    private static readonly Dictionary<string, string[]> _motivationsClasse = new()
+    {
+        ["LETTRE"]    = ["Soif de connaissance", "Découvrir un secret perdu", "Prouver une théorie"],
+        ["CITOYEN"]   = ["Gravir l'échelle sociale", "Prospérité familiale", "Influence politique"],
+        ["COURTISAN"] = ["Intrigue et pouvoir", "Charme irrésistible", "Manipuler dans l'ombre"],
+        ["GUERRIER"]  = ["Gloire au combat", "Protéger les siens", "Prouver sa valeur"],
+        ["PAYSAN"]    = ["Survivre", "Nourrir sa famille", "Échapper à sa condition"],
+        ["FORESTIER"] = ["Liberté absolue", "Découvrir le monde", "Vivre de la terre"],
+        ["RIVERAIN"]  = ["Maîtriser le fleuve", "Commerce fluvial", "Liberté sur l'eau"],
+        ["FILOU"]     = ["Le prochain coup", "Ne jamais se faire prendre", "Richesse facile"],
+    };
+
+    private static readonly string[] _motivationsGeneriques =
+        ["Perfectionniste", "Nourricier", "Martyr pénitent", "Esprit brillant", "Sensations fortes", "Protéger les faibles", "Enfreindre les règles"];
+
+    private Task<IEnumerable<string>> SuggererMotivations(string? value, CancellationToken ct)
+    {
+        var suggestions = new List<string>(_motivationsGeneriques);
+
+        if (SelectedEspece != null && _motivationsEspece.TryGetValue(SelectedEspece.Code, out var motEspece))
+            suggestions.AddRange(motEspece);
+
+        if (SelectedClasse != null && _motivationsClasse.TryGetValue(SelectedClasse.Code, out var motClasse))
+            suggestions.AddRange(motClasse);
+
+        IEnumerable<string> result = string.IsNullOrWhiteSpace(value)
+            ? suggestions
+            : suggestions.Where(s => s.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+        return Task.FromResult(result);
+    }
+}

@@ -1,0 +1,121 @@
+@using Wfrp4.Shared.Models
+@using Wfrp4.Shared.DTOs
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>Ajouter @(_label)</TitleContent>
+    <DialogContent>
+        @if (TypePossession == TypePossession.Arme)
+        {
+            <MudAutocomplete T="ArmeReferenceDto" Label="Arme (référentiel)"
+                             @bind-Value="_armeSelectionnee"
+                             SearchFunc="RechercherArmes"
+                             ToStringFunc="@(a => a?.Nom ?? string.Empty)"
+                             Dense="true" Class="mb-2"
+                             Variant="Variant.Outlined"
+                             ResetValueOnEmptyText="true"
+                             CoerceText="false" />
+            @if (_armeSelectionnee != null)
+            {
+                <MudSimpleTable Dense="true" Class="old-world-table mb-2" Style="font-size: 0.85rem;">
+                    <tbody>
+                        <tr><td><strong>Groupe</strong></td><td>@_armeSelectionnee.Groupe (@_armeSelectionnee.TypeArme)</td></tr>
+                        <tr><td><strong>Dommage</strong></td><td>@_armeSelectionnee.Dommage</td></tr>
+                        <tr><td><strong>Enc.</strong></td><td>@_armeSelectionnee.Encombrement</td></tr>
+                        <tr><td><strong>Disponibilité</strong></td><td>@_armeSelectionnee.Disponibilite</td></tr>
+                        @if (!string.IsNullOrEmpty(_armeSelectionnee.Qualites))
+                        {
+                            <tr><td><strong>Qualités</strong></td><td>@_armeSelectionnee.Qualites</td></tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_armeSelectionnee.Defauts))
+                        {
+                            <tr><td><strong>Défauts</strong></td><td>@_armeSelectionnee.Defauts</td></tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        }
+        else
+        {
+            <MudTextField @bind-Value="_nom" Label="Nom" Required="true" Class="mb-2" />
+        }
+        <MudNumericField T="int" @bind-Value="_quantite" Label="Quantité" Min="1" Class="mb-2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirmer"
+                   Disabled="@(_submitting || !EstValide)">
+            Ajouter
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int PersonnageId { get; set; }
+    [Parameter] public TypePossession TypePossession { get; set; }
+
+    private string _nom = string.Empty;
+    private int _quantite = 1;
+    private bool _submitting;
+    private List<ArmeReferenceDto>? _armes;
+    private ArmeReferenceDto? _armeSelectionnee;
+
+    private string _label => TypePossession == TypePossession.Arme ? "une arme" : "un objet";
+
+    private bool EstValide => TypePossession == TypePossession.Arme
+        ? _armeSelectionnee != null
+        : !string.IsNullOrWhiteSpace(_nom);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (TypePossession == TypePossession.Arme)
+        {
+            _armes = await Api.GetArmesAsync() ?? [];
+        }
+    }
+
+    private Task<IEnumerable<ArmeReferenceDto>> RechercherArmes(string? value, CancellationToken ct)
+    {
+        var source = _armes ?? [];
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(source.AsEnumerable());
+
+        var results = source.Where(a =>
+            a.Nom.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+            a.Groupe.Contains(value, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(results);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Confirmer()
+    {
+        if (!EstValide) return;
+        _submitting = true;
+        try
+        {
+            var nomFinal = TypePossession == TypePossession.Arme
+                ? _armeSelectionnee!.Nom
+                : _nom.Trim();
+
+            await Api.AjouterPossessionAsync(PersonnageId, new AjoutPossessionRequest
+            {
+                Nom = nomFinal,
+                Type = TypePossession,
+                Quantite = _quantite,
+            });
+            Snackbar.Add($"{nomFinal} ajouté.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

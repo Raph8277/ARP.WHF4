@@ -1,0 +1,85 @@
+@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Wfrp4.Client.Theme
+@using Wfrp4.Client.Components
+@inject NavigationManager Nav
+@inject UserThemeService ThemeService
+
+<MudLayout Class="old-world-layout">
+    <MudAppBar Elevation="@ThemeService.ActivePreset.AppBarElevation" Class="old-world-appbar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@ToggleDrawer" />
+        <div class="old-world-brand">
+            <MudText Class="old-world-kicker">Registre du Reikland</MudText>
+            <MudText Typo="Typo.h5" Class="old-world-brand__title">WFRP4 — Gestion de Personnages</MudText>
+        </div>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Palette" Color="Color.Inherit"
+                       Class="old-world-header-button mr-2"
+                       OnClick="ToggleThemePanel" />
+        <MudIconButton Icon="@(_themeIcon)" Color="Color.Inherit"
+                       Class="old-world-header-button mr-2"
+                       OnClick="ToggleDarkMode" />
+        <AuthorizeView>
+            <Authorized>
+                <MudChip T="string" Class="mr-4 old-world-user-chip" Color="Color.Default">@context.User.Identity?.Name</MudChip>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit"
+                           Class="old-world-header-button"
+                           OnClick="Logout">Déconnexion</MudButton>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit"
+                           Class="old-world-header-button"
+                           Href="inscription">Créer un compte</MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit"
+                           Class="old-world-header-button"
+                           Href="authentication/login">Connexion</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="@ThemeService.ActivePreset.DrawerElevation"
+               ClipMode="@ThemeService.ActivePreset.DrawerClipMode" Class="old-world-drawer">
+        <div class="old-world-drawer__inner">
+            <div class="old-world-nav-head">
+                <MudText Class="old-world-kicker">Campagne</MudText>
+                <MudText Typo="Typo.h6">Livre de bord</MudText>
+                <MudText Typo="Typo.body2">Vos personnages, vos références, vos partages.</MudText>
+            </div>
+            <NavMenu />
+        </div>
+    </MudDrawer>
+
+    <MudDrawer Open="@_themePanelOpen" OpenChanged="OnThemePanelChanged"
+               Anchor="Anchor.End" Variant="DrawerVariant.Temporary"
+               Elevation="4" Width="480px" Class="theme-manager-drawer">
+        <ThemeManagerPanel OnCloseRequested="CloseThemePanel" />
+    </MudDrawer>
+
+    <MudMainContent Class="old-world-main">
+        <div class="old-world-content-shell">
+            @Body
+        </div>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _themePanelOpen;
+
+    private string _themeIcon => ThemeService.IsDarkMode
+        ? Icons.Material.Filled.LightMode
+        : Icons.Material.Filled.DarkMode;
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void ToggleThemePanel() => _themePanelOpen = !_themePanelOpen;
+
+    private void CloseThemePanel() => _themePanelOpen = false;
+
+    private void OnThemePanelChanged(bool open) => _themePanelOpen = open;
+
+    private async Task ToggleDarkMode() => await ThemeService.ToggleDarkModeAsync();
+
+    private void Logout() => Nav.NavigateToLogout("authentication/logout", "authentication/logged-out");
+}

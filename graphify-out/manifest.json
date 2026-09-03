@@ -1,0 +1,1342 @@
+{
+  ".claude/agents/skills/dotnet-workshop/assets/obj/Debug/net9.0/.NETCoreApp,Version=v9.0.AssemblyAttributes.cs": {
+    "mtime": 1785594981.7030103,
+    "ast_hash": "ff3517b1163003098ee37a1a6f1dc08d",
+    "semantic_hash": "ff3517b1163003098ee37a1a6f1dc08d"
+  },
+  ".claude/agents/skills/dotnet-workshop/assets/obj/Debug/net9.0/project-template.AssemblyInfo.cs": {
+    "mtime": 1785594981.7775662,
+    "ast_hash": "5043eff303b90a5e5b01801d08be8e3c",
+    "semantic_hash": "5043eff303b90a5e5b01801d08be8e3c"
+  },
+  ".claude/agents/skills/dotnet-workshop/assets/obj/Debug/net9.0/project-template.GlobalUsings.g.cs": {
+    "mtime": 1785594981.6059632,
+    "ast_hash": "9706b2dbf69f7db452e8b0d5baf54dcf",
+    "semantic_hash": "9706b2dbf69f7db452e8b0d5baf54dcf"
+  },
+  ".claude/agents/skills/dotnet-workshop/assets/program-template.cs": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "12adbd3207fc257598b399441958d0c6",
+    "semantic_hash": "12adbd3207fc257598b399441958d0c6"
+  },
+  ".claude/agents/skills/dotnet-workshop/assets/project-template.csproj": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "425ca8856a3c4aef539c9ab654ee3451",
+    "semantic_hash": "425ca8856a3c4aef539c9ab654ee3451"
+  },
+  ".claude/agents/skills/dotnet-workshop/assets/test-template.cs": {
+    "mtime": 1775339640.988491,
+    "ast_hash": "27cbef5efced7ed7024f89c8422db5ee",
+    "semantic_hash": "27cbef5efced7ed7024f89c8422db5ee"
+  },
+  ".claude/agents/skills/sqlite-workshop/assets/migration-template.sql": {
+    "mtime": 1775203496.28308,
+    "ast_hash": "e8b456dac79ed751305de4d6da88ec72",
+    "semantic_hash": "e8b456dac79ed751305de4d6da88ec72"
+  },
+  ".claude/agents/skills/sqlite-workshop/assets/schema-template.sql": {
+    "mtime": 1775202850.4139502,
+    "ast_hash": "01ad038f32322e38e96b69aa4b79bde3",
+    "semantic_hash": "01ad038f32322e38e96b69aa4b79bde3"
+  },
+  ".claude/agents/skills/sqlite-workshop/assets/seed-template.sql": {
+    "mtime": 1775203496.28308,
+    "ast_hash": "73a04584241c043e0b25bb62f59afef6",
+    "semantic_hash": "73a04584241c043e0b25bb62f59afef6"
+  },
+  ".github/skills/dotnet-workshop/assets/program-template.cs": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "12adbd3207fc257598b399441958d0c6",
+    "semantic_hash": "12adbd3207fc257598b399441958d0c6"
+  },
+  ".github/skills/dotnet-workshop/assets/project-template.csproj": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "425ca8856a3c4aef539c9ab654ee3451",
+    "semantic_hash": "425ca8856a3c4aef539c9ab654ee3451"
+  },
+  ".github/skills/dotnet-workshop/assets/test-template.cs": {
+    "mtime": 1775339640.988491,
+    "ast_hash": "27cbef5efced7ed7024f89c8422db5ee",
+    "semantic_hash": "27cbef5efced7ed7024f89c8422db5ee"
+  },
+  ".github/skills/sqlite-workshop/assets/migration-template.sql": {
+    "mtime": 1775203496.28308,
+    "ast_hash": "e8b456dac79ed751305de4d6da88ec72",
+    "semantic_hash": "e8b456dac79ed751305de4d6da88ec72"
+  },
+  ".github/skills/sqlite-workshop/assets/schema-template.sql": {
+    "mtime": 1775202850.4139502,
+    "ast_hash": "01ad038f32322e38e96b69aa4b79bde3",
+    "semantic_hash": "01ad038f32322e38e96b69aa4b79bde3"
+  },
+  ".github/skills/sqlite-workshop/assets/seed-template.sql": {
+    "mtime": 1775203496.28308,
+    "ast_hash": "73a04584241c043e0b25bb62f59afef6",
+    "semantic_hash": "73a04584241c043e0b25bb62f59afef6"
+  },
+  "app/Wfrp4.sln": {
+    "mtime": 1774733464.171616,
+    "ast_hash": "96fbd794a6af9ce916d4aba790a7c683",
+    "semantic_hash": "96fbd794a6af9ce916d4aba790a7c683"
+  },
+  "app/docker/postgres/init-keycloak.sql": {
+    "mtime": 1774735896.2785537,
+    "ast_hash": "b66c2de9be2d74778debb3847a74c2c5",
+    "semantic_hash": "b66c2de9be2d74778debb3847a74c2c5"
+  },
+  "app/mdTools/App.xaml": {
+    "mtime": 1784991727.2067025,
+    "ast_hash": "0ff74f79422fdd764e770097b68da9d1",
+    "semantic_hash": "0ff74f79422fdd764e770097b68da9d1"
+  },
+  "app/mdTools/App.xaml.cs": {
+    "mtime": 1784991727.2178297,
+    "ast_hash": "5183ce5e0726b92af524385d75bb6ea6",
+    "semantic_hash": "5183ce5e0726b92af524385d75bb6ea6"
+  },
+  "app/mdTools/AssemblyInfo.cs": {
+    "mtime": 1784991727.2188292,
+    "ast_hash": "8a158a8a488c0dd7d226a06783fc2860",
+    "semantic_hash": "8a158a8a488c0dd7d226a06783fc2860"
+  },
+  "app/mdTools/MainWindow.xaml": {
+    "mtime": 1784991906.800323,
+    "ast_hash": "4d8434759c05613d553d4183d6dc4e64",
+    "semantic_hash": "4d8434759c05613d553d4183d6dc4e64"
+  },
+  "app/mdTools/MainWindow.xaml.cs": {
+    "mtime": 1784991924.4230797,
+    "ast_hash": "a7f1bd913cafc2444b7e402f7648a61a",
+    "semantic_hash": "a7f1bd913cafc2444b7e402f7648a61a"
+  },
+  "app/mdTools/PdfConverter.cs": {
+    "mtime": 1784991889.97847,
+    "ast_hash": "e05759c5933b1f5af377456aff22b78f",
+    "semantic_hash": "e05759c5933b1f5af377456aff22b78f"
+  },
+  "app/mdTools/mdTools.csproj": {
+    "mtime": 1784991746.7701735,
+    "ast_hash": "e50066f796fb65eb2c9551c9133b4701",
+    "semantic_hash": "e50066f796fb65eb2c9551c9133b4701"
+  },
+  "app/src/Wfrp4.Client/App.razor": {
+    "mtime": 1785617414.2352288,
+    "ast_hash": "ee7375075f55f97611975b4198dfd0cc",
+    "semantic_hash": "ee7375075f55f97611975b4198dfd0cc"
+  },
+  "app/src/Wfrp4.Client/Components/AjoutCompetenceDialog.razor": {
+    "mtime": 1786217567.0455532,
+    "ast_hash": "b5b2e12f610c4132ca4dd4bd535b8715",
+    "semantic_hash": "b5b2e12f610c4132ca4dd4bd535b8715"
+  },
+  "app/src/Wfrp4.Client/Components/AjoutPossessionDialog.razor": {
+    "mtime": 1786217762.9485433,
+    "ast_hash": "9134e611d589914f4a60848b33b4de54",
+    "semantic_hash": "9134e611d589914f4a60848b33b4de54"
+  },
+  "app/src/Wfrp4.Client/Components/AjoutTalentDialog.razor": {
+    "mtime": 1786217672.4954827,
+    "ast_hash": "0a2b2571381feeebe558f99588a5d586",
+    "semantic_hash": "0a2b2571381feeebe558f99588a5d586"
+  },
+  "app/src/Wfrp4.Client/Components/AvancementDialog.razor": {
+    "mtime": 1775488589.412557,
+    "ast_hash": "99bf0965e1df1fffe9193f19d3fce31e",
+    "semantic_hash": "99bf0965e1df1fffe9193f19d3fce31e"
+  },
+  "app/src/Wfrp4.Client/Components/ColorField.razor": {
+    "mtime": 1785619832.3030093,
+    "ast_hash": "0a29116ade3f42e1f759df8e54338ccd",
+    "semantic_hash": "0a29116ade3f42e1f759df8e54338ccd"
+  },
+  "app/src/Wfrp4.Client/Components/ColorPickerDialog.razor": {
+    "mtime": 1785619824.34744,
+    "ast_hash": "23f0dc36a7a341a8f2717690e3117824",
+    "semantic_hash": "23f0dc36a7a341a8f2717690e3117824"
+  },
+  "app/src/Wfrp4.Client/Components/PartageDialog.razor": {
+    "mtime": 1775488589.4579694,
+    "ast_hash": "7ccd4116a4023956dff12c4a04b711a0",
+    "semantic_hash": "7ccd4116a4023956dff12c4a04b711a0"
+  },
+  "app/src/Wfrp4.Client/Components/StatutBadge.razor": {
+    "mtime": 1785945526.2216043,
+    "ast_hash": "5cfcd104aba1e48f0a089454e7a627a7",
+    "semantic_hash": "5cfcd104aba1e48f0a089454e7a627a7"
+  },
+  "app/src/Wfrp4.Client/Components/ThemeManagerPanel.razor": {
+    "mtime": 1785685787.5126815,
+    "ast_hash": "c036ef3441c1f22ff06ab01d67a2fcde",
+    "semantic_hash": "c036ef3441c1f22ff06ab01d67a2fcde"
+  },
+  "app/src/Wfrp4.Client/Components/XpGrantDialog.razor": {
+    "mtime": 1775488589.4579694,
+    "ast_hash": "7159ec7bff1db605e7ed2f342b53bc6d",
+    "semantic_hash": "7159ec7bff1db605e7ed2f342b53bc6d"
+  },
+  "app/src/Wfrp4.Client/Layout/MainLayout.razor": {
+    "mtime": 1785685806.6028502,
+    "ast_hash": "5f0aa7cd31b8f3af79130e6bbe50833b",
+    "semantic_hash": "5f0aa7cd31b8f3af79130e6bbe50833b"
+  },
+  "app/src/Wfrp4.Client/Layout/NavMenu.razor": {
+    "mtime": 1785685800.897538,
+    "ast_hash": "ab362cb99614a63aa75a7ff46c57c940",
+    "semantic_hash": "ab362cb99614a63aa75a7ff46c57c940"
+  },
+  "app/src/Wfrp4.Client/Pages/Authentication.razor": {
+    "mtime": 1774734087.196043,
+    "ast_hash": "73f26fa07a69344d9c1fe408cdd6db9f",
+    "semantic_hash": "73f26fa07a69344d9c1fe408cdd6db9f"
+  },
+  "app/src/Wfrp4.Client/Pages/CreationWizard.razor": {
+    "mtime": 1786210952.4244542,
+    "ast_hash": "b1e570b07e084fe76c13672c98901c66",
+    "semantic_hash": "b1e570b07e084fe76c13672c98901c66"
+  },
+  "app/src/Wfrp4.Client/Pages/Dashboard.razor": {
+    "mtime": 1785945734.3000643,
+    "ast_hash": "b579a019260698ccad393e667ba5a5a5",
+    "semantic_hash": "b579a019260698ccad393e667ba5a5a5"
+  },
+  "app/src/Wfrp4.Client/Pages/FichePersonnage.razor": {
+    "mtime": 1786217752.4911838,
+    "ast_hash": "e0e805ec8bfb493bf676ff663bbe0b0a",
+    "semantic_hash": "e0e805ec8bfb493bf676ff663bbe0b0a"
+  },
+  "app/src/Wfrp4.Client/Pages/Inscription.razor": {
+    "mtime": 1785578459.3328269,
+    "ast_hash": "ba8e52b7227f906e9a56bf667994b648",
+    "semantic_hash": "ba8e52b7227f906e9a56bf667994b648"
+  },
+  "app/src/Wfrp4.Client/Pages/Referentiels.razor": {
+    "mtime": 1786267257.5255132,
+    "ast_hash": "ae7ccada6ff4a59ec3b110dfb811b847",
+    "semantic_hash": "ae7ccada6ff4a59ec3b110dfb811b847"
+  },
+  "app/src/Wfrp4.Client/Pages/ThemeManagerPage.razor": {
+    "mtime": 1785686249.666996,
+    "ast_hash": "0fb39c7c0d96251dcf471749a81c749d",
+    "semantic_hash": "0fb39c7c0d96251dcf471749a81c749d"
+  },
+  "app/src/Wfrp4.Client/Program.cs": {
+    "mtime": 1785658790.5514677,
+    "ast_hash": "63576947e9115fc736c3119318370a8a",
+    "semantic_hash": "63576947e9115fc736c3119318370a8a"
+  },
+  "app/src/Wfrp4.Client/Properties/launchSettings.json": {
+    "mtime": 1774734102.5941758,
+    "ast_hash": "a74e1f0103627e350c160002ba8fcecc",
+    "semantic_hash": "a74e1f0103627e350c160002ba8fcecc"
+  },
+  "app/src/Wfrp4.Client/Services/ApiAuthorizationMessageHandler.cs": {
+    "mtime": 1775493112.4394784,
+    "ast_hash": "ccfa675d4ecb55d069bcb0d115fdbbe8",
+    "semantic_hash": "ccfa675d4ecb55d069bcb0d115fdbbe8"
+  },
+  "app/src/Wfrp4.Client/Services/InscriptionApiClient.cs": {
+    "mtime": 1785578416.3256426,
+    "ast_hash": "1c5b15fdf6147f93e344047fbc48d816",
+    "semantic_hash": "1c5b15fdf6147f93e344047fbc48d816"
+  },
+  "app/src/Wfrp4.Client/Services/Wfrp4ApiClient.cs": {
+    "mtime": 1786267135.2148438,
+    "ast_hash": "f6b26c21548c151c2efcf09e39f180d8",
+    "semantic_hash": "f6b26c21548c151c2efcf09e39f180d8"
+  },
+  "app/src/Wfrp4.Client/Theme/FontCatalog.cs": {
+    "mtime": 1785664817.6525145,
+    "ast_hash": "cc9074a82a99ffe0c4732866d9b16e31",
+    "semantic_hash": "cc9074a82a99ffe0c4732866d9b16e31"
+  },
+  "app/src/Wfrp4.Client/Theme/ThemePreset.cs": {
+    "mtime": 1785674368.2971616,
+    "ast_hash": "888e514affc524f6cb1a71a849a2b096",
+    "semantic_hash": "888e514affc524f6cb1a71a849a2b096"
+  },
+  "app/src/Wfrp4.Client/Theme/UserThemeService.cs": {
+    "mtime": 1785668035.3244188,
+    "ast_hash": "ab165f9d4245e361248cade6c7717c2d",
+    "semantic_hash": "ab165f9d4245e361248cade6c7717c2d"
+  },
+  "app/src/Wfrp4.Client/Theme/Wfrp4Theme.cs": {
+    "mtime": 1785674473.6673462,
+    "ast_hash": "6e6a787e4b8ad05dc2e1abc14a000382",
+    "semantic_hash": "6e6a787e4b8ad05dc2e1abc14a000382"
+  },
+  "app/src/Wfrp4.Client/Wfrp4.Client.csproj": {
+    "mtime": 1775488589.4579694,
+    "ast_hash": "cf4919c41b6bfa94390708d41c429d1b",
+    "semantic_hash": "cf4919c41b6bfa94390708d41c429d1b"
+  },
+  "app/src/Wfrp4.Client/_Imports.razor": {
+    "mtime": 1785945728.0914302,
+    "ast_hash": "d4d651f97a812ebb3653d71d16017b63",
+    "semantic_hash": "d4d651f97a812ebb3653d71d16017b63"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Configurations/PersonnageChildConfigurations.cs": {
+    "mtime": 1774734102.4906497,
+    "ast_hash": "cf852822d92669986655c2fb34580254",
+    "semantic_hash": "cf852822d92669986655c2fb34580254"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Configurations/PersonnageConfiguration.cs": {
+    "mtime": 1786012458.9640875,
+    "ast_hash": "bb4128094fbe59c9403677796ba15d3f",
+    "semantic_hash": "bb4128094fbe59c9403677796ba15d3f"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Configurations/ReferentielConfigurations.cs": {
+    "mtime": 1786267099.281339,
+    "ast_hash": "7d5cfaa801a00144ab9bb381587c73ce",
+    "semantic_hash": "7d5cfaa801a00144ab9bb381587c73ce"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260328220758_InitialCreate.Designer.cs": {
+    "mtime": 1774735678.452119,
+    "ast_hash": "a96d0e4fe55cc47e1771f9b7cffd9c82",
+    "semantic_hash": "a96d0e4fe55cc47e1771f9b7cffd9c82"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260328220758_InitialCreate.cs": {
+    "mtime": 1774735678.4512188,
+    "ast_hash": "1cc7383f1c1f3aa2463ce7df7219b991",
+    "semantic_hash": "1cc7383f1c1f3aa2463ce7df7219b991"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260802174528_AddTalentsRevenuToNiveauCarriere.Designer.cs": {
+    "mtime": 1785692728.352005,
+    "ast_hash": "ed4e49edb60b2e4292b9f723ff974673",
+    "semantic_hash": "ed4e49edb60b2e4292b9f723ff974673"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260802174528_AddTalentsRevenuToNiveauCarriere.cs": {
+    "mtime": 1785692728.350005,
+    "ast_hash": "b9b22762cdb0ed6aaed6b8185eddef29",
+    "semantic_hash": "b9b22762cdb0ed6aaed6b8185eddef29"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260803092013_AddEspecesAutoriseesToCarriere.Designer.cs": {
+    "mtime": 1785748813.9332254,
+    "ast_hash": "281ed850a7d16bbe762a266f2283bc1b",
+    "semantic_hash": "281ed850a7d16bbe762a266f2283bc1b"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260803092013_AddEspecesAutoriseesToCarriere.cs": {
+    "mtime": 1785748813.9322255,
+    "ast_hash": "ccd5bb6e250f80c5fec2268299d5233c",
+    "semantic_hash": "ccd5bb6e250f80c5fec2268299d5233c"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260806103926_AddTraitsPhysiquesAndAgeInt.Designer.cs": {
+    "mtime": 1786012766.112485,
+    "ast_hash": "ae44bf28d58adbbfad7d9277a426f854",
+    "semantic_hash": "ae44bf28d58adbbfad7d9277a426f854"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260806103926_AddTraitsPhysiquesAndAgeInt.cs": {
+    "mtime": 1786012801.2958102,
+    "ast_hash": "c959c8367573c1dfcab3a74e18d4c60d",
+    "semantic_hash": "c959c8367573c1dfcab3a74e18d4c60d"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260808174257_AddDotationsToNiveauCarriere.Designer.cs": {
+    "mtime": 1786210977.0458412,
+    "ast_hash": "8cd0ad32080bd89f1fc23203c17d5501",
+    "semantic_hash": "8cd0ad32080bd89f1fc23203c17d5501"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260808174257_AddDotationsToNiveauCarriere.cs": {
+    "mtime": 1786210977.0458412,
+    "ast_hash": "5c5f0b0245e9ddd226b3adcbb5f056b2",
+    "semantic_hash": "5c5f0b0245e9ddd226b3adcbb5f056b2"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260808193043_AddPersonnagePossessions.Designer.cs": {
+    "mtime": 1786217443.3721879,
+    "ast_hash": "81613edac77769b4dc48cf6b2bdceb10",
+    "semantic_hash": "81613edac77769b4dc48cf6b2bdceb10"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260808193043_AddPersonnagePossessions.cs": {
+    "mtime": 1786217443.3721879,
+    "ast_hash": "1f6c9ca96399b3f45230d5627c81172c",
+    "semantic_hash": "1f6c9ca96399b3f45230d5627c81172c"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260809094005_AddArmesReference.Designer.cs": {
+    "mtime": 1786268405.5213783,
+    "ast_hash": "442821180df08519e8346ebced220e69",
+    "semantic_hash": "442821180df08519e8346ebced220e69"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/20260809094005_AddArmesReference.cs": {
+    "mtime": 1786268405.5204089,
+    "ast_hash": "1eb13e250738a457e35ed6b6de2e1b49",
+    "semantic_hash": "1eb13e250738a457e35ed6b6de2e1b49"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Migrations/Wfrp4DbContextModelSnapshot.cs": {
+    "mtime": 1786268405.5213783,
+    "ast_hash": "829448b9c0d03e962ffab1036436588f",
+    "semantic_hash": "829448b9c0d03e962ffab1036436588f"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Wfrp4DataSeeder.cs": {
+    "mtime": 1786267228.7912588,
+    "ast_hash": "0843dfedde6dd40c2539b51316a9c502",
+    "semantic_hash": "0843dfedde6dd40c2539b51316a9c502"
+  },
+  "app/src/Wfrp4.Infrastructure/Data/Wfrp4DbContext.cs": {
+    "mtime": 1786267092.107272,
+    "ast_hash": "62ccfedc223c17ce873bbbb41a6e818b",
+    "semantic_hash": "62ccfedc223c17ce873bbbb41a6e818b"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/ArmeReference.cs": {
+    "mtime": 1786267087.9412427,
+    "ast_hash": "b857fecd087aebdf2879c5fd0ae99cbd",
+    "semantic_hash": "b857fecd087aebdf2879c5fd0ae99cbd"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/Carriere.cs": {
+    "mtime": 1785747508.7473788,
+    "ast_hash": "a3f787a8ca0be625b1f7579014bd19f5",
+    "semantic_hash": "a3f787a8ca0be625b1f7579014bd19f5"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/Classe.cs": {
+    "mtime": 1774734102.4941957,
+    "ast_hash": "d99e2512fdda2a4bba58cea475681261",
+    "semantic_hash": "d99e2512fdda2a4bba58cea475681261"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/Competence.cs": {
+    "mtime": 1774734102.4941957,
+    "ast_hash": "2d589f9cee0aaf8aa39b23560f5b3880",
+    "semantic_hash": "2d589f9cee0aaf8aa39b23560f5b3880"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/Espece.cs": {
+    "mtime": 1786012486.5962663,
+    "ast_hash": "e4889d06ab274c277baaaac69d812a8c",
+    "semantic_hash": "e4889d06ab274c277baaaac69d812a8c"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/HistoriqueXP.cs": {
+    "mtime": 1774734102.4962034,
+    "ast_hash": "bfb6e791a041c9d7b878902eab3192a2",
+    "semantic_hash": "bfb6e791a041c9d7b878902eab3192a2"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/NiveauCarriere.cs": {
+    "mtime": 1786210952.276414,
+    "ast_hash": "6c27bcc2782ba36a52337caa60507286",
+    "semantic_hash": "6c27bcc2782ba36a52337caa60507286"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/Personnage.cs": {
+    "mtime": 1786217401.8960717,
+    "ast_hash": "c7b6f287d378035285d84e9c86a48970",
+    "semantic_hash": "c7b6f287d378035285d84e9c86a48970"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/PersonnageCaracteristique.cs": {
+    "mtime": 1774734102.498211,
+    "ast_hash": "4fa523606a82ec5453e35c2ce82b3977",
+    "semantic_hash": "4fa523606a82ec5453e35c2ce82b3977"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/PersonnageCarriere.cs": {
+    "mtime": 1774734102.498211,
+    "ast_hash": "ad7d1183dad505b00636228e32a3ac9b",
+    "semantic_hash": "ad7d1183dad505b00636228e32a3ac9b"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/PersonnageCompetence.cs": {
+    "mtime": 1774734102.498211,
+    "ast_hash": "8ac74fd38ba72e387af1a1e3b807fd4e",
+    "semantic_hash": "8ac74fd38ba72e387af1a1e3b807fd4e"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/PersonnagePartage.cs": {
+    "mtime": 1774734102.5007699,
+    "ast_hash": "08f890cbdf901963dd2f35c90488df4f",
+    "semantic_hash": "08f890cbdf901963dd2f35c90488df4f"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/PersonnagePossession.cs": {
+    "mtime": 1786217380.5719683,
+    "ast_hash": "7a67b046714594192344e4f6d1574cd4",
+    "semantic_hash": "7a67b046714594192344e4f6d1574cd4"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/PersonnageTalent.cs": {
+    "mtime": 1774734102.5017767,
+    "ast_hash": "9d2914cbd009d0dc4ce113b9e3604751",
+    "semantic_hash": "9d2914cbd009d0dc4ce113b9e3604751"
+  },
+  "app/src/Wfrp4.Infrastructure/Entities/Talent.cs": {
+    "mtime": 1774734102.5017767,
+    "ast_hash": "5844a5094268d3c8ba501fea8f15f3dd",
+    "semantic_hash": "5844a5094268d3c8ba501fea8f15f3dd"
+  },
+  "app/src/Wfrp4.Infrastructure/Wfrp4.Infrastructure.csproj": {
+    "mtime": 1775488589.4579694,
+    "ast_hash": "e1197d80b634b45b8fe2df64c80f4fcc",
+    "semantic_hash": "e1197d80b634b45b8fe2df64c80f4fcc"
+  },
+  "app/src/Wfrp4.Server/Auth/KeycloakBackchannelHandler.cs": {
+    "mtime": 1785591418.0993023,
+    "ast_hash": "ea28a6b1f2c99fcef83f8fd8e6a82f14",
+    "semantic_hash": "ea28a6b1f2c99fcef83f8fd8e6a82f14"
+  },
+  "app/src/Wfrp4.Server/Auth/KeycloakClaimsTransformation.cs": {
+    "mtime": 1774734102.5088768,
+    "ast_hash": "733ce10d77b8ab6b5fe7d4fbbaf3e638",
+    "semantic_hash": "733ce10d77b8ab6b5fe7d4fbbaf3e638"
+  },
+  "app/src/Wfrp4.Server/Controllers/AvancementsController.cs": {
+    "mtime": 1775488589.4041066,
+    "ast_hash": "792de8fd6cf5cdb63462009a0d1fdd57",
+    "semantic_hash": "792de8fd6cf5cdb63462009a0d1fdd57"
+  },
+  "app/src/Wfrp4.Server/Controllers/InscriptionController.cs": {
+    "mtime": 1785578395.8389575,
+    "ast_hash": "6a0044bf33edfdd92c2ae761d4e31b2c",
+    "semantic_hash": "6a0044bf33edfdd92c2ae761d4e31b2c"
+  },
+  "app/src/Wfrp4.Server/Controllers/PartagesController.cs": {
+    "mtime": 1775488589.4041066,
+    "ast_hash": "033cebe75a0a60bf97d68c02a189a872",
+    "semantic_hash": "033cebe75a0a60bf97d68c02a189a872"
+  },
+  "app/src/Wfrp4.Server/Controllers/PersonnagesController.cs": {
+    "mtime": 1786217536.035733,
+    "ast_hash": "98935c4b919104925b40ab3ae5aba3ce",
+    "semantic_hash": "98935c4b919104925b40ab3ae5aba3ce"
+  },
+  "app/src/Wfrp4.Server/Controllers/ReferentielsController.cs": {
+    "mtime": 1786267118.0366137,
+    "ast_hash": "0847bf776f1c4278b525189e00afb53d",
+    "semantic_hash": "0847bf776f1c4278b525189e00afb53d"
+  },
+  "app/src/Wfrp4.Server/Filters/PersonnageOwnerFilter.cs": {
+    "mtime": 1774734102.5132468,
+    "ast_hash": "9fe66bd813eca52090424c6d1635753f",
+    "semantic_hash": "9fe66bd813eca52090424c6d1635753f"
+  },
+  "app/src/Wfrp4.Server/Program.cs": {
+    "mtime": 1785595672.142006,
+    "ast_hash": "bceb7aea3c80b94821be25f4d8ae8854",
+    "semantic_hash": "bceb7aea3c80b94821be25f4d8ae8854"
+  },
+  "app/src/Wfrp4.Server/Services/KeycloakAdminService.cs": {
+    "mtime": 1785600905.9423234,
+    "ast_hash": "34fb5d3de83c12159caae797e99a7b0d",
+    "semantic_hash": "34fb5d3de83c12159caae797e99a7b0d"
+  },
+  "app/src/Wfrp4.Server/Services/PersonnageService.cs": {
+    "mtime": 1785945662.6957574,
+    "ast_hash": "078b07169ec4c226494e58af21f4ee5b",
+    "semantic_hash": "078b07169ec4c226494e58af21f4ee5b"
+  },
+  "app/src/Wfrp4.Server/Services/XPService.cs": {
+    "mtime": 1785945371.5255964,
+    "ast_hash": "05326b0f6bb9e64be58a3840487f4848",
+    "semantic_hash": "05326b0f6bb9e64be58a3840487f4848"
+  },
+  "app/src/Wfrp4.Server/Wfrp4.Server.csproj": {
+    "mtime": 1785688250.3687322,
+    "ast_hash": "2ea8f7254259edae67d41ec124fa379f",
+    "semantic_hash": "2ea8f7254259edae67d41ec124fa379f"
+  },
+  "app/src/Wfrp4.Shared/DTOs/AvanceRequest.cs": {
+    "mtime": 1774734102.5241005,
+    "ast_hash": "4087f54e07e9136399c98c450d837653",
+    "semantic_hash": "4087f54e07e9136399c98c450d837653"
+  },
+  "app/src/Wfrp4.Shared/DTOs/CreatePersonnageRequest.cs": {
+    "mtime": 1786012455.040602,
+    "ast_hash": "af2f6bbe974d84913f66974c9bf7d104",
+    "semantic_hash": "af2f6bbe974d84913f66974c9bf7d104"
+  },
+  "app/src/Wfrp4.Shared/DTOs/InscriptionRequest.cs": {
+    "mtime": 1785600888.9834538,
+    "ast_hash": "f408626dff4fd51b81d3d3ebf45f7444",
+    "semantic_hash": "f408626dff4fd51b81d3d3ebf45f7444"
+  },
+  "app/src/Wfrp4.Shared/DTOs/PartageDto.cs": {
+    "mtime": 1774734102.5241005,
+    "ast_hash": "b8b831700a5529ec5ad24ec1337500a9",
+    "semantic_hash": "b8b831700a5529ec5ad24ec1337500a9"
+  },
+  "app/src/Wfrp4.Shared/DTOs/PersonnageDto.cs": {
+    "mtime": 1786217482.1868613,
+    "ast_hash": "771ec6f53daa799c710f0064d5b6c189",
+    "semantic_hash": "771ec6f53daa799c710f0064d5b6c189"
+  },
+  "app/src/Wfrp4.Shared/DTOs/ReferentielDtos.cs": {
+    "mtime": 1786267109.1589744,
+    "ast_hash": "35dfcf6d11e90a27dbc39c33c4e9f9d5",
+    "semantic_hash": "35dfcf6d11e90a27dbc39c33c4e9f9d5"
+  },
+  "app/src/Wfrp4.Shared/DTOs/RevenusDto.cs": {
+    "mtime": 1785945295.850416,
+    "ast_hash": "3f333cac1864a80e1bad11e4405b3aac",
+    "semantic_hash": "3f333cac1864a80e1bad11e4405b3aac"
+  },
+  "app/src/Wfrp4.Shared/DTOs/UpdatePersonnageRequest.cs": {
+    "mtime": 1786012456.4543867,
+    "ast_hash": "89c99cc4630fdf173b5990204ad5522c",
+    "semantic_hash": "89c99cc4630fdf173b5990204ad5522c"
+  },
+  "app/src/Wfrp4.Shared/DTOs/XPGrantRequest.cs": {
+    "mtime": 1774734102.5261066,
+    "ast_hash": "63f18bb8b4412886f73595984203cc11",
+    "semantic_hash": "63f18bb8b4412886f73595984203cc11"
+  },
+  "app/src/Wfrp4.Shared/Models/Enums.cs": {
+    "mtime": 1786217374.6778255,
+    "ast_hash": "824dc9ff962be15f28b5ccb671092c63",
+    "semantic_hash": "824dc9ff962be15f28b5ccb671092c63"
+  },
+  "app/src/Wfrp4.Shared/Wfrp4.Shared.csproj": {
+    "mtime": 1774733438.9627674,
+    "ast_hash": "a179c1fd32442fdc3ca095a8084e072a",
+    "semantic_hash": "a179c1fd32442fdc3ca095a8084e072a"
+  },
+  "app/tests/MudColorTest/MudColorTest.csproj": {
+    "mtime": 1785618932.6078804,
+    "ast_hash": "f15062056b75ab73b3431df9e199d543",
+    "semantic_hash": "f15062056b75ab73b3431df9e199d543"
+  },
+  "app/tests/MudColorTest/Program.cs": {
+    "mtime": 1785620787.4255967,
+    "ast_hash": "1b1f01c45cf679d4f54c74b656c7639c",
+    "semantic_hash": "1b1f01c45cf679d4f54c74b656c7639c"
+  },
+  "app/tests/Wfrp4.Infrastructure.Tests/UnitTest1.cs": {
+    "mtime": 1775487485.6074092,
+    "ast_hash": "0cce1a20f17caab1c2ed0c2f2b67cad0",
+    "semantic_hash": "0cce1a20f17caab1c2ed0c2f2b67cad0"
+  },
+  "app/tests/Wfrp4.Infrastructure.Tests/Wfrp4.Infrastructure.Tests.csproj": {
+    "mtime": 1775487485.6074092,
+    "ast_hash": "6ec587caa37c2b35e104d9c19175ba4e",
+    "semantic_hash": "6ec587caa37c2b35e104d9c19175ba4e"
+  },
+  "app/tests/Wfrp4.Server.Tests/UnitTest1.cs": {
+    "mtime": 1775487485.7803679,
+    "ast_hash": "def045bb895146d1fbd51d15e406adff",
+    "semantic_hash": "def045bb895146d1fbd51d15e406adff"
+  },
+  "app/tests/Wfrp4.Server.Tests/Wfrp4.Server.Tests.csproj": {
+    "mtime": 1774733477.427269,
+    "ast_hash": "20eea641b928d4571df5ebc803c87065",
+    "semantic_hash": "20eea641b928d4571df5ebc803c87065"
+  },
+  "app/tools/Wfrp4.Seed/Program.cs": {
+    "mtime": 1785877858.2177393,
+    "ast_hash": "8ccdd5e01d814b292df2bc2b36e263a3",
+    "semantic_hash": "8ccdd5e01d814b292df2bc2b36e263a3"
+  },
+  "app/tools/Wfrp4.Seed/Wfrp4.Seed.csproj": {
+    "mtime": 1774733476.7945092,
+    "ast_hash": "bb8f963dd2d29304dc5608ab2b6b6026",
+    "semantic_hash": "bb8f963dd2d29304dc5608ab2b6b6026"
+  },
+  ".claude/agents/Warhammer 4 - Livre de base.md": {
+    "mtime": 1784992076.3749554,
+    "ast_hash": "e237a1bb70c05ed9b28ed7a75dfe3b76",
+    "semantic_hash": ""
+  },
+  ".claude/agents/docker-compose-specialist.md": {
+    "mtime": 1785230092.1303964,
+    "ast_hash": "ba4e9bbcd94c3ec1a238a85d8f006f1b",
+    "semantic_hash": ""
+  },
+  ".claude/agents/dotnet-doc-writer.md": {
+    "mtime": 1785230092.7574778,
+    "ast_hash": "b576cdf8b978a95c9a027d1407ef4dcd",
+    "semantic_hash": ""
+  },
+  ".claude/agents/dotnet-implementation-builder.md": {
+    "mtime": 1785230093.4591703,
+    "ast_hash": "85d309dd05750f0dadb0985d1e2373dd",
+    "semantic_hash": ""
+  },
+  ".claude/agents/dotnet-mermaid-diagrammer.md": {
+    "mtime": 1785230094.0332372,
+    "ast_hash": "cd414786384420e2203c6a5b74404eea",
+    "semantic_hash": ""
+  },
+  ".claude/agents/dotnet-solution-designer.md": {
+    "mtime": 1785230095.3140752,
+    "ast_hash": "858dbeefbe45b9c62b72cea66eef6e38",
+    "semantic_hash": ""
+  },
+  ".claude/agents/dotnet-test-and-quality.md": {
+    "mtime": 1785230097.7565603,
+    "ast_hash": "45308e889af64f35724ff656643b7d8a",
+    "semantic_hash": ""
+  },
+  ".claude/agents/dotnet-workshop-orchestrator.md": {
+    "mtime": 1785230101.7663052,
+    "ast_hash": "7ab2d57b528fecda54173bcc0591e7e0",
+    "semantic_hash": ""
+  },
+  ".claude/agents/git-branching-designer.md": {
+    "mtime": 1785230107.537552,
+    "ast_hash": "3b1aad78fe517bc9c5aa12acfc8c5fcf",
+    "semantic_hash": ""
+  },
+  ".claude/agents/git-command-coach.md": {
+    "mtime": 1785230108.172749,
+    "ast_hash": "ed6e38627308f7530906bc412f7e58ea",
+    "semantic_hash": ""
+  },
+  ".claude/agents/git-doc-writer.md": {
+    "mtime": 1785230109.3547146,
+    "ast_hash": "c5e96277a3889d601c6012ec17bd6223",
+    "semantic_hash": ""
+  },
+  ".claude/agents/git-mermaid-diagrammer.md": {
+    "mtime": 1785230111.3133955,
+    "ast_hash": "07ce5a5df89b05b020929c8e2f063676",
+    "semantic_hash": ""
+  },
+  ".claude/agents/git-workshop-orchestrator.md": {
+    "mtime": 1785230115.0658638,
+    "ast_hash": "9ada61255ab28f08ba73dbabae24209d",
+    "semantic_hash": ""
+  },
+  ".claude/agents/grpc-web-ui-specialist.md": {
+    "mtime": 1785230116.989061,
+    "ast_hash": "f725e96240f0b2f2610a352b3c2ca25f",
+    "semantic_hash": ""
+  },
+  ".claude/agents/ressources/Warhammer 4 - Livre de base.md": {
+    "mtime": 1784992076.3749554,
+    "ast_hash": "e237a1bb70c05ed9b28ed7a75dfe3b76",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/dotnet-workshop/SKILL.md": {
+    "mtime": 1775339640.693297,
+    "ast_hash": "25f21ed4b177e9e0366aeb26d4b33042",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/dotnet-workshop/assets/documentation-template.md": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "d0ee5cad00849668b3fee028baa384bc",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/dotnet-workshop/references/architecture.md": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "21eecb507c367ec21796ef963b8e6da4",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/dotnet-workshop/references/dotnet-cli-cheatsheet.md": {
+    "mtime": 1775339640.6922965,
+    "ast_hash": "65f5e4dfbcea499860c6a751a438b4ab",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/dotnet-workshop/references/mermaid-cheatsheet.md": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "edc4ee9585cf95cf8ceaa1a85710039e",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/dotnet-workshop/references/output-contract.md": {
+    "mtime": 1775339640.691296,
+    "ast_hash": "23efb9302994f25e40b5c736b910ba5d",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/dotnet-workshop/references/review-checklist.md": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "e3bcc5d2797f6838b0755781b64ab89a",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/dotnet-workshop/references/solution-patterns.md": {
+    "mtime": 1775339640.691296,
+    "ast_hash": "969aabaeb737be727658cf155376ec5c",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/dotnet-workshop/references/starter-prompt.md": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "ad9c0293a8617b2982e503302926393f",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/dotnet-workshop/references/testing-patterns.md": {
+    "mtime": 1775339640.691296,
+    "ast_hash": "4eb72f5d05a1893cbf9884eac6534f58",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/git-workshop/SKILL.md": {
+    "mtime": 1775424539.0960107,
+    "ast_hash": "f79696a9dfcaec848279c01fb5aefa6a",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/git-workshop/references/architecture.md": {
+    "mtime": 1775200601.2660282,
+    "ast_hash": "1c774dda376dd5f96021db96ddb4ed1c",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/git-workshop/references/branching-patterns.md": {
+    "mtime": 1775200601.2701743,
+    "ast_hash": "eba9b1a0349076d666929e7e5d74f514",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/git-workshop/references/mermaid-cheatsheet.md": {
+    "mtime": 1775200601.2701743,
+    "ast_hash": "bb19589db10d88bec37003bdc4632451",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/git-workshop/references/output-contract.md": {
+    "mtime": 1775200601.2701743,
+    "ast_hash": "de7eea9c9f51100afff6063199edac11",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/git-workshop/references/review-checklist.md": {
+    "mtime": 1775200601.2721999,
+    "ast_hash": "dd0bb97b467599ec8a04e3d62b179387",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/git-workshop/references/starter-prompt.md": {
+    "mtime": 1775200601.2732084,
+    "ast_hash": "5f0ad5a3fd1a57cd025f4d1402eb2302",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/sqlite-workshop/SKILL.md": {
+    "mtime": 1775203496.28308,
+    "ast_hash": "e2b0e0e0fb506aaca3d8cfa51eca07b2",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/sqlite-workshop/assets/documentation-template.md": {
+    "mtime": 1775202850.4139502,
+    "ast_hash": "d8f2bfac0e51eb507440b77141cba92b",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/sqlite-workshop/references/architecture.md": {
+    "mtime": 1775203496.12815,
+    "ast_hash": "f7e7e3da542b21ab9d70c5bfcd909981",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/sqlite-workshop/references/data-insertion-patterns.md": {
+    "mtime": 1775203496.28308,
+    "ast_hash": "8df5b9a72759ef4024e26346c86ebafa",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/sqlite-workshop/references/data-model-patterns.md": {
+    "mtime": 1775202850.3904681,
+    "ast_hash": "51add6b221d418c282b39b1abbfc8c33",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/sqlite-workshop/references/mermaid-cheatsheet.md": {
+    "mtime": 1775202850.4139502,
+    "ast_hash": "3e890ce290edf38327dd96bbc930e0c0",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/sqlite-workshop/references/migration-patterns.md": {
+    "mtime": 1775203496.28308,
+    "ast_hash": "1bc8a74435bb0584719a9bbc9974e514",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/sqlite-workshop/references/output-contract.md": {
+    "mtime": 1775203496.12815,
+    "ast_hash": "2067df13cfb92b8231b6196a68574cf1",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/sqlite-workshop/references/review-checklist.md": {
+    "mtime": 1775203496.1200573,
+    "ast_hash": "37e2305ed156aca91b598dbdac676975",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/sqlite-workshop/references/sqlite-ddl-cheatsheet.md": {
+    "mtime": 1775202850.4139502,
+    "ast_hash": "105ba387a9f7718f729671ea4d20b5f0",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/sqlite-workshop/references/starter-prompt.md": {
+    "mtime": 1775203496.12815,
+    "ast_hash": "6209477135753d163d30dcbe4e7ec7b3",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/warhammer-analyst/SKILL.md": {
+    "mtime": 1784992613.2953687,
+    "ast_hash": "4142868b42305ab1f19d2c8c456c0308",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/warhammer-analyst/references/bestiaire.md": {
+    "mtime": 1784992531.380445,
+    "ast_hash": "78f55312462534cc25981b4c22584769",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/warhammer-analyst/references/carrieres.md": {
+    "mtime": 1784992531.370871,
+    "ast_hash": "b92fc0b257767513ea16ca4ef149d115",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/warhammer-analyst/references/competences.md": {
+    "mtime": 1784992531.372377,
+    "ast_hash": "d33639de99ae63d6ac3d13b10941dc23",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/warhammer-analyst/references/equipement.md": {
+    "mtime": 1784992531.3789396,
+    "ast_hash": "14bb7e5e8dd4f95e1da983b2afd1babd",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/warhammer-analyst/references/lore.md": {
+    "mtime": 1784992531.375383,
+    "ast_hash": "066a544761b73846dd38a7ef6552b9d8",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/warhammer-analyst/references/magie.md": {
+    "mtime": 1784992531.377936,
+    "ast_hash": "061089a77db2c58df5a78cdb6008c09f",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/warhammer-analyst/references/personnages.md": {
+    "mtime": 1784992531.3698702,
+    "ast_hash": "f423261f28fe0aad4f1589c980c37772",
+    "semantic_hash": ""
+  },
+  ".claude/agents/skills/warhammer-analyst/references/regles.md": {
+    "mtime": 1784992531.3688698,
+    "ast_hash": "f4d03b3e73b783e75cdcc6fde3e01b67",
+    "semantic_hash": ""
+  },
+  ".claude/agents/sqlite-data-inserter.md": {
+    "mtime": 1785230118.5692554,
+    "ast_hash": "02a871b875c2ed1ba9c28631aa74b9ea",
+    "semantic_hash": ""
+  },
+  ".claude/agents/sqlite-db-builder.md": {
+    "mtime": 1785230123.619421,
+    "ast_hash": "9ef23e3d3ea3ba9a338cf74a51383a03",
+    "semantic_hash": ""
+  },
+  ".claude/agents/sqlite-doc-writer.md": {
+    "mtime": 1785230124.272989,
+    "ast_hash": "99cc31a13a45a06628d4945bf59f2722",
+    "semantic_hash": ""
+  },
+  ".claude/agents/sqlite-mermaid-diagrammer.md": {
+    "mtime": 1785230125.1239293,
+    "ast_hash": "ead7783b14e507002242059b4b5299b3",
+    "semantic_hash": ""
+  },
+  ".claude/agents/sqlite-migration-manager.md": {
+    "mtime": 1785230364.254608,
+    "ast_hash": "1759efe23cb6ebcd43e38cf0835a40ff",
+    "semantic_hash": ""
+  },
+  ".claude/agents/sqlite-schema-designer.md": {
+    "mtime": 1785230365.0769448,
+    "ast_hash": "b56681130f472398ccec07869bea013d",
+    "semantic_hash": ""
+  },
+  ".claude/agents/sqlite-workshop-orchestrator.md": {
+    "mtime": 1785230365.8357744,
+    "ast_hash": "bbf6a4f7b2c2f148faf7ffc3a22f140b",
+    "semantic_hash": ""
+  },
+  ".claude/agents/super-workshop-orchestrator.md": {
+    "mtime": 1785230368.5466204,
+    "ast_hash": "cd322d366fe2868a84737d13f2ea51e1",
+    "semantic_hash": ""
+  },
+  ".claude/agents/url-verification-agent.md": {
+    "mtime": 1785230367.2582912,
+    "ast_hash": "2cfd3a5ac5d3519df3254274a3b7cac6",
+    "semantic_hash": ""
+  },
+  ".claude/agents/warhammer-analyst.md": {
+    "mtime": 1785230367.9326687,
+    "ast_hash": "7188758b3dc9e9c0564d5cf39a4d9a6a",
+    "semantic_hash": ""
+  },
+  ".github/agents/docker-compose-specialist.agent.md": {
+    "mtime": 1784983033.5387137,
+    "ast_hash": "30a354025be5debd3916ee2d4b6c8ff2",
+    "semantic_hash": ""
+  },
+  ".github/agents/dotnet-doc-writer.agent.md": {
+    "mtime": 1784982572.7625916,
+    "ast_hash": "79a7b8d3414e0b5044081f7453d3b486",
+    "semantic_hash": ""
+  },
+  ".github/agents/dotnet-implementation-builder.agent.md": {
+    "mtime": 1784982572.634595,
+    "ast_hash": "9bcec78b751caf3f48bba99a521f77c0",
+    "semantic_hash": ""
+  },
+  ".github/agents/dotnet-mermaid-diagrammer.agent.md": {
+    "mtime": 1784982572.8265939,
+    "ast_hash": "36955852ccfa09cc2c6323247fb5abb6",
+    "semantic_hash": ""
+  },
+  ".github/agents/dotnet-solution-designer.agent.md": {
+    "mtime": 1784982572.5565932,
+    "ast_hash": "27a5cb39bf6b353cbc639a990d5f71b8",
+    "semantic_hash": ""
+  },
+  ".github/agents/dotnet-test-and-quality.agent.md": {
+    "mtime": 1784982572.7055943,
+    "ast_hash": "cd446f79aebcce2b0ff36e82ac89db00",
+    "semantic_hash": ""
+  },
+  ".github/agents/dotnet-workshop-orchestrator.agent.md": {
+    "mtime": 1784982864.4756904,
+    "ast_hash": "6995483827c102efdf7342e3328da35b",
+    "semantic_hash": ""
+  },
+  ".github/agents/git-branching-designer.agent.md": {
+    "mtime": 1784982864.4756904,
+    "ast_hash": "b9782f07db25b34f87eea8033c27b3c2",
+    "semantic_hash": ""
+  },
+  ".github/agents/git-command-coach.agent.md": {
+    "mtime": 1784982864.4766908,
+    "ast_hash": "a5f384102c045398fb09fcfffcbc2d97",
+    "semantic_hash": ""
+  },
+  ".github/agents/git-doc-writer.agent.md": {
+    "mtime": 1784982864.4766908,
+    "ast_hash": "d57f3a5f95cfa706ca5175147f32e8ba",
+    "semantic_hash": ""
+  },
+  ".github/agents/git-mermaid-diagrammer.agent.md": {
+    "mtime": 1784982864.4776905,
+    "ast_hash": "4ec357fd28482e94c9e84314afaf0086",
+    "semantic_hash": ""
+  },
+  ".github/agents/git-workshop-orchestrator.agent.md": {
+    "mtime": 1784982864.4776905,
+    "ast_hash": "b31df12ee1e630f7ca28336fa8264904",
+    "semantic_hash": ""
+  },
+  ".github/agents/grpc-web-ui-specialist.agent.md": {
+    "mtime": 1784982864.4746945,
+    "ast_hash": "96265583d22ffe46caca8fa714b3ed47",
+    "semantic_hash": ""
+  },
+  ".github/agents/sqlite-data-inserter.agent.md": {
+    "mtime": 1784983033.5367136,
+    "ast_hash": "569cb6bb9b5b023f066665a8d24a7edb",
+    "semantic_hash": ""
+  },
+  ".github/agents/sqlite-db-builder.agent.md": {
+    "mtime": 1784983033.5357132,
+    "ast_hash": "26eb33efb1c977c19f2ab89479044915",
+    "semantic_hash": ""
+  },
+  ".github/agents/sqlite-doc-writer.agent.md": {
+    "mtime": 1784983033.5367136,
+    "ast_hash": "ed977b52b2c882f842fa46cc02fb4960",
+    "semantic_hash": ""
+  },
+  ".github/agents/sqlite-mermaid-diagrammer.agent.md": {
+    "mtime": 1784983033.5377152,
+    "ast_hash": "88fadcbd58616f569e41eed3820cb9b7",
+    "semantic_hash": ""
+  },
+  ".github/agents/sqlite-migration-manager.agent.md": {
+    "mtime": 1784983033.5367136,
+    "ast_hash": "6a2a2f63f7375a31ef6c265076e6e901",
+    "semantic_hash": ""
+  },
+  ".github/agents/sqlite-schema-designer.agent.md": {
+    "mtime": 1784983033.5347452,
+    "ast_hash": "697ecaba41f5e8eb133565df02611edb",
+    "semantic_hash": ""
+  },
+  ".github/agents/sqlite-workshop-orchestrator.agent.md": {
+    "mtime": 1784983033.5377152,
+    "ast_hash": "bac21dc747b66f838f103c30342989ca",
+    "semantic_hash": ""
+  },
+  ".github/agents/super-workshop-orchestrator.agent.md": {
+    "mtime": 1784992689.6817646,
+    "ast_hash": "ae45f1161d737e8a7feba0049570f058",
+    "semantic_hash": ""
+  },
+  ".github/agents/url-verification-agent.agent.md": {
+    "mtime": 1784983033.5377152,
+    "ast_hash": "0b02a98420c45c46efc9bef84b9e2968",
+    "semantic_hash": ""
+  },
+  ".github/agents/warhammer-analyst.agent.md": {
+    "mtime": 1784992664.127971,
+    "ast_hash": "328151d7bbbec7e4cbb0167870a2d2fc",
+    "semantic_hash": ""
+  },
+  ".github/ressources/Warhammer 4 - Livre de base.md": {
+    "mtime": 1784992076.3749554,
+    "ast_hash": "e237a1bb70c05ed9b28ed7a75dfe3b76",
+    "semantic_hash": ""
+  },
+  ".github/skills/dotnet-workshop/SKILL.md": {
+    "mtime": 1775339640.693297,
+    "ast_hash": "25f21ed4b177e9e0366aeb26d4b33042",
+    "semantic_hash": ""
+  },
+  ".github/skills/dotnet-workshop/assets/documentation-template.md": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "d0ee5cad00849668b3fee028baa384bc",
+    "semantic_hash": ""
+  },
+  ".github/skills/dotnet-workshop/references/architecture.md": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "21eecb507c367ec21796ef963b8e6da4",
+    "semantic_hash": ""
+  },
+  ".github/skills/dotnet-workshop/references/dotnet-cli-cheatsheet.md": {
+    "mtime": 1775339640.6922965,
+    "ast_hash": "65f5e4dfbcea499860c6a751a438b4ab",
+    "semantic_hash": ""
+  },
+  ".github/skills/dotnet-workshop/references/mermaid-cheatsheet.md": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "edc4ee9585cf95cf8ceaa1a85710039e",
+    "semantic_hash": ""
+  },
+  ".github/skills/dotnet-workshop/references/output-contract.md": {
+    "mtime": 1775339640.691296,
+    "ast_hash": "23efb9302994f25e40b5c736b910ba5d",
+    "semantic_hash": ""
+  },
+  ".github/skills/dotnet-workshop/references/review-checklist.md": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "e3bcc5d2797f6838b0755781b64ab89a",
+    "semantic_hash": ""
+  },
+  ".github/skills/dotnet-workshop/references/solution-patterns.md": {
+    "mtime": 1775339640.691296,
+    "ast_hash": "969aabaeb737be727658cf155376ec5c",
+    "semantic_hash": ""
+  },
+  ".github/skills/dotnet-workshop/references/starter-prompt.md": {
+    "mtime": 1775339640.9052956,
+    "ast_hash": "ad9c0293a8617b2982e503302926393f",
+    "semantic_hash": ""
+  },
+  ".github/skills/dotnet-workshop/references/testing-patterns.md": {
+    "mtime": 1775339640.691296,
+    "ast_hash": "4eb72f5d05a1893cbf9884eac6534f58",
+    "semantic_hash": ""
+  },
+  ".github/skills/git-workshop/SKILL.md": {
+    "mtime": 1775424539.0960107,
+    "ast_hash": "f79696a9dfcaec848279c01fb5aefa6a",
+    "semantic_hash": ""
+  },
+  ".github/skills/git-workshop/references/architecture.md": {
+    "mtime": 1775200601.2660282,
+    "ast_hash": "1c774dda376dd5f96021db96ddb4ed1c",
+    "semantic_hash": ""
+  },
+  ".github/skills/git-workshop/references/branching-patterns.md": {
+    "mtime": 1775200601.2701743,
+    "ast_hash": "eba9b1a0349076d666929e7e5d74f514",
+    "semantic_hash": ""
+  },
+  ".github/skills/git-workshop/references/mermaid-cheatsheet.md": {
+    "mtime": 1775200601.2701743,
+    "ast_hash": "bb19589db10d88bec37003bdc4632451",
+    "semantic_hash": ""
+  },
+  ".github/skills/git-workshop/references/output-contract.md": {
+    "mtime": 1775200601.2701743,
+    "ast_hash": "de7eea9c9f51100afff6063199edac11",
+    "semantic_hash": ""
+  },
+  ".github/skills/git-workshop/references/review-checklist.md": {
+    "mtime": 1775200601.2721999,
+    "ast_hash": "dd0bb97b467599ec8a04e3d62b179387",
+    "semantic_hash": ""
+  },
+  ".github/skills/git-workshop/references/starter-prompt.md": {
+    "mtime": 1775200601.2732084,
+    "ast_hash": "5f0ad5a3fd1a57cd025f4d1402eb2302",
+    "semantic_hash": ""
+  },
+  ".github/skills/sqlite-workshop/SKILL.md": {
+    "mtime": 1775203496.28308,
+    "ast_hash": "e2b0e0e0fb506aaca3d8cfa51eca07b2",
+    "semantic_hash": ""
+  },
+  ".github/skills/sqlite-workshop/assets/documentation-template.md": {
+    "mtime": 1775202850.4139502,
+    "ast_hash": "d8f2bfac0e51eb507440b77141cba92b",
+    "semantic_hash": ""
+  },
+  ".github/skills/sqlite-workshop/references/architecture.md": {
+    "mtime": 1775203496.12815,
+    "ast_hash": "f7e7e3da542b21ab9d70c5bfcd909981",
+    "semantic_hash": ""
+  },
+  ".github/skills/sqlite-workshop/references/data-insertion-patterns.md": {
+    "mtime": 1775203496.28308,
+    "ast_hash": "8df5b9a72759ef4024e26346c86ebafa",
+    "semantic_hash": ""
+  },
+  ".github/skills/sqlite-workshop/references/data-model-patterns.md": {
+    "mtime": 1775202850.3904681,
+    "ast_hash": "51add6b221d418c282b39b1abbfc8c33",
+    "semantic_hash": ""
+  },
+  ".github/skills/sqlite-workshop/references/mermaid-cheatsheet.md": {
+    "mtime": 1775202850.4139502,
+    "ast_hash": "3e890ce290edf38327dd96bbc930e0c0",
+    "semantic_hash": ""
+  },
+  ".github/skills/sqlite-workshop/references/migration-patterns.md": {
+    "mtime": 1775203496.28308,
+    "ast_hash": "1bc8a74435bb0584719a9bbc9974e514",
+    "semantic_hash": ""
+  },
+  ".github/skills/sqlite-workshop/references/output-contract.md": {
+    "mtime": 1775203496.12815,
+    "ast_hash": "2067df13cfb92b8231b6196a68574cf1",
+    "semantic_hash": ""
+  },
+  ".github/skills/sqlite-workshop/references/review-checklist.md": {
+    "mtime": 1775203496.1200573,
+    "ast_hash": "37e2305ed156aca91b598dbdac676975",
+    "semantic_hash": ""
+  },
+  ".github/skills/sqlite-workshop/references/sqlite-ddl-cheatsheet.md": {
+    "mtime": 1775202850.4139502,
+    "ast_hash": "105ba387a9f7718f729671ea4d20b5f0",
+    "semantic_hash": ""
+  },
+  ".github/skills/sqlite-workshop/references/starter-prompt.md": {
+    "mtime": 1775203496.12815,
+    "ast_hash": "6209477135753d163d30dcbe4e7ec7b3",
+    "semantic_hash": ""
+  },
+  ".github/skills/warhammer-analyst/SKILL.md": {
+    "mtime": 1784992613.2953687,
+    "ast_hash": "4142868b42305ab1f19d2c8c456c0308",
+    "semantic_hash": ""
+  },
+  ".github/skills/warhammer-analyst/references/bestiaire.md": {
+    "mtime": 1784992531.380445,
+    "ast_hash": "78f55312462534cc25981b4c22584769",
+    "semantic_hash": ""
+  },
+  ".github/skills/warhammer-analyst/references/carrieres.md": {
+    "mtime": 1784992531.370871,
+    "ast_hash": "b92fc0b257767513ea16ca4ef149d115",
+    "semantic_hash": ""
+  },
+  ".github/skills/warhammer-analyst/references/competences.md": {
+    "mtime": 1784992531.372377,
+    "ast_hash": "d33639de99ae63d6ac3d13b10941dc23",
+    "semantic_hash": ""
+  },
+  ".github/skills/warhammer-analyst/references/equipement.md": {
+    "mtime": 1784992531.3789396,
+    "ast_hash": "14bb7e5e8dd4f95e1da983b2afd1babd",
+    "semantic_hash": ""
+  },
+  ".github/skills/warhammer-analyst/references/lore.md": {
+    "mtime": 1784992531.375383,
+    "ast_hash": "066a544761b73846dd38a7ef6552b9d8",
+    "semantic_hash": ""
+  },
+  ".github/skills/warhammer-analyst/references/magie.md": {
+    "mtime": 1784992531.377936,
+    "ast_hash": "061089a77db2c58df5a78cdb6008c09f",
+    "semantic_hash": ""
+  },
+  ".github/skills/warhammer-analyst/references/personnages.md": {
+    "mtime": 1784992531.3698702,
+    "ast_hash": "f423261f28fe0aad4f1589c980c37772",
+    "semantic_hash": ""
+  },
+  ".github/skills/warhammer-analyst/references/regles.md": {
+    "mtime": 1784992531.3688698,
+    "ast_hash": "f4d03b3e73b783e75cdcc6fde3e01b67",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1785061622.9359496,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1774637056.8171723,
+    "ast_hash": "fc6ee4a5a59732bbe0bff8b169461148",
+    "semantic_hash": ""
+  },
+  "Warhammer 4 - Livre de base.md": {
+    "mtime": 1784992076.3749554,
+    "ast_hash": "e237a1bb70c05ed9b28ed7a75dfe3b76",
+    "semantic_hash": ""
+  },
+  "app/README.md": {
+    "mtime": 1775488589.3232627,
+    "ast_hash": "6a76ae84ab63989b6edf91cd37a59946",
+    "semantic_hash": ""
+  },
+  "app/docker-compose.yml": {
+    "mtime": 1785578519.789966,
+    "ast_hash": "701252fdc2632bbd3d89975f8d78fdc5",
+    "semantic_hash": ""
+  },
+  "app/src/Wfrp4.Client/wwwroot/index.html": {
+    "mtime": 1785077754.5050473,
+    "ast_hash": "4a4324360a427556b83c1e78c2ce1235",
+    "semantic_hash": ""
+  },
+  "docs/etat-des-lieux-2026-07.md": {
+    "mtime": 1784993559.8313596,
+    "ast_hash": "8b291683424e5cccdba48adcf71ff4a0",
+    "semantic_hash": ""
+  },
+  "docs/spec-app-personnages.md": {
+    "mtime": 1774731836.3873453,
+    "ast_hash": "3c5add83e03cc73b7f1b3e7c850abcd7",
+    "semantic_hash": ""
+  },
+  "warhammer_ai_squad/warhammer_ai_squad/README.md": {
+    "mtime": 1778310888.8623092,
+    "ast_hash": "5b134a830cf591261e305d5ac1cd569d",
+    "semantic_hash": ""
+  },
+  "warhammer_ai_squad/warhammer_ai_squad/revealjs-starter.html": {
+    "mtime": 1778310888.8773086,
+    "ast_hash": "75f7176d3c9839be4669f2aa3bc7d830",
+    "semantic_hash": ""
+  },
+  "warhammer_ai_squad/warhammer_ai_squad/slides/agents.md": {
+    "mtime": 1778310888.9133103,
+    "ast_hash": "ffec9a32c7d33cb116977f2de72eb7e8",
+    "semantic_hash": ""
+  },
+  "warhammer_ai_squad/warhammer_ai_squad/slides/architecture.md": {
+    "mtime": 1778310888.8973093,
+    "ast_hash": "a99321cc736d7308798d16ff9e5d29f9",
+    "semantic_hash": ""
+  },
+  "warhammer_ai_squad/warhammer_ai_squad/slides/conclusion.md": {
+    "mtime": 1778310888.9370372,
+    "ast_hash": "5ecb958779c7dd7dd8a4db9e7851abb1",
+    "semantic_hash": ""
+  },
+  "warhammer_ai_squad/warhammer_ai_squad/slides/index.md": {
+    "mtime": 1778310888.9450395,
+    "ast_hash": "d4aab1f51239f1bacd14b4d74cc99efe",
+    "semantic_hash": ""
+  },
+  "warhammer_ai_squad/warhammer_ai_squad/slides/intro.md": {
+    "mtime": 1778310888.8883097,
+    "ast_hash": "4e724e2c0987904ea7b022f3d5451b36",
+    "semantic_hash": ""
+  },
+  "warhammer_ai_squad/warhammer_ai_squad/slides/rag.md": {
+    "mtime": 1778310888.9063098,
+    "ast_hash": "141ef7687112dc6e0ba581cbbead059d",
+    "semantic_hash": ""
+  },
+  "warhammer_ai_squad/warhammer_ai_squad/slides/token-optimization.md": {
+    "mtime": 1778310888.9203098,
+    "ast_hash": "69e6d47b1f027b2170d65fdd6a0550b3",
+    "semantic_hash": ""
+  },
+  "warhammer_ai_squad/warhammer_ai_squad/slides/warhammer-demo.md": {
+    "mtime": 1778310888.9279215,
+    "ast_hash": "d6e5172342b9e3f20532d9730ae4b65c",
+    "semantic_hash": ""
+  },
+  ".claude/agents/Warhammer 4 - Livre de base.pdf": {
+    "mtime": 1774636658.469655,
+    "ast_hash": "cecce8a895827f8c83e172b60e72bd3c",
+    "semantic_hash": ""
+  },
+  "Warhammer 4 - Fiche de personnage.pdf": {
+    "mtime": 1786211437.700719,
+    "ast_hash": "959b2521235be8612defb1bfc6b39f52",
+    "semantic_hash": ""
+  },
+  "Warhammer 4 - Livre de base.pdf": {
+    "mtime": 1774636658.469655,
+    "ast_hash": "cecce8a895827f8c83e172b60e72bd3c",
+    "semantic_hash": ""
+  },
+  "app/src/Wfrp4.Client/wwwroot/icon-192.png": {
+    "mtime": 1774733442.537828,
+    "ast_hash": "4ed916c575b07ad638ed9dbd55219ad5",
+    "semantic_hash": ""
+  }
+}

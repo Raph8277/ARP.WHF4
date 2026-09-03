@@ -1,0 +1,9 @@
+{
+  "name": "google-wfrp4-joueur",
+  "identityProviderAlias": "google",
+  "identityProviderMapper": "hardcoded-role-idp-mapper",
+  "config": {
+    "syncMode": "INHERIT",
+    "role": "wfrp4-joueur"
+  }
+}

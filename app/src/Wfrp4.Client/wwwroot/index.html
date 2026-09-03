@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WFRP4 — Gestion de Personnages</title>
+    <base href="/" />
+    <style>
+        :root {
+            --mud-palette-primary: #1a3a5c;
+            --mud-palette-secondary: #c9a84c;
+            --mud-palette-background: #162e4a;
+            --mud-palette-background-gray: #10243b;
+            --mud-palette-surface: #f2ede5;
+            --mud-palette-text-primary: #1a1a2e;
+            --mud-palette-text-secondary: #4a4a60;
+            --mud-palette-lines-default: #4a4a6038;
+            --mud-palette-divider: #4a4a6030;
+            --old-world-boot-bg: linear-gradient(180deg, rgba(242, 237, 229, 0.98), rgba(221, 232, 244, 0.96));
+            --old-world-kicker: #c9a84c;
+            --old-world-paper-shadow: rgba(8, 20, 35, 0.42);
+            --wfrp4-body-bg: radial-gradient(circle at 18% 0%, rgba(91, 143, 185, 0.42), transparent 30%), radial-gradient(circle at 82% 12%, rgba(201, 168, 76, 0.24), transparent 24%), linear-gradient(180deg, #1a3a5c 0%, #162e4a 55%, #0e1420 100%);
+        }
+
+        html,
+        body,
+        #app {
+            min-height: 100%;
+        }
+
+        body {
+            margin: 0;
+            color: var(--mud-palette-text-primary);
+            background: var(--wfrp4-body-bg);
+            background-attachment: fixed;
+            font-family: "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(rgba(255, 255, 255, 0.05), rgba(6, 18, 34, 0.16)),
+                repeating-linear-gradient(90deg, rgba(210, 231, 255, 0.035) 0, rgba(210, 231, 255, 0.035) 1px, transparent 1px, transparent 120px),
+                repeating-linear-gradient(0deg, rgba(210, 231, 255, 0.025) 0, rgba(210, 231, 255, 0.025) 1px, transparent 1px, transparent 96px);
+            opacity: 0.7;
+        }
+
+        .app-boot {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        .app-boot__plate {
+            min-width: min(520px, 100%);
+            padding: 2rem 2.5rem;
+            border: 1px solid rgba(201, 168, 76, 0.48);
+            background: var(--old-world-boot-bg);
+            box-shadow: 0 24px 80px var(--old-world-paper-shadow);
+            text-align: center;
+            color: var(--mud-palette-text-primary);
+        }
+
+        .app-boot__eyebrow {
+            margin: 0;
+            color: var(--old-world-kicker);
+            font-size: 0.78rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .app-boot__title {
+            margin: 0.5rem 0 0;
+            color: #1a3a5c;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+    </style>
+    <script>
+        try {
+            const defaultThemeVersion = 'imperial-azure-1';
+            if (localStorage.getItem('wfrp4_theme_default_version') !== defaultThemeVersion) {
+                localStorage.setItem('wfrp4_theme_active', 'imperial');
+                localStorage.setItem('wfrp4_theme_default_version', defaultThemeVersion);
+            }
+        } catch {
+        }
+    </script>
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="css/app.css?v=xp-inline-20260829-4" rel="stylesheet" />
+</head>
+<body>
+    <div id="app">
+        <div class="app-boot">
+            <div class="app-boot__plate">
+                <p class="app-boot__eyebrow">Registre du Reikland</p>
+                <p class="app-boot__title">Chargement de l'application</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui" style="display:none;">
+        Une erreur est survenue.
+        <a href="">Recharger</a>
+    </div>
+
+    <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script>
+        window.saveWfrp4File = (fileName, contentType, base64Data) => {
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = `data:${contentType};base64,${base64Data}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.openWfrp4Pdf = (contentType, base64Data) => {
+            const binary = atob(base64Data);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i += 1) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+
+            const blob = new Blob([bytes], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank', 'noopener');
+            window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+        };
+    </script>
+    <script src="_framework/blazor.webassembly.js?v=xp-inline-20260829-4"></script>
+</body>
+</html>

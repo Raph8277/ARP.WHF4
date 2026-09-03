@@ -1,0 +1,158 @@
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>Ajouter un talent</TitleContent>
+    <DialogContent>
+        @if (_talents == null)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        }
+        else
+        {
+            <MudSelect T="int?" Label="Talent" @bind-Value="_selectedId" Required="true">
+                @foreach (var t in _talents)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)t.Id)">@t.Nom</MudSelectItem>
+                }
+            </MudSelect>
+            <div class="d-flex align-center gap-2 mt-3">
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               Size="Size.Small"
+                               OnClick="RetirerTalent"
+                               Disabled="@(_submitting || _nombreFois <= MinNombreFois)" />
+                <MudNumericField T="int"
+                                 Value="_nombreFois"
+                                 ValueChanged="ChangerNombreFois"
+                                 Label="Ajustement"
+                                 Min="@MinNombreFois"
+                                 Max="50"
+                                 Immediate="true"
+                                 Style="max-width:160px" />
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               Size="Size.Small"
+                               Color="Color.Primary"
+                               OnClick="AjouterTalent"
+                               Disabled="@(_submitting || _nombreFois >= 50)" />
+            </div>
+            <MudPaper Class="pa-3 mt-3" Outlined="true">
+                <MudText Typo="Typo.subtitle2">XP disponibles : <strong>@XpDisponible</strong></MudText>
+                <MudText Typo="Typo.subtitle2">Talents gratuits restants : <strong>@TalentsGratuitsDisponibles</strong></MudText>
+                <MudText Typo="Typo.subtitle2">Impact XP : <strong>@FormatImpactXp(CoutTalentSelectionne)</strong></MudText>
+                <MudText Typo="Typo.body2" Color="@(_xpSuffisante ? Color.Secondary : Color.Error)">
+                    Après confirmation : @(XpDisponible - CoutTalentSelectionne) XP
+                </MudText>
+            </MudPaper>
+            @if (!_xpSuffisante)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    Le solde XP sera négatif après validation.
+                </MudAlert>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirmer" Disabled="@(_submitting || _selectedId == null || _nombreFois == 0)">
+            Ajouter
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int PersonnageId { get; set; }
+    [Parameter] public Dictionary<int, int> TalentsExistants { get; set; } = [];
+    [Parameter] public int XpDisponible { get; set; }
+    [Parameter] public int TalentsGratuitsDisponibles { get; set; }
+
+    private List<Wfrp4.Shared.DTOs.TalentDto>? _talents;
+    private int? _selectedId;
+    private int _nombreFois = 1;
+    private bool _submitting;
+    private const int MinNombreFois = -50;
+    private int CoutTalentSelectionne => _selectedId.HasValue
+        ? CalculerCoutTalentAvecGratuit(TalentsExistants.GetValueOrDefault(_selectedId.Value), _nombreFois)
+        : CalculerCoutTalentAvecGratuit(0, _nombreFois);
+    private bool _xpSuffisante => _nombreFois != 0 && (CoutTalentSelectionne <= 0 || XpDisponible >= CoutTalentSelectionne);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _talents = (await Api.GetTalentsAsync() ?? []).OrderBy(t => t.Nom).ToList();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void AjouterTalent() => ChangerNombreFois(_nombreFois + 1);
+
+    private void RetirerTalent() => ChangerNombreFois(_nombreFois - 1);
+
+    private void ChangerNombreFois(int value)
+    {
+        _nombreFois = Math.Clamp(value, MinNombreFois, 50);
+    }
+
+    private async Task Confirmer()
+    {
+        if (_selectedId == null) return;
+        if (_nombreFois == 0) return;
+
+        _submitting = true;
+        try
+        {
+            await Api.AjouterTalentAsync(PersonnageId, new Wfrp4.Shared.DTOs.AjoutTalentRequest
+            {
+                TalentId = _selectedId.Value,
+                NombreFois = _nombreFois,
+            });
+            Snackbar.Add(_nombreFois > 0
+                ? $"Talent ajouté {_nombreFois} fois."
+                : $"Talent retiré {-_nombreFois} fois.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private static int CalculerCoutTalentTotal(int foisActuelles, int nombreFois)
+    {
+        var total = 0;
+        if (nombreFois >= 0)
+        {
+            for (var i = 0; i < nombreFois; i++)
+                total += CalculerCoutTalent(foisActuelles + i);
+        }
+        else
+        {
+            for (var i = 0; i < -nombreFois; i++)
+                total -= CalculerCoutTalent(foisActuelles - 1 - i);
+        }
+        return total;
+    }
+
+    private int CalculerCoutTalentAvecGratuit(int foisActuelles, int nombreFois)
+    {
+        if (nombreFois <= 0)
+            return CalculerCoutTalentTotal(foisActuelles, nombreFois);
+
+        var gratuits = Math.Min(nombreFois, TalentsGratuitsDisponibles);
+        return CalculerCoutTalentTotal(foisActuelles + gratuits, nombreFois - gratuits);
+    }
+
+    private static int CalculerCoutTalent(int foisActuelles) => 100 + (Math.Max(0, foisActuelles) * 100);
+
+    private static string FormatImpactXp(int cout)
+    {
+        if (cout < 0)
+            return $"+{-cout} XP";
+        if (cout > 0)
+            return $"-{cout} XP";
+        return "0 XP";
+    }
+}

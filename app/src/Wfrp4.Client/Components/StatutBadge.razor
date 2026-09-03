@@ -1,0 +1,30 @@
+@using Wfrp4.Shared.Models
+
+@if (Tier.HasValue)
+{
+    <span class="statut-badge statut-badge--@TierCssClass">
+        <span class="statut-badge__tier">@TierLabel</span>
+        <span class="statut-badge__rang">@Rang</span>
+    </span>
+}
+
+@code {
+    [Parameter] public StatutTier? Tier { get; set; }
+    [Parameter] public int Rang { get; set; }
+
+    private string TierCssClass => Tier switch
+    {
+        StatutTier.Bronze => "bronze",
+        StatutTier.Argent => "argent",
+        StatutTier.Or => "or",
+        _ => "bronze"
+    };
+
+    private string TierLabel => Tier switch
+    {
+        StatutTier.Bronze => "Bronze",
+        StatutTier.Argent => "Argent",
+        StatutTier.Or => "Or",
+        _ => ""
+    };
+}

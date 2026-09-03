@@ -1,0 +1,167 @@
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        @(_isCompetence ? $"Avancer {Libelle}" : $"Avancer {CodeCaracteristique}")
+    </TitleContent>
+    <DialogContent>
+        <MudText>
+            Ajuster les avances de
+            <strong>@(_isCompetence ? Libelle : CodeCaracteristique)</strong>
+            de @_nombrePoints point(s).
+        </MudText>
+        <div class="d-flex align-center gap-2 mt-3">
+            <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                           Size="Size.Small"
+                           OnClick="RetirerPoint"
+                           Disabled="@(_submitting || _nombrePoints <= MinAjustement)" />
+            <MudNumericField T="int"
+                             Value="_nombrePoints"
+                             ValueChanged="ChangerNombrePoints"
+                             Label="Ajustement"
+                             Min="@MinAjustement"
+                             Max="@MaxPoints"
+                             Immediate="true"
+                             Style="max-width:160px" />
+            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           OnClick="AjouterPoint"
+                           Disabled="@(_submitting || _nombrePoints >= MaxPoints)" />
+        </div>
+        <MudPaper Class="pa-3 mt-3" Outlined="true">
+            <MudText Typo="Typo.subtitle2">XP disponibles : <strong>@XpDisponible</strong></MudText>
+            <MudText Typo="Typo.subtitle2">Impact XP : <strong>@FormatImpactXp(CoutXp)</strong></MudText>
+            <MudText Typo="Typo.body2" Color="@(_xpSuffisante ? Color.Secondary : Color.Error)">
+                Après confirmation : @(XpDisponible - CoutXp) XP
+            </MudText>
+        </MudPaper>
+        <MudText Class="mt-2" Color="Color.Info">Cette action consomme de l'XP selon le tableau officiel (p. 47).</MudText>
+        @if (!_xpSuffisante)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                Le solde XP sera négatif après validation.
+            </MudAlert>
+        }
+        @if (MaxPoints <= 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                Le maximum de 50 avances est déjà atteint.
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirmer" Disabled="@(_submitting || _nombrePoints == 0)">
+            Valider
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public int PersonnageId { get; set; }
+    [Parameter] public string CodeCaracteristique { get; set; } = null!;
+    [Parameter] public int? CompetenceId { get; set; }
+    [Parameter] public string? Libelle { get; set; }
+    [Parameter] public int AvancesActuelles { get; set; }
+    [Parameter] public int XpDisponible { get; set; }
+
+    private bool _submitting;
+    private int _nombrePoints;
+    private const int MinAjustement = -50;
+    private bool _isCompetence => CompetenceId.HasValue;
+    private int MaxPoints => Math.Max(0, 50 - AvancesActuelles);
+    private int CoutXp => CalculerCoutAvanceTotal(AvancesActuelles, _nombrePoints, _isCompetence);
+    private bool _xpSuffisante => _nombrePoints != 0 && (CoutXp <= 0 || XpDisponible >= CoutXp);
+
+    private static string FormatImpactXp(int cout)
+    {
+        if (cout < 0)
+            return $"+{-cout} XP";
+        if (cout > 0)
+            return $"-{cout} XP";
+        return "0 XP";
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void AjouterPoint() => ChangerNombrePoints(_nombrePoints + 1);
+
+    private void RetirerPoint() => ChangerNombrePoints(_nombrePoints - 1);
+
+    private void ChangerNombrePoints(int value)
+    {
+        _nombrePoints = Math.Clamp(value, MinAjustement, MaxPoints);
+    }
+
+    private async Task Confirmer()
+    {
+        if (_nombrePoints == 0) return;
+
+        _submitting = true;
+        try
+        {
+            await Api.AvancerAsync(PersonnageId, new AvanceRequest
+            {
+                Type = _isCompetence ? TypeXP.Competence : TypeXP.Caracteristique,
+                CodeCaracteristique = _isCompetence ? null : CodeCaracteristique,
+                CompetenceId = CompetenceId,
+                NombrePoints = _nombrePoints,
+            });
+            Snackbar.Add(_nombrePoints > 0
+                ? $"{(_isCompetence ? Libelle : CodeCaracteristique)} avancé de {_nombrePoints} point(s)."
+                : $"{(_isCompetence ? Libelle : CodeCaracteristique)} réduit de {-_nombrePoints} point(s).", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private static int CalculerCoutAvanceTotal(int avancesActuelles, int nombrePoints, bool competence)
+    {
+        var total = 0;
+        if (nombrePoints >= 0)
+        {
+            for (var i = 0; i < nombrePoints; i++)
+                total += CalculerCoutAvance(avancesActuelles + i, competence);
+        }
+        else
+        {
+            for (var i = 0; i < -nombrePoints; i++)
+                total -= CalculerCoutAvance(avancesActuelles - 1 - i, competence);
+        }
+        return total;
+    }
+
+    private static int CalculerCoutAvance(int avancesActuelles, bool competence)
+    {
+        if (avancesActuelles >= 50)
+            return 0;
+
+        var couts = new (int MaxAvances, int CoutCarac, int CoutCompetence)[]
+        {
+            (5, 25, 10),
+            (10, 30, 15),
+            (15, 40, 20),
+            (20, 50, 30),
+            (25, 70, 40),
+            (30, 90, 60),
+            (35, 120, 80),
+            (40, 150, 110),
+            (45, 190, 140),
+            (50, 230, 180),
+        };
+
+        var palier = couts.First(c => avancesActuelles < c.MaxAvances);
+        return competence ? palier.CoutCompetence : palier.CoutCarac;
+    }
+}

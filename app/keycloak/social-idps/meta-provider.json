@@ -1,0 +1,18 @@
+{
+  "alias": "meta",
+  "displayName": "Meta",
+  "providerId": "facebook",
+  "enabled": true,
+  "trustEmail": true,
+  "storeToken": false,
+  "addReadTokenRoleOnCreate": false,
+  "authenticateByDefault": false,
+  "linkOnly": false,
+  "firstBrokerLoginFlowAlias": "first broker login",
+  "config": {
+    "clientId": "${WFRP4_META_CLIENT_ID:}",
+    "clientSecret": "${WFRP4_META_CLIENT_SECRET:}",
+    "defaultScope": "email public_profile",
+    "syncMode": "IMPORT"
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "realm": "wfrp4",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      { "name": "wfrp4-joueur", "description": "Joueur WFRP4" },
+      { "name": "wfrp4-maitre-jeu", "description": "Maitre de Jeu WFRP4" },
+      { "name": "wfrp4-admin", "description": "Administrateur WFRP4" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "wfrp4-blazor",
+      "name": "WFRP4 Blazor Client",
+      "enabled": true,
+      "publicClient": true,
+      "redirectUris": ["http://localhost:5080/*", "https://localhost:7142/*"],
+      "webOrigins": ["http://localhost:5080", "https://localhost:7142"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5080/*##https://localhost:7142/*"
+      }
+    },
+    {
+      "clientId": "wfrp4-api",
+      "name": "WFRP4 API",
+      "enabled": true,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "wfrp4-admin-service",
+      "name": "WFRP4 Admin Service Account",
+      "enabled": true,
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "secret": "dev-admin-secret-change-me"
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "google",
+      "displayName": "Google",
+      "providerId": "google",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "${WFRP4_GOOGLE_CLIENT_ID:}",
+        "clientSecret": "${WFRP4_GOOGLE_CLIENT_SECRET:}",
+        "defaultScope": "openid profile email",
+        "syncMode": "IMPORT"
+      }
+    },
+    {
+      "alias": "yahoo",
+      "displayName": "Yahoo",
+      "providerId": "oidc",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "${WFRP4_YAHOO_CLIENT_ID:}",
+        "clientSecret": "${WFRP4_YAHOO_CLIENT_SECRET:}",
+        "authorizationUrl": "https://api.login.yahoo.com/oauth2/request_auth",
+        "tokenUrl": "https://api.login.yahoo.com/oauth2/get_token",
+        "userInfoUrl": "https://api.login.yahoo.com/openid/v1/userinfo",
+        "issuer": "https://api.login.yahoo.com",
+        "jwksUrl": "https://api.login.yahoo.com/openid/v1/certs",
+        "clientAuthMethod": "client_secret_basic",
+        "defaultScope": "openid profile email",
+        "syncMode": "IMPORT",
+        "validateSignature": "true",
+        "useJwksUrl": "true",
+        "backchannelSupported": "false"
+      }
+    },
+    {
+      "alias": "meta",
+      "displayName": "Meta",
+      "providerId": "facebook",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "${WFRP4_META_CLIENT_ID:}",
+        "clientSecret": "${WFRP4_META_CLIENT_SECRET:}",
+        "defaultScope": "email public_profile",
+        "syncMode": "IMPORT"
+      }
+    }
+  ],
+  "identityProviderMappers": [
+    {
+      "name": "google-wfrp4-joueur",
+      "identityProviderAlias": "google",
+      "identityProviderMapper": "hardcoded-role-idp-mapper",
+      "config": {
+        "syncMode": "INHERIT",
+        "role": "wfrp4-joueur"
+      }
+    },
+    {
+      "name": "yahoo-wfrp4-joueur",
+      "identityProviderAlias": "yahoo",
+      "identityProviderMapper": "hardcoded-role-idp-mapper",
+      "config": {
+        "syncMode": "INHERIT",
+        "role": "wfrp4-joueur"
+      }
+    },
+    {
+      "name": "meta-wfrp4-joueur",
+      "identityProviderAlias": "meta",
+      "identityProviderMapper": "hardcoded-role-idp-mapper",
+      "config": {
+        "syncMode": "INHERIT",
+        "role": "wfrp4-joueur"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-wfrp4-admin-service",
+      "enabled": true,
+      "serviceAccountClientId": "wfrp4-admin-service",
+      "clientRoles": {
+        "realm-management": ["manage-users", "view-realm"]
+      }
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "username": "joueur1",
+      "enabled": true,
+      "email": "joueur1@wfrp4.local",
+      "firstName": "Joueur",
+      "lastName": "Un",
+      "credentials": [{ "type": "password", "value": "joueur1", "temporary": false }],
+      "realmRoles": ["wfrp4-joueur"]
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "username": "mj1",
+      "enabled": true,
+      "email": "mj1@wfrp4.local",
+      "firstName": "Maitre",
+      "lastName": "Jeu",
+      "credentials": [{ "type": "password", "value": "mj1", "temporary": false }],
+      "realmRoles": ["wfrp4-joueur", "wfrp4-maitre-jeu"]
+    },
+    {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "username": "admin",
+      "enabled": true,
+      "email": "admin@wfrp4.local",
+      "firstName": "Admin",
+      "lastName": "WFRP4",
+      "credentials": [{ "type": "password", "value": "admin", "temporary": false }],
+      "realmRoles": ["wfrp4-joueur", "wfrp4-maitre-jeu", "wfrp4-admin"]
+    }
+  ]
+}
