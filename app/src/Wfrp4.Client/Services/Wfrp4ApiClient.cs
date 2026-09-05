@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Wfrp4.Shared.DTOs;
 
 namespace Wfrp4.Client.Services;
@@ -35,8 +36,30 @@ public class Wfrp4ApiClient
     public async Task<PersonnageSummaryDto?> CreerPersonnageAsync(CreatePersonnageRequest request)
     {
         var response = await _http.PostAsJsonAsync("api/personnages", request);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response);
         return await response.Content.ReadFromJsonAsync<PersonnageSummaryDto>();
+    }
+
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        try
+        {
+            using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            if (body.RootElement.TryGetProperty("error", out var error)
+                && !string.IsNullOrWhiteSpace(error.GetString()))
+            {
+                throw new HttpRequestException(error.GetString(), null, response.StatusCode);
+            }
+        }
+        catch (JsonException)
+        {
+            // Fall back to the standard HTTP exception when the API did not return JSON.
+        }
+
+        response.EnsureSuccessStatusCode();
     }
 
     public async Task SupprimerPersonnageAsync(int id)
@@ -92,7 +115,7 @@ public class Wfrp4ApiClient
     public async Task AvancerAsync(int personnageId, AvanceRequest request)
     {
         var response = await _http.PostAsJsonAsync($"api/personnages/{personnageId}/avances", request);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response);
     }
 
     public async Task OctroyerXPAsync(int personnageId, XPGrantRequest request)
@@ -135,7 +158,13 @@ public class Wfrp4ApiClient
     public async Task AjouterSortAsync(int personnageId, AjoutSortRequest request)
     {
         var response = await _http.PostAsJsonAsync($"api/personnages/{personnageId}/sorts", request);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response);
+    }
+
+    public async Task AnnulerDernierPassageCarriereAsync(int personnageId)
+    {
+        var response = await _http.PostAsync($"api/personnages/{personnageId}/carrieres/retour", null);
+        await EnsureSuccessAsync(response);
     }
 
     public async Task SupprimerSortAsync(int personnageId, int sortId)

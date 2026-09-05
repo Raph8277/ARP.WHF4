@@ -28,6 +28,7 @@ public class PersonnageDetailDto
     public string Nom { get; set; } = null!;
     public GenrePersonnage Genre { get; set; }
     public int EspeceId { get; set; }
+    public string EspeceCode { get; set; } = null!;
     public string EspeceNom { get; set; } = null!;
     public int? CarriereCouranteId { get; set; }
     public string? CarriereCouranteIntitule { get; set; }
@@ -99,6 +100,7 @@ public class CaracteristiqueDto
 public class PersonnageCompetenceDto
 {
     public int CompetenceId { get; set; }
+    public string CompetenceCode { get; set; } = null!;
     public string CompetenceNom { get; set; } = null!;
     public string Caracteristique { get; set; } = null!;
     public bool EstAvancee { get; set; }
@@ -109,6 +111,7 @@ public class PersonnageCompetenceDto
 public class PersonnageTalentDto
 {
     public int TalentId { get; set; }
+    public string TalentCode { get; set; } = null!;
     public string TalentNom { get; set; } = null!;
     public int Fois { get; set; }
 }

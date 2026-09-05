@@ -1,0 +1,26 @@
+<section class="career-requirement">
+    <div class="career-requirement__title">
+        <MudIcon Icon="@Icon" Size="Size.Small" />
+        <strong>@Title</strong>
+    </div>
+    @if (Values.Count > 0)
+    {
+        <div class="career-requirement__chips">
+            @foreach (var value in Values)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@value</MudChip>
+            }
+        </div>
+    }
+    else
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@EmptyText</MudText>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Icon { get; set; } = string.Empty;
+    [Parameter] public IReadOnlyList<string> Values { get; set; } = [];
+    [Parameter] public string EmptyText { get; set; } = "Aucune donnée.";
+}

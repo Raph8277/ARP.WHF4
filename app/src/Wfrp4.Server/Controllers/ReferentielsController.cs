@@ -97,6 +97,7 @@ public class ReferentielsController : ControllerBase
                 Intitule = n.Intitule,
                 Statut = n.Statut,
                 StatutNumerique = n.StatutNumerique,
+                CaracteristiqueCodes = ParseJsonCodes(n.AvancesCarac),
                 CompetenceCodes = ParseCodes(n.CompetenceRevenu),
                 TalentCodes = ParseCodes(n.TalentsRevenu),
                 Dotations = ParseDotations(n.Dotations),
@@ -113,6 +114,19 @@ public class ReferentielsController : ControllerBase
         string.IsNullOrWhiteSpace(pipe)
             ? []
             : pipe.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+    private static List<string> ParseJsonCodes(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? [];
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return ParseCodes(json);
+        }
+    }
 
     [HttpGet("competences")]
     public async Task<ActionResult<List<CompetenceDto>>> GetCompetences()

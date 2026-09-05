@@ -208,6 +208,258 @@ body.mud-theme-dark::before {
     white-space: nowrap;
 }
 
+/* Grimoire */
+.grimoire-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.grimoire-panel {
+    min-height: 32rem;
+}
+
+.grimoire-tabs {
+    display: flex;
+    gap: .35rem;
+    margin-bottom: 1rem;
+    padding: .35rem;
+    border: 1px solid rgba(26, 49, 75, .16);
+    background: var(--old-world-panel-bg);
+}
+
+.grimoire-tabs__tab {
+    flex: 1;
+    padding: .85rem 1rem;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--mud-palette-text-primary);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.grimoire-tabs__tab:hover,
+.grimoire-tabs__tab--active {
+    border-bottom-color: var(--mud-palette-primary);
+    background: rgba(26, 49, 75, .08);
+    color: var(--mud-palette-primary);
+}
+
+.grimoire-branch {
+    margin: .55rem 0;
+    border-left: 2px solid rgba(176, 138, 73, .42);
+    padding-left: .8rem;
+}
+
+.grimoire-branch > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .6rem .75rem;
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: .04em;
+    background: rgba(176, 138, 73, .08);
+}
+
+.grimoire-branch > summary span {
+    min-width: 1.7rem;
+    padding: .1rem .45rem;
+    border-radius: 999px;
+    text-align: center;
+    background: rgba(26, 49, 75, .12);
+}
+
+.grimoire-branch--domain > summary {
+    font-weight: 600;
+    background: rgba(26, 49, 75, .06);
+}
+
+.grimoire-branch--level > summary {
+    font-size: .88rem;
+    font-weight: 600;
+    background: transparent;
+}
+
+.grimoire-leaf {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: .45rem 0 .45rem .8rem;
+    padding: .65rem .75rem;
+    border: 1px solid rgba(26, 49, 75, .14);
+    background: rgba(255, 255, 255, .28);
+}
+
+.grimoire-leaf strong,
+.grimoire-leaf small {
+    display: block;
+}
+
+.grimoire-leaf small {
+    margin-top: .2rem;
+    opacity: .72;
+}
+
+.grimoire-leaf em {
+    color: #b08a49;
+    font-style: normal;
+}
+
+.grimoire-leaf__actions {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.grimoire-spell {
+    margin: .5rem 0 .5rem .8rem;
+    border: 1px solid rgba(26, 49, 75, .16);
+    background: rgba(255, 255, 255, .22);
+}
+
+.grimoire-spell > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .75rem .9rem;
+    cursor: pointer;
+    font-family: var(--mud-typography-h6-family);
+    font-weight: 700;
+}
+
+.grimoire-spell--known {
+    border-left: 4px solid var(--mud-palette-primary);
+    box-shadow: inset 0 0 28px rgba(26, 73, 112, .09);
+}
+
+.grimoire-spell--scroll {
+    border-right: 4px solid #d2aa49;
+    background: linear-gradient(90deg, rgba(255,255,255,.22), rgba(210,170,73,.11));
+}
+
+.grimoire-spell--known.grimoire-spell--scroll {
+    box-shadow: inset 0 0 34px rgba(113, 91, 144, .13);
+}
+
+.grimoire-spell__markers,
+.grimoire-spell__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .45rem;
+}
+
+.grimoire-marker {
+    padding: .18rem .5rem;
+    border-radius: 999px;
+    font-family: var(--mud-typography-default-family);
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.grimoire-marker--known {
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+}
+
+.grimoire-marker--scroll {
+    background: #d2aa49;
+    color: #2b2418;
+}
+
+.grimoire-spell__body {
+    padding: 0 .9rem 1rem;
+}
+
+.grimoire-prerequisite {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    margin: 0 0 1rem;
+    padding: .65rem .75rem;
+    border-left: 3px solid currentColor;
+}
+
+.grimoire-prerequisite strong,
+.grimoire-prerequisite span {
+    display: block;
+}
+
+.grimoire-prerequisite strong {
+    font-size: .7rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+.grimoire-prerequisite--met {
+    color: var(--mud-palette-success);
+    background: rgba(56, 118, 82, .09);
+}
+
+.grimoire-prerequisite--missing {
+    color: var(--mud-palette-warning-darken);
+    background: rgba(210, 170, 73, .1);
+}
+
+.grimoire-spell__actions {
+    margin: .75rem 0 .35rem;
+}
+
+.grimoire-spell__stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .5rem;
+    margin: 0 0 1rem;
+}
+
+.grimoire-spell__stats div {
+    padding: .55rem;
+    background: rgba(176, 138, 73, .1);
+}
+
+.grimoire-spell__stats dt {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.grimoire-spell__stats dd {
+    margin: .2rem 0 0;
+}
+
+.grimoire-empty {
+    padding: 2.5rem 1rem;
+    border: 1px dashed rgba(176, 138, 73, .55);
+    text-align: center;
+    color: var(--mud-palette-text-secondary);
+}
+
+@media (max-width: 700px) {
+    .grimoire-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .grimoire-tabs {
+        flex-direction: column;
+    }
+
+    .grimoire-spell__stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 .old-world-section-header {
     margin-bottom: 1rem;
 }
@@ -396,10 +648,31 @@ body.mud-theme-dark::before {
 
 .mud-button-filled.mud-button-filled-primary {
     background: var(--old-world-btn-primary);
+    color: var(--mud-palette-primary-text, #fff) !important;
 }
 
 .mud-button-filled.mud-button-filled-secondary {
     background: var(--old-world-btn-secondary);
+    color: var(--mud-palette-secondary-text, #211b12) !important;
+}
+
+.mud-button-filled.mud-button-filled-primary .mud-button-label,
+.mud-button-filled.mud-button-filled-primary .mud-icon-root {
+    color: var(--mud-palette-primary-text, #fff) !important;
+}
+
+.mud-button-filled.mud-button-filled-secondary .mud-button-label,
+.mud-button-filled.mud-button-filled-secondary .mud-icon-root {
+    color: var(--mud-palette-secondary-text, #211b12) !important;
+}
+
+.mud-button-filled.mud-disabled {
+    opacity: .52;
+}
+
+.mud-button-filled.mud-disabled .mud-button-label,
+.mud-button-filled.mud-disabled .mud-icon-root {
+    color: var(--mud-palette-primary-text, #fff) !important;
 }
 
 .mud-button-text {
@@ -449,6 +722,16 @@ body.mud-theme-dark::before {
 
 .mud-dialog-title {
     font-family: var(--wfrp4-font-heading, "Cormorant Garamond", Georgia, serif);
+}
+
+.talent-search-preview {
+    border-left: 3px solid var(--mud-palette-primary) !important;
+    background: rgba(26, 73, 112, .06);
+}
+
+.spell-search-preview {
+    border-left: 3px solid var(--mud-palette-primary) !important;
+    background: rgba(26, 73, 112, .06);
 }
 
 .valid.modified:not([type=checkbox]) {
@@ -1007,6 +1290,166 @@ body.mud-theme-dark .guide-malus {
     opacity: 1;
     background: var(--old-world-stat-bg, rgba(231, 215, 187, 0.08));
     border-bottom: 2px solid var(--mud-palette-primary);
+}
+
+.career-card {
+    border-left: 4px solid var(--mud-palette-primary) !important;
+    background: rgba(26, 73, 112, .035);
+}
+
+.career-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.career-path {
+    display: grid;
+    gap: .65rem;
+}
+
+.career-path__level {
+    border: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+}
+
+.career-path__level--active {
+    border-left: 4px solid var(--mud-palette-secondary);
+    box-shadow: inset 0 0 24px rgba(176, 138, 73, .08);
+}
+
+.career-path__level > summary {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem;
+    cursor: pointer;
+}
+
+.career-path__number {
+    display: grid;
+    width: 1.8rem;
+    height: 1.8rem;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+    font-weight: 700;
+}
+
+.career-path__title {
+    flex: 1;
+}
+
+.career-path__title strong,
+.career-path__title small {
+    display: block;
+}
+
+.career-path__title small {
+    color: var(--mud-palette-text-secondary);
+}
+
+.career-path__current {
+    color: var(--mud-palette-secondary-darken);
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.career-path__content {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
+    padding: 0 .75rem .75rem 3.3rem;
+}
+
+.career-requirement {
+    padding: .7rem;
+    background: rgba(26, 73, 112, .05);
+}
+
+.career-requirement__title,
+.career-requirement__chips {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+
+.career-requirement__title {
+    margin-bottom: .55rem;
+}
+
+.career-advancement {
+    padding: 1rem;
+    border: 1px solid rgba(176, 138, 73, .45);
+    background: rgba(176, 138, 73, .07);
+}
+
+.career-advancement__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: .8rem;
+}
+
+.career-advancement__checks {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .55rem;
+}
+
+.career-check {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .65rem;
+    border-left: 3px solid var(--mud-palette-warning);
+    background: rgba(255, 255, 255, .3);
+}
+
+.career-check--met {
+    border-left-color: var(--mud-palette-success);
+}
+
+.career-check strong,
+.career-check span {
+    display: block;
+}
+
+.career-change-preview {
+    border-left: 3px solid var(--mud-palette-secondary) !important;
+    background: rgba(176, 138, 73, .07);
+}
+
+.career-check span {
+    color: var(--mud-palette-text-secondary);
+    font-size: .72rem;
+}
+
+@media (max-width: 800px) {
+    .career-card__header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .career-path__content {
+        grid-template-columns: 1fr;
+        padding-left: .75rem;
+    }
+
+    .career-advancement__heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .career-advancement__checks {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* PDF Designer */

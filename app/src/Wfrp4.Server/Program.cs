@@ -76,6 +76,7 @@ builder.Services.AddAuthorization(options =>
 
 // --- Services ---
 builder.Services.AddScoped<PersonnageService>();
+builder.Services.AddScoped<SortAccessService>();
 builder.Services.AddScoped<XPService>();
 builder.Services.AddScoped<CharacterSheetPdfService>();
 builder.Services.AddScoped<MjPdfExportService>();

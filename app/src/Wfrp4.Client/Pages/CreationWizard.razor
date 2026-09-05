@@ -124,12 +124,15 @@ else
 
                 @if (_carriereMode == "manuel")
                 {
-                    <MudSelect T="int" Label="Carrière" Value="_selectedCarriereId" ValueChanged="OnCarriereChanged" Required="true">
-                        @foreach (var c in CarrieresDeLaClasse)
-                        {
-                            <MudSelectItem T="int" Value="@c.Id">@c.Nom</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="CarriereDto" Label="Rechercher une carrière"
+                                     Value="SelectedCarriere" ValueChanged="OnCarriereSelected"
+                                     SearchFunc="RechercherCarrieres" ToStringFunc="AfficherCarriere"
+                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                     Placeholder="Nom, classe, titre ou statut…" Clearable="true"
+                                     ResetValueOnEmptyText="true" CoerceText="false" MaxItems="30" Required="true" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                        @CarrieresDeLaClasse.Count() carrières compatibles avec la classe et l’espèce choisies.
+                    </MudText>
                 }
                 else if (_selectedCarriereId > 0)
                 {
@@ -140,20 +143,9 @@ else
 
                 @if (SelectedCarriere?.Niveaux.Count > 0)
                 {
-                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Progression de carrière</MudText>
-                    <div class="career-progression">
-                        @foreach (var niveau in SelectedCarriere.Niveaux.OrderBy(n => n.Niveau))
-                        {
-                            <div class="career-progression__level @(niveau.Niveau == 1 ? "career-progression__level--active" : "")">
-                                <div class="d-flex align-center gap-2">
-                                    <MudText Typo="Typo.body2">
-                                        <strong>@niveau.Intitule</strong>
-                                    </MudText>
-                                    <StatutBadge Tier="@niveau.Statut" Rang="@niveau.StatutNumerique" />
-                                </div>
-                                <MudText Typo="Typo.caption">Niveau @niveau.Niveau</MudText>
-                            </div>
-                        }
+                    <div class="mt-4">
+                        <CarriereDetails Carriere="SelectedCarriere" ActiveLevel="1" EspeceCode="@SelectedEspece?.Code"
+                                         CompetenceNames="CompetenceNames" TalentNames="TalentNames" />
                     </div>
                 }
             }
@@ -364,7 +356,47 @@ else
             }
         </MudStep>
 
-        @* Étape 7 : Dotations *@
+        @* Étape 7 : Sorts *@
+        <MudStep Title="Sorts">
+            <div class="old-world-section-header">
+                <MudText Class="old-world-kicker">Chapitre VII</MudText>
+                <MudText Typo="Typo.h4">Sorts initiaux</MudText>
+            </div>
+
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+                <strong>Règle de magie :</strong> le talent Magie Mineure permet de mémoriser immédiatement un nombre
+                de sorts mineurs égal au bonus de Force Mentale. Les sorts supplémentaires s'apprennent ensuite en dépensant de l'XP.
+                Les sorts arcaniques exigent Magie des Arcanes et les sorts de Tradition exigent le Savoir correspondant.
+            </MudAlert>
+
+            @if (!PossedeMagieMineure)
+            {
+                <MudAlert Severity="Severity.Normal" Dense="true">
+                    Le talent choisi pour cette carrière et ce niveau n'accorde aucun sort initial.
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="@CouleurValidationSorts" Dense="true" Class="mb-4">
+                    Choisissez exactement <strong>@NombreSortsMineursInitiaux</strong> sorts mineurs
+                    (bonus de Force Mentale). Sélection : <strong>@_selectedSorts.Count / @NombreSortsMineursInitiaux</strong>.
+                </MudAlert>
+                <MudGrid>
+                    @foreach (var sort in SortsMineurs)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudCheckBox T="bool" Label="@sort.Nom"
+                                         Value="@_selectedSorts.Contains(sort.Id)"
+                                         ValueChanged="v => OnSortToggled(sort.Id, v)"
+                                         Disabled="@(!_selectedSorts.Contains(sort.Id) && _selectedSorts.Count >= NombreSortsMineursInitiaux)" />
+                            <MudText Typo="Typo.caption" Class="ml-8">CN @sort.Cn — @(sort.Resume ?? "—")</MudText>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+        </MudStep>
+
+        @* Étape 8 : Dotations *@
         <MudStep Title="Dotations">
             <div class="old-world-section-header">
                 <MudText Class="old-world-kicker">Chapitre VII</MudText>
@@ -408,7 +440,7 @@ else
             }
         </MudStep>
 
-        @* Étape 8 : Détails *@
+        @* Étape 9 : Détails *@
         <MudStep Title="Détails">
             <div class="old-world-section-header">
                 <MudText Class="old-world-kicker">Chapitre VIII</MudText>
@@ -509,7 +541,7 @@ else
                              MaxItems="15" Lines="2" Class="mb-2" />
         </MudStep>
 
-        @* Étape 9 : Résumé *@
+        @* Étape 10 : Résumé *@
         <MudStep Title="Résumé">
             <div class="old-world-section-header">
                 <MudText Class="old-world-kicker">Chapitre IX</MudText>
@@ -584,6 +616,20 @@ else
                 </MudSimpleTable>
             }
 
+            @if (_selectedSorts.Count > 0)
+            {
+                <MudText Typo="Typo.h6" Class="mt-4 mb-2">Sorts initiaux</MudText>
+                <MudSimpleTable Dense="true" Class="old-world-table">
+                    <tbody>
+                        @foreach (var sortId in _selectedSorts)
+                        {
+                            var sort = _sorts.FirstOrDefault(s => s.Id == sortId);
+                            <tr><td>@(sort?.Nom ?? $"#{sortId}")</td></tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+
             @if (DotationsCarriere.Count > 0)
             {
                 <MudText Typo="Typo.h6" Class="mt-4 mb-2">Dotations</MudText>
@@ -630,6 +676,7 @@ else
     private List<CarriereDto>? _carrieres;
     private List<CompetenceDto>? _competences;
     private List<TalentDto>? _talents;
+    private List<SortReferenceDto> _sorts = [];
     private List<TitreBaseReferenceDto> _titresBase = [];
     private List<TitreQualificatifReferenceDto> _titresQualificatifs = [];
     private int _selectedClasseId;
@@ -647,6 +694,7 @@ else
     // Compétences et talents sélectionnés
     private Dictionary<int, int> _selectedCompetences = new();
     private HashSet<int> _selectedTalents = new();
+    private HashSet<int> _selectedSorts = new();
 
     private int TotalAvancesCompetencesCreation => _selectedCompetences.Values.Sum();
     private int AvancesCompetenceGratuitesRestantes => 40 - TotalAvancesCompetencesCreation;
@@ -659,9 +707,20 @@ else
     private bool TalentsCreationValides =>
         TalentsCarriere.Count == 0
         || (_selectedTalents.Count == 1 && _selectedTalents.All(id => TalentsCarriere.Any(t => t.Id == id)));
+    private bool PossedeMagieMineure => _selectedTalents.Any(id =>
+        _talents?.Any(t => t.Id == id && t.Code == "MAGIE_MINEUR") == true);
+    private int NombreSortsMineursInitiaux => GetCaracValue("FM") / 10;
+    private List<SortReferenceDto> SortsMineurs => _sorts
+        .Where(s => s.Categorie == "Mineur")
+        .OrderBy(s => s.Nom)
+        .ToList();
+    private bool SortsCreationValides => PossedeMagieMineure
+        ? _selectedSorts.Count == NombreSortsMineursInitiaux
+        : _selectedSorts.Count == 0;
     private Severity CouleurValidationCompetences => CompetencesCreationValides ? Severity.Success : Severity.Warning;
     private Severity CouleurValidationTalents => TalentsCreationValides ? Severity.Success : Severity.Warning;
-    private bool CreationValide => CompetencesCreationValides && TalentsCreationValides;
+    private Severity CouleurValidationSorts => SortsCreationValides ? Severity.Success : Severity.Warning;
+    private bool CreationValide => CompetencesCreationValides && TalentsCreationValides && SortsCreationValides;
 
     // Bonus fixes par espèce selon WFRP4 (ajouté à 2d10 pour chaque carac)
     private static readonly Dictionary<string, Dictionary<string, int>> _bonusDes = new()
@@ -736,6 +795,40 @@ else
     private IEnumerable<CarriereDto> CarrieresDeLaClasse =>
         _carrieres?.Where(c => c.ClasseId == _selectedClasseId && EstCarriereAutorisee(c)).OrderBy(c => c.Nom) ?? Enumerable.Empty<CarriereDto>();
 
+    private IReadOnlyDictionary<string, string> CompetenceNames =>
+        (_competences ?? []).ToDictionary(c => c.Code, c => c.Nom);
+
+    private IReadOnlyDictionary<string, string> TalentNames =>
+        (_talents ?? []).ToDictionary(t => t.Code, t => t.Nom);
+
+    private void OnCarriereSelected(CarriereDto? carriere) => OnCarriereChanged(carriere?.Id ?? 0);
+
+    private Task<IEnumerable<CarriereDto>> RechercherCarrieres(string? recherche, CancellationToken ct)
+    {
+        var source = CarrieresDeLaClasse;
+        if (string.IsNullOrWhiteSpace(recherche))
+            return Task.FromResult(source.Take(30));
+
+        var termes = NormaliserRecherche(recherche).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var resultats = source.Where(c =>
+        {
+            var niveaux = string.Join(' ', c.Niveaux.Select(n => $"{n.Intitule} {n.Statut} {n.StatutNumerique}"));
+            var texte = NormaliserRecherche($"{c.Nom} {c.Code} {c.ClasseNom} {niveaux}");
+            return termes.All(texte.Contains);
+        }).Take(30);
+        return Task.FromResult(resultats);
+    }
+
+    private static string AfficherCarriere(CarriereDto? carriere) =>
+        carriere == null ? string.Empty : $"{carriere.Nom} — {carriere.Niveaux.FirstOrDefault()?.Intitule ?? carriere.ClasseNom}";
+
+    private static string NormaliserRecherche(string valeur)
+    {
+        var decomposed = valeur.ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        return string.Concat(decomposed.Where(c =>
+            System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark));
+    }
+
     private bool EstCarriereAutorisee(CarriereDto carriere)
     {
         if (carriere.EspecesAutorisees.Count == 0) return true;
@@ -750,6 +843,7 @@ else
         _carrieres = await Api.GetCarrieresAsync();
         _competences = await Api.GetCompetencesAsync();
         _talents = await Api.GetTalentsAsync();
+        _sorts = await Api.GetSortsAsync() ?? [];
         _titresBase = await Api.GetTitresBaseAsync() ?? [];
         _titresQualificatifs = await Api.GetTitresQualificatifsAsync() ?? [];
         _referentielsCharges = true;
@@ -851,6 +945,7 @@ else
     {
         _selectedCompetences.Clear();
         _selectedTalents.Clear();
+        _selectedSorts.Clear();
         EnsureCompetencesCarriereInitialisees();
     }
 
@@ -888,6 +983,16 @@ else
         {
             _selectedTalents.Remove(talentId);
         }
+
+        _selectedSorts.Clear();
+    }
+
+    private void OnSortToggled(int sortId, bool selected)
+    {
+        if (selected && _selectedSorts.Count < NombreSortsMineursInitiaux)
+            _selectedSorts.Add(sortId);
+        else if (!selected)
+            _selectedSorts.Remove(sortId);
     }
 
     private async Task CreerPersonnage()
@@ -932,6 +1037,12 @@ else
             return;
         }
 
+        if (!SortsCreationValides)
+        {
+            Snackbar.Add($"Choisissez exactement {NombreSortsMineursInitiaux} sorts mineurs.", Severity.Warning);
+            return;
+        }
+
         if (_request.TitreBaseReferenceId.HasValue != _request.TitreQualificatifReferenceId.HasValue)
         {
             Snackbar.Add("Choisissez les deux parties du titre, ou laissez le titre vide.", Severity.Warning);
@@ -941,6 +1052,7 @@ else
         _request.XpBonus = _xpBonusDes;
         _request.CompetencesInitiales = new Dictionary<int, int>(_selectedCompetences);
         _request.TalentsInitiaux = _selectedTalents.ToList();
+        _request.SortsInitiaux = _selectedSorts.ToList();
 
         _submitting = true;
         try

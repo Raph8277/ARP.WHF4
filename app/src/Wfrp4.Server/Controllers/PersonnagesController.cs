@@ -17,11 +17,13 @@ public class PersonnagesController : ControllerBase
 {
     private readonly Wfrp4DbContext _db;
     private readonly PersonnageService _personnageService;
+    private readonly SortAccessService _sortAccessService;
 
-    public PersonnagesController(Wfrp4DbContext db, PersonnageService personnageService)
+    public PersonnagesController(Wfrp4DbContext db, PersonnageService personnageService, SortAccessService sortAccessService)
     {
         _db = db;
         _personnageService = personnageService;
+        _sortAccessService = sortAccessService;
     }
 
     private string GetKeycloakId() =>
@@ -120,6 +122,7 @@ public class PersonnagesController : ControllerBase
             .Include(p => p.Possessions)
             .Include(p => p.Sorts).ThenInclude(s => s.SortReference)
             .Include(p => p.Parchemins).ThenInclude(p => p.SortReference)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (personnage == null) return NotFound();
@@ -160,6 +163,7 @@ public class PersonnagesController : ControllerBase
                 return new PersonnageCompetenceDto
                 {
                     CompetenceId = c.Id,
+                    CompetenceCode = c.Code,
                     CompetenceNom = c.Nom,
                     Caracteristique = c.Caracteristique,
                     EstAvancee = c.EstAvancee,
@@ -175,6 +179,7 @@ public class PersonnagesController : ControllerBase
             Nom = personnage.Nom,
             Genre = personnage.Genre,
             EspeceId = personnage.EspeceId,
+            EspeceCode = personnage.Espece.Code,
             EspeceNom = personnage.Espece.Nom,
             CarriereCouranteId = personnage.CarriereCouranteId,
             CarriereCouranteIntitule = personnage.CarriereCourante?.Intitule,
@@ -226,6 +231,7 @@ public class PersonnagesController : ControllerBase
             Talents = personnage.Talents.Select(t => new PersonnageTalentDto
             {
                 TalentId = t.TalentId,
+                TalentCode = t.Talent.Code,
                 TalentNom = t.Talent.Nom,
                 Fois = t.Fois,
             }).ToList(),
@@ -432,7 +438,15 @@ public class PersonnagesController : ControllerBase
     public async Task<ActionResult<PersonnageSummaryDto>> CreerPersonnage(CreatePersonnageRequest request)
     {
         var keycloakId = GetKeycloakId();
-        var personnage = await _personnageService.CreerPersonnage(keycloakId, request);
+        Infrastructure.Entities.Personnage personnage;
+        try
+        {
+            personnage = await _personnageService.CreerPersonnage(keycloakId, request);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { Error = ex.Message });
+        }
 
         return CreatedAtAction(nameof(GetPersonnage), new { id = personnage.Id }, new PersonnageSummaryDto
         {
@@ -522,6 +536,8 @@ public class PersonnagesController : ControllerBase
 
         var sort = await _db.SortsReference.FindAsync(request.SortReferenceId);
         if (sort == null) return BadRequest(new { Error = "Sort introuvable." });
+        if (!await _sortAccessService.EstAccessibleAuPersonnage(id, sort))
+            return BadRequest(new { Error = "Ce sort n'est pas accessible avec les talents magiques actuels du personnage." });
 
         personnage.Sorts.Add(new Infrastructure.Entities.PersonnageSort
         {
@@ -594,7 +610,10 @@ public class PersonnagesController : ControllerBase
         if (parchemin == null) return NotFound();
         if (!IsOwnerOrAdmin(parchemin.Personnage.KeycloakId)) return Forbid();
 
-        _db.PersonnageParchemins.Remove(parchemin);
+        if (parchemin.Quantite > 1)
+            parchemin.Quantite--;
+        else
+            _db.PersonnageParchemins.Remove(parchemin);
         parchemin.Personnage.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return NoContent();
