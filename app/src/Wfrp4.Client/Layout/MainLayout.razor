@@ -47,6 +47,17 @@
                 <MudText Typo="Typo.body2">Vos personnages, vos références, vos partages.</MudText>
             </div>
             <NavMenu />
+            <div class="old-world-drawer-theme">
+                <MudSelect T="string" Value="@ThemeService.ActivePreset.Id"
+                           ValueChanged="OnPresetChanged"
+                           Label="Thème" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Dense="true" AnchorOrigin="Origin.TopCenter">
+                    @foreach (var p in ThemeService.AllPresets)
+                    {
+                        <MudSelectItem T="string" Value="@p.Id">@p.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
         </div>
     </MudDrawer>
 
@@ -80,6 +91,12 @@
     private void OnThemePanelChanged(bool open) => _themePanelOpen = open;
 
     private async Task ToggleDarkMode() => await ThemeService.ToggleDarkModeAsync();
+
+    private async Task OnPresetChanged(string presetId)
+    {
+        if (!string.IsNullOrEmpty(presetId))
+            await ThemeService.SelectPresetAsync(presetId);
+    }
 
     private void Logout() => Nav.NavigateToLogout("authentication/logout", "authentication/logged-out");
 }
