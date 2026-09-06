@@ -120,22 +120,23 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
-    app.Use(async (context, next) =>
-    {
-        if (!context.Request.Path.StartsWithSegments("/api"))
-        {
-            context.Response.OnStarting(() =>
-            {
-                context.Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
-                context.Response.Headers.Pragma = "no-cache";
-                context.Response.Headers.Expires = "0";
-                return Task.CompletedTask;
-            });
-        }
-
-        await next();
-    });
 }
+
+app.Use(async (context, next) =>
+{
+    if (!context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
+            context.Response.Headers.Pragma = "no-cache";
+            context.Response.Headers.Expires = "0";
+            return Task.CompletedTask;
+        });
+    }
+
+    await next();
+});
 
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
