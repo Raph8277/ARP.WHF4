@@ -37,6 +37,7 @@ else
                 <MudText Typo="Typo.h4">Choisissez votre espèce</MudText>
             </div>
             <MudSelect T="int" Label="Espèce" Value="_request.EspeceId" ValueChanged="OnEspeceChanged" Required="true">
+                <MudSelectItem T="int" Value="0" Disabled="true">— Sélectionnez une espèce —</MudSelectItem>
                 @foreach (var e in _especes!)
                 {
                     <MudSelectItem T="int" Value="@e.Id">@e.Nom (Mouvement : @e.MouvementBase)</MudSelectItem>
@@ -77,6 +78,7 @@ else
             @if (_classeMode == "manuel")
             {
                 <MudSelect T="int" Label="Classe" Value="_selectedClasseId" ValueChanged="OnClasseChanged" Required="true">
+                    <MudSelectItem T="int" Value="0" Disabled="true">— Sélectionnez une classe —</MudSelectItem>
                     @foreach (var cl in _classes!.OrderBy(c => c.Nom))
                     {
                         <MudSelectItem T="int" Value="@cl.Id">@cl.Nom</MudSelectItem>

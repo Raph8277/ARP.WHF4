@@ -111,6 +111,13 @@ public class Wfrp4ApiClient
         return await response.Content.ReadAsByteArrayAsync();
     }
 
+    public async Task<byte[]> GetMjPdfTemplateAsync()
+    {
+        var response = await _http.GetAsync("api/mj/pdf/template");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
     // --- Avances ---
     public async Task AvancerAsync(int personnageId, AvanceRequest request)
     {

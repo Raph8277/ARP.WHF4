@@ -1,0 +1,646 @@
+@page "/admin/pnj-pdf-designer"
+@attribute [Authorize]
+@using System.Text.Json
+@using Wfrp4.Client.Theme
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>Designer PDF PNJ - WFRP4</PageTitle>
+
+@if (_loading)
+{
+    <div class="old-world-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else
+{
+    <section class="old-world-hero old-world-hero--sheet mb-4">
+        <div class="d-flex flex-wrap align-center justify-space-between gap-4">
+            <div>
+                <MudText Class="old-world-kicker">Atelier admin</MudText>
+                <MudText Typo="Typo.h2" Class="old-world-hero__title mb-2">Designer PDF PNJ</MudText>
+                <MudText Typo="Typo.subtitle1" Class="old-world-hero__text">
+                    Configurez le rendu de la fiche PNJ et testez en temps reel.
+                </MudText>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Visibility"
+                           OnClick="TesterRendu" Disabled="_testing">
+                    Tester rendu
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.DataObject"
+                           OnClick="CopierJson">
+                    Copier JSON
+                </MudButton>
+            </div>
+        </div>
+    </section>
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <MudText Class="old-world-kicker align-self-center mr-2">Presets</MudText>
+        <MudButton Variant="@PresetVariant("compact")" Color="Color.Primary" Size="Size.Small"
+                   OnClick="@(() => AppliquerPreset("compact"))">Compact</MudButton>
+        <MudButton Variant="@PresetVariant("standard")" Color="Color.Primary" Size="Size.Small"
+                   OnClick="@(() => AppliquerPreset("standard"))">Standard</MudButton>
+        <MudButton Variant="@PresetVariant("detaille")" Color="Color.Primary" Size="Size.Small"
+                   OnClick="@(() => AppliquerPreset("detaille"))">Detaille</MudButton>
+        <MudButton Variant="@PresetVariant("minimal")" Color="Color.Primary" Size="Size.Small"
+                   OnClick="@(() => AppliquerPreset("minimal"))">Minimal</MudButton>
+    </div>
+
+    <div class="pnj-designer-layout">
+        <main class="pnj-designer-preview">
+            <div class="d-flex align-center gap-2 mb-2">
+                <MudSelect T="double" Label="Zoom" @bind-Value="_zoom" Dense="true" Style="max-width:100px">
+                    <MudSelectItem Value="0.35">35%</MudSelectItem>
+                    <MudSelectItem Value="0.5">50%</MudSelectItem>
+                    <MudSelectItem Value="0.75">75%</MudSelectItem>
+                    <MudSelectItem Value="1.0">100%</MudSelectItem>
+                </MudSelect>
+                <MudNumericField T="int" @bind-Value="_testMemberCount" Label="Membres" Min="1" Max="10" Dense="true" Style="max-width:90px" />
+                <MudCheckBox T="bool" @bind-Value="_config.GroupIdenticalMembers" Label="Regrouper" Dense="true" />
+            </div>
+
+            <div class="pnj-designer-scroll">
+                <div class="pnj-designer-canvas" style="@CanvasStyle"
+                     @onmousemove="OnCanvasMouseMove"
+                     @onmouseup="OnCanvasMouseUp"
+                     @onmouseleave="OnCanvasMouseUp"
+                     @onmousedown="OnCanvasMouseDown">
+                    @if (_templateSrc != null)
+                    {
+                        <img src="@_templateSrc" alt="Template PNJ" class="pdf-winforms-template" draggable="false" />
+                    }
+
+                    @foreach (var comp in Components)
+                    {
+                        <div class="@BlockClass(comp)" style="@OverlayStyle(comp)" title="@comp.Label"
+                             @onmousedown="@((MouseEventArgs e) => OnBlockMouseDown(comp.Id, e))"
+                             @onmousedown:stopPropagation="true">
+                            <div class="pnj-preview-block__content">
+                            @if (comp.Id == "header")
+                            {
+                                <div style="@($"background:{_config.HeaderBarColorHex};color:{_config.HeaderTextColorHex};border-radius:2px;padding:2px 6px;width:100%;height:100%;display:flex;align-items:center;justify-content:{HeaderJustify}")">
+                                    <span style="@($"font-size:{Math.Max(7, _config.HeaderFontSize * _zoom):0}px;font-weight:700")">Rudi Reiss (x2)</span>
+                                    <span style="font-size:8px">Elevee</span>
+                                </div>
+                            }
+                            else if (comp.Id == "context")
+                            {
+                                <div style="@($"background:{_config.ContextBgColorHex};width:100%;height:100%;padding:2px 6px;border-radius:2px;overflow:hidden;text-align:{CssAlign(_config.ContextTextAlign)}")">
+                                    <div style="font-size:7px"><b style="@($"display:inline-block;width:{_config.ContextLabelWidth * _zoom:0}px")">Objectif</b> Recuperer une dette</div>
+                                    <div style="font-size:7px"><b style="@($"display:inline-block;width:{_config.ContextLabelWidth * _zoom:0}px")">Ambiance</b> Urbain</div>
+                                </div>
+                            }
+                            else if (comp.Id == "stats")
+                            {
+                                <div style="width:100%;height:100%;overflow:hidden">
+                                    <div style="@($"background:{_config.StatsHeaderBgColorHex};display:flex;justify-content:space-around;font-size:6px;font-weight:700;padding:1px 0")">
+                                        <span>CC</span><span>CT</span><span>F</span><span>E</span><span>I</span><span>Ag</span><span>Dex</span><span>Int</span><span>FM</span><span>Soc</span><span>B</span><span>M</span>
+                                    </div>
+                                    <div style="display:flex;justify-content:space-around;font-size:7px;padding:1px 0;border:1px solid rgba(0,0,0,0.15)">
+                                        <span>48</span><span>44</span><span>41</span><span>47</span><span>57</span><span>51</span><span>51</span><span>42</span><span>48</span><span>41</span><span>12</span><span>4</span>
+                                    </div>
+                                </div>
+                            }
+                            else if (comp.Id == "wounds")
+                            {
+                                <div style="width:100%;height:100%;padding:1px 4px;overflow:hidden">
+                                    <div style="font-size:6px;font-weight:700">Blessures (12)</div>
+                                    <div style="display:flex;gap:1px;flex-wrap:wrap">
+                                        @for (var i = 0; i < 12; i++)
+                                        {
+                                            <div style="width:6px;height:6px;border:1px solid rgba(0,0,0,0.3)"></div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            else if (comp.Id == "notes")
+                            {
+                                <div style="width:100%;height:100%;padding:1px 4px;overflow:hidden">
+                                    <div style="font-size:7px;font-weight:700">Notes de jeu</div>
+                                    @for (var i = 0; i < Math.Min(_config.NotesLineCount, 4); i++)
+                                    {
+                                        <div style="border-bottom:1px solid rgba(0,0,0,0.08);height:8px"></div>
+                                    }
+                                </div>
+                            }
+                            else if (comp.Id == "equipment")
+                            {
+                                <div style="width:100%;height:100%;padding:1px 4px;overflow:hidden;border:1px solid rgba(0,0,0,0.1)">
+                                    <div style="font-size:6px"><b>armement</b> Dague</div>
+                                    <div style="font-size:6px"><b>equip.</b> Manteau</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span style="@($"font-size:7px;font-weight:600;padding:2px 4px;display:block;text-align:{(comp.Id == "title" ? CssAlign(_config.TitleAlign) : "left")}")">@comp.Label</span>
+                            }
+                            </div>
+                            @if (_selectedCompId == comp.Id)
+                            {
+                                <div class="pnj-resize-handle pnj-resize-handle--w" @onmousedown="@((MouseEventArgs e) => OnResizeStart("w", e))" @onmousedown:stopPropagation="true"></div>
+                                <div class="pnj-resize-handle pnj-resize-handle--e" @onmousedown="@((MouseEventArgs e) => OnResizeStart("e", e))" @onmousedown:stopPropagation="true"></div>
+                                <div class="pnj-resize-handle pnj-resize-handle--s" @onmousedown="@((MouseEventArgs e) => OnResizeStart("s", e))" @onmousedown:stopPropagation="true"></div>
+                                <div class="pnj-resize-handle pnj-resize-handle--se" @onmousedown="@((MouseEventArgs e) => OnResizeStart("se", e))" @onmousedown:stopPropagation="true"></div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </main>
+
+        <aside class="pnj-designer-config">
+            <MudExpansionPanels MultiExpansion="true" Dense="true" DisableGutters="true" Elevation="0">
+
+                <MudExpansionPanel Text="Mise en page" IsInitiallyExpanded="true">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.MarginLeft" Label="Marge gauche" Min="40" Max="400" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.MarginRight" Label="Marge droite" Min="800" Max="1200" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.TitleFontSize" Label="Police titre" Min="10" Max="30" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.MemberSpacing" Label="Espace membres" Min="0" Max="40" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudSelect T="string" @bind-Value="_config.TitleAlign" Label="Align. titre" Dense="true">
+                                <MudSelectItem Value="@("Left")">Gauche</MudSelectItem>
+                                <MudSelectItem Value="@("Center")">Centre</MudSelectItem>
+                                <MudSelectItem Value="@("Right")">Droite</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="En-tete membre" IsInitiallyExpanded="true">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.HeaderBarHeight" Label="Hauteur barre" Min="16" Max="60" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.HeaderFontSize" Label="Police nom" Min="6" Max="20" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.RoleFontSize" Label="Police role" Min="5" Max="14" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <div class="d-flex align-center gap-2">
+                                <div class="pnj-color-swatch" style="@($"background:{_config.HeaderBarColorHex}")"></div>
+                                <MudTextField T="string" @bind-Value="_config.HeaderBarColorHex" Label="Fond" Dense="true" />
+                            </div>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <div class="d-flex align-center gap-2">
+                                <div class="pnj-color-swatch" style="@($"background:{_config.HeaderTextColorHex}")"></div>
+                                <MudTextField T="string" @bind-Value="_config.HeaderTextColorHex" Label="Texte" Dense="true" />
+                            </div>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudSelect T="string" @bind-Value="_config.HeaderNameAlign" Label="Align. nom" Dense="true">
+                                <MudSelectItem Value="@("Left")">Gauche</MudSelectItem>
+                                <MudSelectItem Value="@("Center")">Centre</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Contexte">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.ContextRowHeight" Label="Hauteur ligne" Min="16" Max="40" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.ContextFontSize" Label="Police" Min="6" Max="14" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <div class="d-flex align-center gap-2">
+                                <div class="pnj-color-swatch" style="@($"background:{_config.ContextBgColorHex}")"></div>
+                                <MudTextField T="string" @bind-Value="_config.ContextBgColorHex" Label="Fond" Dense="true" />
+                            </div>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudSelect T="string" @bind-Value="_config.ContextTextAlign" Label="Align. texte" Dense="true">
+                                <MudSelectItem Value="@("Left")">Gauche</MudSelectItem>
+                                <MudSelectItem Value="@("Center")">Centre</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.ContextLabelWidth" Label="Larg. label" Min="80" Max="400" Dense="true" />
+                        </MudItem>
+                    </MudGrid>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Equipement">
+                    <MudCheckBox T="bool" @bind-Value="_config.ShowEquipment" Label="Afficher" Dense="true" Class="mb-2" />
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.EquipmentRowHeight" Label="Hauteur ligne" Min="12" Max="36" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.EquipmentFontSize" Label="Police" Min="5" Max="12" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.EquipmentLabelWidth" Label="Larg. label" Min="80" Max="300" Dense="true" />
+                        </MudItem>
+                    </MudGrid>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Tableau de stats">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.StatsHeaderHeight" Label="H. en-tete" Min="14" Max="40" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.StatsValueHeight" Label="H. valeurs" Min="14" Max="50" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.StatsHeaderFontSize" Label="P. en-tete" Min="5" Max="14" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.StatsValueFontSize" Label="P. valeurs" Min="6" Max="18" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <div class="d-flex align-center gap-2">
+                                <div class="pnj-color-swatch" style="@($"background:{_config.StatsHeaderBgColorHex}")"></div>
+                                <MudTextField T="string" @bind-Value="_config.StatsHeaderBgColorHex" Label="Fond en-tete" Dense="true" />
+                            </div>
+                        </MudItem>
+                    </MudGrid>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Blessures">
+                    <MudCheckBox T="bool" @bind-Value="_config.ShowWounds" Label="Afficher" Dense="true" Class="mb-2" />
+                    <MudGrid Spacing="2">
+                        <MudItem xs="4">
+                            <MudNumericField T="int" @bind-Value="_config.WoundsBoxSize" Label="Case" Min="8" Max="28" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudNumericField T="int" @bind-Value="_config.WoundsBoxGap" Label="Ecart" Min="1" Max="8" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudNumericField T="int" @bind-Value="_config.MaxWoundsRows" Label="Lignes" Min="1" Max="8" Dense="true" />
+                        </MudItem>
+                    </MudGrid>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Notes de jeu">
+                    <MudCheckBox T="bool" @bind-Value="_config.ShowNotes" Label="Afficher" Dense="true" Class="mb-2" />
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.NotesHeight" Label="Hauteur" Min="40" Max="400" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.NotesLineCount" Label="Nb lignes" Min="1" Max="15" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_config.NotesFontSize" Label="Police" Min="6" Max="16" Dense="true" />
+                        </MudItem>
+                    </MudGrid>
+                </MudExpansionPanel>
+
+            </MudExpansionPanels>
+        </aside>
+    </div>
+}
+
+@code {
+    private const int CanvasW = 1237;
+    private const int CanvasH = 1580;
+    private const int StartY = 315;
+
+    private bool _loading = true;
+    private bool _testing;
+    private double _zoom = 0.5;
+    private string? _templateSrc;
+    private int _testMemberCount = 4;
+    private string _currentPreset = "standard";
+
+    private PnjPdfLayoutConfig _config = new();
+    private string? _selectedCompId;
+    private bool _isDragging;
+    private bool _isResizing;
+    private string _resizeEdge = "";
+    private double _lastClientX;
+    private double _lastClientY;
+
+    private record CompInfo(string Id, string Label, int X, int Y, int W, int H, string Color, double Opacity);
+
+    private List<CompInfo> Components
+    {
+        get
+        {
+            var left = _config.MarginLeft;
+            var w = _config.MarginRight - left;
+            var y = StartY;
+
+            var titleH = _config.TitleFontSize + 14;
+            var contextH = _config.ContextRowHeight * 3;
+            var headerH = _config.HeaderBarHeight + _config.RoleFontSize + 8;
+            var equipH = _config.EquipmentRowHeight * 2;
+            var statsH = _config.StatsHeaderHeight + _config.StatsValueHeight;
+            var woundsH = 16 + _config.WoundsBoxSize + 10;
+            var notesH = _config.NotesHeight;
+
+            var comps = new List<CompInfo>();
+
+            comps.Add(new("title", "Titre", left, y, w, titleH, "#5c7cfa", 0.20));
+            y += titleH + 4;
+
+            comps.Add(new("context", "Contexte", left, y, w, contextH, _config.ContextBgColorHex, 0.50));
+            y += contextH + 12;
+
+            comps.Add(new("header", "En-tete", left, y, w, headerH, _config.HeaderBarColorHex, 0.75));
+            y += headerH + 4;
+
+            if (_config.ShowEquipment)
+            {
+                comps.Add(new("equipment", "Equipement", left, y, w, equipH, "#a5d6a7", 0.25));
+                y += equipH + 4;
+            }
+
+            comps.Add(new("stats", "Stats", left, y, w, statsH, _config.StatsHeaderBgColorHex, 0.40));
+            y += statsH + 6;
+
+            if (_config.ShowWounds)
+            {
+                comps.Add(new("wounds", "Blessures", left, y, w, woundsH, "#fff9c4", 0.30));
+                y += woundsH + _config.MemberSpacing;
+            }
+
+            if (_config.ShowNotes)
+            {
+                comps.Add(new("notes", "Notes", left, y + 20, w, notesH, "#bbdefb", 0.20));
+            }
+
+            return comps;
+        }
+    }
+
+    private string CanvasStyle => $"width:{CanvasW * _zoom:0.##}px;height:{CanvasH * _zoom:0.##}px;";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var bytes = await Api.GetMjPdfTemplateAsync();
+            _templateSrc = $"data:image/jpeg;base64,{Convert.ToBase64String(bytes)}";
+        }
+        catch
+        {
+            Snackbar.Add("Template MJ non disponible.", Severity.Warning);
+        }
+        _loading = false;
+    }
+
+    private string OverlayStyle(CompInfo comp)
+    {
+        var left = comp.X * _zoom;
+        var top = comp.Y * _zoom;
+        var width = comp.W * _zoom;
+        var height = comp.H * _zoom;
+        return $"left:{left:0.##}px;top:{top:0.##}px;width:{width:0.##}px;height:{height:0.##}px;opacity:{comp.Opacity:0.##};";
+    }
+
+    private string BlockClass(CompInfo comp)
+    {
+        var cls = "pnj-preview-block";
+        if (_selectedCompId == comp.Id)
+        {
+            cls += " pnj-preview-block--selected";
+            if (_isDragging) cls += " pnj-preview-block--dragging";
+        }
+        return cls;
+    }
+
+    private void OnBlockMouseDown(string compId, MouseEventArgs e)
+    {
+        _selectedCompId = compId;
+        _isDragging = true;
+        _isResizing = false;
+        _lastClientX = e.ClientX;
+        _lastClientY = e.ClientY;
+    }
+
+    private void OnResizeStart(string edge, MouseEventArgs e)
+    {
+        _isResizing = true;
+        _isDragging = false;
+        _resizeEdge = edge;
+        _lastClientX = e.ClientX;
+        _lastClientY = e.ClientY;
+    }
+
+    private void OnCanvasMouseDown(MouseEventArgs e)
+    {
+        _selectedCompId = null;
+        _isDragging = false;
+        _isResizing = false;
+    }
+
+    private void OnCanvasMouseMove(MouseEventArgs e)
+    {
+        if (!_isDragging && !_isResizing) return;
+
+        var deltaX = (int)Math.Round((e.ClientX - _lastClientX) / _zoom);
+        var deltaY = (int)Math.Round((e.ClientY - _lastClientY) / _zoom);
+        _lastClientX = e.ClientX;
+        _lastClientY = e.ClientY;
+
+        if (deltaX == 0 && deltaY == 0) return;
+
+        if (_isDragging)
+        {
+            var width = _config.MarginRight - _config.MarginLeft;
+            var newLeft = Math.Clamp(_config.MarginLeft + deltaX, 40, CanvasW - width - 40);
+            _config.MarginLeft = newLeft;
+            _config.MarginRight = newLeft + width;
+        }
+        else if (_isResizing && _selectedCompId != null)
+        {
+            if (_resizeEdge.Contains('w'))
+                _config.MarginLeft = Math.Clamp(_config.MarginLeft + deltaX, 40, _config.MarginRight - 200);
+            if (_resizeEdge.Contains('e'))
+                _config.MarginRight = Math.Clamp(_config.MarginRight + deltaX, _config.MarginLeft + 200, CanvasW - 20);
+            if (_resizeEdge.Contains('s'))
+                AdjustHeight(_selectedCompId, deltaY);
+        }
+    }
+
+    private void AdjustHeight(string compId, int delta)
+    {
+        switch (compId)
+        {
+            case "title":
+                _config.TitleFontSize = Math.Clamp(_config.TitleFontSize + delta, 10, 30);
+                break;
+            case "header":
+                _config.HeaderBarHeight = Math.Clamp(_config.HeaderBarHeight + delta, 16, 60);
+                break;
+            case "context":
+                _config.ContextRowHeight = Math.Clamp(_config.ContextRowHeight + (int)Math.Ceiling(delta / 2.0), 16, 40);
+                break;
+            case "equipment":
+                _config.EquipmentRowHeight = Math.Clamp(_config.EquipmentRowHeight + (int)Math.Ceiling(delta / 2.0), 12, 36);
+                break;
+            case "stats":
+                _config.StatsValueHeight = Math.Clamp(_config.StatsValueHeight + delta, 14, 50);
+                break;
+            case "wounds":
+                _config.WoundsBoxSize = Math.Clamp(_config.WoundsBoxSize + delta, 8, 28);
+                break;
+            case "notes":
+                _config.NotesHeight = Math.Clamp(_config.NotesHeight + delta, 40, 400);
+                break;
+        }
+    }
+
+    private void OnCanvasMouseUp(MouseEventArgs e)
+    {
+        _isDragging = false;
+        _isResizing = false;
+    }
+
+    private static string CssAlign(string align) => align switch
+    {
+        "Center" => "center",
+        "Right" => "right",
+        _ => "left"
+    };
+
+    private string HeaderJustify => _config.HeaderNameAlign == "Center" ? "center" : "space-between";
+
+    private Variant PresetVariant(string preset) =>
+        _currentPreset == preset ? Variant.Filled : Variant.Outlined;
+
+    private void AppliquerPreset(string preset)
+    {
+        _currentPreset = preset;
+        _config = preset switch
+        {
+            "compact" => new PnjPdfLayoutConfig
+            {
+                MarginLeft = 100, MarginRight = 1130,
+                TitleFontSize = 14, HeaderBarHeight = 22, HeaderFontSize = 10, RoleFontSize = 7,
+                ContextRowHeight = 20, ContextFontSize = 8,
+                EquipmentRowHeight = 16, EquipmentFontSize = 7,
+                StatsHeaderHeight = 18, StatsValueHeight = 20, StatsHeaderFontSize = 7, StatsValueFontSize = 9,
+                WoundsBoxSize = 12, WoundsBoxGap = 2, MaxWoundsRows = 2,
+                NotesHeight = 80, NotesLineCount = 3, NotesFontSize = 9,
+                MemberSpacing = 6, GroupIdenticalMembers = true,
+                ShowEquipment = true, ShowWounds = true, ShowNotes = true
+            },
+            "detaille" => new PnjPdfLayoutConfig
+            {
+                MarginLeft = 100, MarginRight = 1130,
+                TitleFontSize = 22, HeaderBarHeight = 34, HeaderFontSize = 14, RoleFontSize = 9,
+                ContextRowHeight = 28, ContextFontSize = 10,
+                EquipmentRowHeight = 24, EquipmentFontSize = 9,
+                StatsHeaderHeight = 26, StatsValueHeight = 32, StatsHeaderFontSize = 10, StatsValueFontSize = 13,
+                WoundsBoxSize = 20, WoundsBoxGap = 4, MaxWoundsRows = 4,
+                NotesHeight = 180, NotesLineCount = 7, NotesFontSize = 11,
+                MemberSpacing = 18, GroupIdenticalMembers = false,
+                ShowEquipment = true, ShowWounds = true, ShowNotes = true
+            },
+            "minimal" => new PnjPdfLayoutConfig
+            {
+                MarginLeft = 100, MarginRight = 1130,
+                TitleFontSize = 14, HeaderBarHeight = 22, HeaderFontSize = 10, RoleFontSize = 7,
+                ContextRowHeight = 20, ContextFontSize = 8,
+                ShowEquipment = false, ShowWounds = false, ShowNotes = false,
+                StatsHeaderHeight = 18, StatsValueHeight = 22, StatsHeaderFontSize = 8, StatsValueFontSize = 10,
+                MemberSpacing = 8, GroupIdenticalMembers = true
+            },
+            _ => new PnjPdfLayoutConfig()
+        };
+        Snackbar.Add($"Preset « {preset} » applique.", Severity.Info);
+    }
+
+    private MjPdfExportRequest BuildTestRequest()
+    {
+        var members = new List<MjPdfStatsDto>();
+        var equipLines = new List<MjPdfLineDto>();
+        var names = new[] { "Rudi Reiss", "Magda Kappel", "Greta Schreiber", "Hans Vogel", "Bruno Stein" };
+        var roles = new[] { "Tueur", "Guerrier", "Eclaireur", "Mage", "Brute" };
+        var origins = new[] { "Nain - Guerrier", "Humain - Roturier", "Humain - Lettres", "Elfe - Ranger", "Nain - Guerrier" };
+        var dangers = new[] { "Elevee", "Moyenne", "Faible", "Moyenne", "Elevee" };
+        var weapons = new[] { "Dague (Degats +BF+2)", "Arbalete legere (Degats +7)", "Gourdin (Degats +BF+4)", "Epee (Degats +BF+4)", "Hache (Degats +BF+5)" };
+        var equip = new[] { "Manteau use", "Couteau utilitaire", "Bourse en cuir", "Sacoche de soins", "Corde 10m" };
+
+        var rng = new Random(42);
+        var dupCount = Math.Min(_testMemberCount - 1, 2);
+        var uniqueCount = Math.Max(1, _testMemberCount - dupCount);
+
+        for (var i = 0; i < _testMemberCount; i++)
+        {
+            var idx = i < uniqueCount ? i : rng.Next(uniqueCount);
+            var name = names[idx % names.Length];
+            var baseStat = 30 + idx * 3;
+            members.Add(new MjPdfStatsDto
+            {
+                Name = name, Role = roles[idx % roles.Length], Origin = origins[idx % origins.Length], Danger = dangers[idx % dangers.Length],
+                WS = baseStat + rng.Next(20), BS = baseStat + rng.Next(15), S = baseStat + rng.Next(15),
+                T = baseStat + rng.Next(15), I = baseStat + rng.Next(20), Ag = baseStat + rng.Next(15),
+                Dex = baseStat + rng.Next(15), Int = baseStat + rng.Next(15), WP = baseStat + rng.Next(15),
+                Fel = baseStat + rng.Next(15), Wounds = 8 + rng.Next(8), Move = 3 + rng.Next(3)
+            });
+            equipLines.Add(new MjPdfLineDto { Label = $"{name} - armement", Value = weapons[idx % weapons.Length] });
+            equipLines.Add(new MjPdfLineDto { Label = $"{name} - equipement", Value = equip[idx % equip.Length] });
+            equipLines.Add(new MjPdfLineDto { Label = $"{name} - sort", Value = "Aucun" });
+        }
+
+        return new MjPdfExportRequest
+        {
+            Type = "groupe-pnj",
+            Title = "Main de Guilde de Rudi",
+            Layout = _config,
+            Sections =
+            [
+                new MjPdfSectionDto
+                {
+                    Title = "Groupe de PNJ",
+                    Lines =
+                    [
+                        new() { Label = "Objectif", Value = "Recuperer une dette avant la fermeture des portes" },
+                        new() { Label = "Ambiance", Value = "Urbain" },
+                        new() { Label = "Complication", Value = "Un marchand local reconnait l'un des membres." },
+                        ..equipLines
+                    ],
+                    Stats = members
+                }
+            ]
+        };
+    }
+
+    private async Task TesterRendu()
+    {
+        _testing = true;
+        try
+        {
+            var content = await Api.ExporterMjPdfAsync(BuildTestRequest());
+            await JS.InvokeVoidAsync("openWfrp4Pdf", "application/pdf", Convert.ToBase64String(content));
+            Snackbar.Add("Rendu de test genere.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private async Task CopierJson()
+    {
+        var json = JsonSerializer.Serialize(_config, new JsonSerializerOptions { WriteIndented = true });
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", json);
+        Snackbar.Add("JSON copie.", Severity.Success);
+    }
+}

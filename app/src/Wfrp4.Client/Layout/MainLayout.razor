@@ -14,16 +14,18 @@
             <MudText Typo="Typo.h5" Class="old-world-brand__title">WFRP4 — Gestion de Personnages</MudText>
         </div>
         <MudSpacer />
-        <MudSelect T="string" Value="@ThemeService.ActivePreset.Id"
-                   ValueChanged="OnPresetChanged"
-                   Variant="Variant.Text" Margin="Margin.Dense" Dense="true"
-                   Class="old-world-appbar-theme-select mr-2"
-                   AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-            @foreach (var p in ThemeService.AllPresets)
-            {
-                <MudSelectItem T="string" Value="@p.Id">@p.Name</MudSelectItem>
-            }
-        </MudSelect>
+        <div style="flex:none;width:170px;margin-right:8px">
+            <MudSelect T="string" Value="@ThemeService.ActivePreset.Id"
+                       ValueChanged="OnPresetChanged"
+                       Variant="Variant.Text" Margin="Margin.Dense" Dense="true"
+                       Class="old-world-appbar-theme-select"
+                       AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                @foreach (var p in ThemeService.AllPresets)
+                {
+                    <MudSelectItem T="string" Value="@p.Id">@p.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
         <MudIconButton Icon="@Icons.Material.Filled.Palette" Color="Color.Inherit"
                        Class="old-world-header-button mr-2"
                        OnClick="ToggleThemePanel" />

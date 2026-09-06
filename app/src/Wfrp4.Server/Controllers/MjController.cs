@@ -19,4 +19,13 @@ public class MjController : ControllerBase
         var result = await pdfService.GenerateAsync(request, ct);
         return File(result.Content, "application/pdf", result.FileName);
     }
+
+    [HttpGet("pdf/template")]
+    public IActionResult GetTemplate([FromServices] IWebHostEnvironment env)
+    {
+        var path = Path.Combine(env.ContentRootPath, "PdfTemplates", "wfrp4-mj-page-background.jpg");
+        if (!System.IO.File.Exists(path))
+            return NotFound();
+        return PhysicalFile(path, "image/jpeg");
+    }
 }
