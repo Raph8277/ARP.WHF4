@@ -105,6 +105,25 @@ body {
     line-height: 1;
 }
 
+.old-world-appbar-theme-select {
+    max-width: 200px;
+    min-width: 140px;
+    color: inherit !important;
+}
+
+.old-world-appbar-theme-select .mud-input,
+.old-world-appbar-theme-select .mud-select-input,
+.old-world-appbar-theme-select .mud-input-slot,
+.old-world-appbar-theme-select .mud-icon-root {
+    color: inherit !important;
+}
+
+.old-world-appbar-theme-select .mud-input::before,
+.old-world-appbar-theme-select .mud-input::after {
+    border-color: currentColor !important;
+    opacity: 0.4;
+}
+
 .old-world-header-button {
     border: 1px solid var(--old-world-border-subtle, rgba(202, 169, 111, 0.25));
 }
