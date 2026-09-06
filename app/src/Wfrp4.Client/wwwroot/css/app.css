@@ -106,8 +106,8 @@ body {
 }
 
 .old-world-appbar-theme-select {
-    max-width: 200px;
-    min-width: 140px;
+    flex: none !important;
+    width: 170px;
     color: inherit !important;
 }
 
