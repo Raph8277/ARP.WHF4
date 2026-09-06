@@ -11,7 +11,7 @@ public sealed class UserThemeService
     private const string PresetsKey = "wfrp4_theme_presets";
     private const string ActiveKey = "wfrp4_theme_active";
     private const string DefaultThemeVersionKey = "wfrp4_theme_default_version";
-    private const string DefaultThemeVersion = "imperial-azure-1";
+    private const string DefaultThemeVersion = "onyx-dark-1";
     private readonly IJSRuntime _js;
 
     private List<ThemePreset> _userPresets = [];

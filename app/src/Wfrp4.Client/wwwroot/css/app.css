@@ -50,22 +50,8 @@ body.mud-theme-dark::before {
     min-height: 100vh;
 }
 
-.app-boot {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 2rem;
-}
-
-.app-boot__plate {
-    min-width: min(520px, 100%);
-    padding: 2rem 2.5rem;
-    border: 1px solid rgba(201, 168, 76, 0.48);
-    background: var(--old-world-boot-bg);
-    box-shadow: 0 24px 80px var(--old-world-paper-shadow);
-    text-align: center;
-    color: var(--mud-palette-text-primary);
+body {
+    transition: background 0.8s ease;
 }
 
 .app-boot__eyebrow,

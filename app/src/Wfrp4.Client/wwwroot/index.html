@@ -31,64 +31,140 @@
         body {
             margin: 0;
             color: var(--mud-palette-text-primary);
-            background: var(--wfrp4-body-bg);
-            background-attachment: fixed;
+            background: #000;
             font-family: "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
         }
 
-        body::before {
-            content: "";
+        .splash-boot {
             position: fixed;
             inset: 0;
-            pointer-events: none;
-            background:
-                linear-gradient(rgba(255, 255, 255, 0.05), rgba(6, 18, 34, 0.16)),
-                repeating-linear-gradient(90deg, rgba(210, 231, 255, 0.035) 0, rgba(210, 231, 255, 0.035) 1px, transparent 1px, transparent 120px),
-                repeating-linear-gradient(0deg, rgba(210, 231, 255, 0.025) 0, rgba(210, 231, 255, 0.025) 1px, transparent 1px, transparent 96px);
-            opacity: 0.7;
-        }
-
-        .app-boot {
+            z-index: 9999;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            padding: 2rem;
-            box-sizing: border-box;
+            background: #000;
+            transition: opacity 0.8s ease;
         }
 
-        .app-boot__plate {
-            min-width: min(520px, 100%);
-            padding: 2rem 2.5rem;
-            border: 1px solid rgba(201, 168, 76, 0.48);
-            background: var(--old-world-boot-bg);
-            box-shadow: 0 24px 80px var(--old-world-paper-shadow);
-            text-align: center;
-            color: var(--mud-palette-text-primary);
+        .splash-boot.fade-out {
+            opacity: 0;
+            pointer-events: none;
         }
 
-        .app-boot__eyebrow {
-            margin: 0;
-            color: var(--old-world-kicker);
-            font-size: 0.78rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
+        .splash-boot__vignette {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.7) 100%);
         }
 
-        .app-boot__title {
-            margin: 0.5rem 0 0;
-            color: #1a3a5c;
+        .splash-boot__particles {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .splash-boot__particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(180, 120, 60, 0.4);
+            border-radius: 50%;
+            animation: splashParticleFloat linear infinite;
+        }
+
+        .splash-boot__kicker {
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            margin: 0 0 2rem;
+            color: #c9a84c;
             font-family: "Cormorant Garamond", Georgia, serif;
-            font-size: clamp(2rem, 5vw, 3rem);
+            font-size: clamp(0.85rem, 2.5vw, 1.2rem);
             font-weight: 600;
-            letter-spacing: 0.01em;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            animation: splashTextIn 1.8s ease 0.3s forwards;
+        }
+
+        .splash-boot__logo {
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            transform: scale(0.92);
+            animation: splashLogoIn 2.4s cubic-bezier(0.22, 1, 0.36, 1) 0.6s forwards;
+        }
+
+        .splash-boot__logo img {
+            max-width: min(80vw, 700px);
+            height: auto;
+            filter: drop-shadow(0 0 40px rgba(180, 30, 20, 0.3))
+                    drop-shadow(0 0 80px rgba(180, 30, 20, 0.1));
+        }
+
+        .splash-boot__subtitle {
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            margin: 2.5rem 0 0;
+            color: #8a7d6b;
+            font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+            font-size: clamp(0.75rem, 2vw, 1.1rem);
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            animation: splashTextIn 2s ease 1.8s forwards;
+        }
+
+        .splash-boot__line {
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            width: 0;
+            height: 1px;
+            margin-top: 1.5rem;
+            background: linear-gradient(90deg, transparent, #5a3a2a, #8a5a3a, #5a3a2a, transparent);
+            animation: splashLineExpand 1.8s ease 2.2s forwards;
+        }
+
+        .splash-boot__version {
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            margin-top: 1rem;
+            color: #4a4038;
+            font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+            font-size: 0.7rem;
+            letter-spacing: 0.5em;
+            text-transform: uppercase;
+            animation: splashTextIn 1.5s ease 2.8s forwards;
+        }
+
+        @keyframes splashLogoIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes splashTextIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes splashLineExpand {
+            to { opacity: 1; width: min(60vw, 400px); }
+        }
+
+        @keyframes splashParticleFloat {
+            0%   { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10%  { opacity: 0.6; }
+            90%  { opacity: 0.6; }
+            100% { transform: translateY(-10vh) translateX(30px); opacity: 0; }
         }
     </style>
     <script>
         try {
-            const defaultThemeVersion = 'imperial-azure-1';
+            const defaultThemeVersion = 'onyx-dark-1';
             if (localStorage.getItem('wfrp4_theme_default_version') !== defaultThemeVersion) {
-                localStorage.setItem('wfrp4_theme_active', 'imperial');
+                localStorage.setItem('wfrp4_theme_active', 'onyx');
                 localStorage.setItem('wfrp4_theme_default_version', defaultThemeVersion);
             }
         } catch {
@@ -96,17 +172,22 @@
     </script>
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="css/app.css?v=xp-inline-20260829-4" rel="stylesheet" />
+    <link href="css/app.css?v=onyx-splash-20260906-1" rel="stylesheet" />
 </head>
 <body>
-    <div id="app">
-        <div class="app-boot">
-            <div class="app-boot__plate">
-                <p class="app-boot__eyebrow">Registre du Reikland</p>
-                <p class="app-boot__title">Chargement de l'application</p>
-            </div>
+    <div id="splash-boot" class="splash-boot">
+        <div class="splash-boot__particles" id="splash-particles"></div>
+        <p class="splash-boot__kicker">Registre du Reikland</p>
+        <div class="splash-boot__logo">
+            <img src="images/WFRP4.png" alt="Warhammer Fantasy Roleplay">
         </div>
+        <p class="splash-boot__subtitle">4th Edition</p>
+        <div class="splash-boot__line"></div>
+        <p class="splash-boot__version">Chargement en cours&hellip;</p>
+        <div class="splash-boot__vignette"></div>
     </div>
+
+    <div id="app"></div>
 
     <div id="blazor-error-ui" style="display:none;">
         Une erreur est survenue.
@@ -138,6 +219,38 @@
             window.setTimeout(() => URL.revokeObjectURL(url), 60000);
         };
     </script>
-    <script src="_framework/blazor.webassembly.js?v=xp-inline-20260829-4"></script>
+    <script src="_framework/blazor.webassembly.js?v=onyx-splash-20260906-1" autostart="false"></script>
+    <script>
+        (function () {
+            var c = document.getElementById('splash-particles');
+            for (var i = 0; i < 25; i++) {
+                var p = document.createElement('div');
+                p.className = 'splash-boot__particle';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.animationDuration = (8 + Math.random() * 12) + 's';
+                p.style.animationDelay = (Math.random() * 10) + 's';
+                var s = (1 + Math.random() * 2) + 'px';
+                p.style.width = s;
+                p.style.height = s;
+                c.appendChild(p);
+            }
+
+            var splashStart = Date.now();
+            var MIN_SPLASH_MS = 4000;
+
+            Blazor.start().then(function () {
+                var elapsed = Date.now() - splashStart;
+                var remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
+                setTimeout(function () {
+                    var splash = document.getElementById('splash-boot');
+                    if (splash) {
+                        document.body.style.background = '';
+                        splash.classList.add('fade-out');
+                        setTimeout(function () { splash.remove(); }, 900);
+                    }
+                }, remaining);
+            });
+        })();
+    </script>
 </body>
 </html>

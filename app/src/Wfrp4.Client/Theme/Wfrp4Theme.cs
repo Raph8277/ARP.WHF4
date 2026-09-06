@@ -132,6 +132,39 @@ public static class Wfrp4Theme
         },
         new()
         {
+            Id = "onyx",
+            Name = "Onyx Dark",
+            IsBuiltIn = true,
+            IsDarkMode = true,
+            Primary = "#c0392b",
+            Secondary = "#c9a84c",
+            Tertiary = "#7f8c8d",
+            Info = "#6c8ea0",
+            Success = "#6b8e5a",
+            Warning = "#d4953a",
+            Error = "#c0392b",
+            Dark = "#0a0a0a",
+            Background = "#121212",
+            BackgroundGray = "#1a1a1a",
+            Surface = "#1e1e1e",
+            AppbarBackground = "#0a0a0a",
+            AppbarText = "#e0e0e0",
+            DrawerBackground = "#0f0f0f",
+            DrawerText = "#d0d0d0",
+            DrawerIcon = "#d0d0d0",
+            LinesDefault = "#ffffff18",
+            LinesInputs = "#ffffff24",
+            Divider = "#ffffff14",
+            DividerLight = "#ffffff0a",
+            TextPrimary = "#e8e8e8",
+            TextSecondary = "#9e9e9e",
+            TextDisabled = "#9e9e9e60",
+            ActionDefault = "#c9a84c",
+            ActionDisabled = "#9e9e9e60",
+            ActionDisabledBackground = "#9e9e9e1a",
+        },
+        new()
+        {
             Id = "warpstone",
             Name = "Lueur de Malepierre",
             IsBuiltIn = true,
@@ -166,7 +199,7 @@ public static class Wfrp4Theme
     ];
 
     public static ThemePreset DefaultPreset { get; } =
-        BuiltInPresets.First(p => p.Id == "imperial");
+        BuiltInPresets.First(p => p.Id == "onyx");
 
     public static MudTheme Build(ThemePreset preset)
     {
