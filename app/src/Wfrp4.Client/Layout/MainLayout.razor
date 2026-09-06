@@ -14,6 +14,16 @@
             <MudText Typo="Typo.h5" Class="old-world-brand__title">WFRP4 — Gestion de Personnages</MudText>
         </div>
         <MudSpacer />
+        <MudSelect T="string" Value="@ThemeService.ActivePreset.Id"
+                   ValueChanged="OnPresetChanged"
+                   Variant="Variant.Text" Margin="Margin.Dense" Dense="true"
+                   Class="old-world-appbar-theme-select mr-2"
+                   AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            @foreach (var p in ThemeService.AllPresets)
+            {
+                <MudSelectItem T="string" Value="@p.Id">@p.Name</MudSelectItem>
+            }
+        </MudSelect>
         <MudIconButton Icon="@Icons.Material.Filled.Palette" Color="Color.Inherit"
                        Class="old-world-header-button mr-2"
                        OnClick="ToggleThemePanel" />
@@ -24,7 +34,7 @@
             <Authorized>
                 <MudChip T="string" Class="mr-4 old-world-user-chip" Color="Color.Default">@context.User.Identity?.Name</MudChip>
                 <MudButton Variant="Variant.Text" Color="Color.Inherit"
-                           Class="old-world-header-button mr-2"
+                           Class="old-world-header-button"
                            OnClick="Logout">Déconnexion</MudButton>
             </Authorized>
             <NotAuthorized>
@@ -32,20 +42,10 @@
                            Class="old-world-header-button mr-2"
                            Href="inscription">Créer un compte</MudButton>
                 <MudButton Variant="Variant.Text" Color="Color.Inherit"
-                           Class="old-world-header-button mr-2"
+                           Class="old-world-header-button"
                            Href="authentication/login">Connexion</MudButton>
             </NotAuthorized>
         </AuthorizeView>
-        <MudSelect T="string" Value="@ThemeService.ActivePreset.Id"
-                   ValueChanged="OnPresetChanged"
-                   Variant="Variant.Text" Margin="Margin.Dense" Dense="true"
-                   Class="old-world-appbar-theme-select"
-                   AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-            @foreach (var p in ThemeService.AllPresets)
-            {
-                <MudSelectItem T="string" Value="@p.Id">@p.Name</MudSelectItem>
-            }
-        </MudSelect>
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" Elevation="@ThemeService.ActivePreset.DrawerElevation"
