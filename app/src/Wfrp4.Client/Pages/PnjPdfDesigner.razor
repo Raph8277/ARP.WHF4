@@ -79,6 +79,7 @@ else
                         <div class="@BlockClass(comp)" style="@OverlayStyle(comp)" title="@comp.Label"
                              @onmousedown="@((MouseEventArgs e) => OnBlockMouseDown(comp.Id, e))"
                              @onmousedown:stopPropagation="true">
+                            <div class="pnj-preview-block__label">@comp.Label</div>
                             <div class="pnj-preview-block__content">
                             @if (comp.Id == "header")
                             {
@@ -148,6 +149,48 @@ else
                             }
                         </div>
                     }
+
+                    @if (_selectedCompId != null)
+                    {
+                        var sel = Components.FirstOrDefault(c => c.Id == _selectedCompId);
+                        if (sel != null)
+                        {
+                            <div class="pnj-zone-toolbar" style="@ToolbarStyle(sel)" @onmousedown:stopPropagation="true">
+                                @if (_selectedCompId is "title" or "header" or "context")
+                                {
+                                    <div class="pnj-toolbar__group">
+                                        <MudIconButton Icon="@Icons.Material.Filled.FormatAlignLeft" Size="Size.Small"
+                                                       Color="@(GetCurrentAlign() == "Left" ? Color.Primary : Color.Default)"
+                                                       OnClick="@(() => SetAlign("Left"))" Title="Gauche" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.FormatAlignCenter" Size="Size.Small"
+                                                       Color="@(GetCurrentAlign() == "Center" ? Color.Primary : Color.Default)"
+                                                       OnClick="@(() => SetAlign("Center"))" Title="Centre" />
+                                        @if (_selectedCompId == "title")
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.FormatAlignRight" Size="Size.Small"
+                                                           Color="@(GetCurrentAlign() == "Right" ? Color.Primary : Color.Default)"
+                                                           OnClick="@(() => SetAlign("Right"))" Title="Droite" />
+                                        }
+                                    </div>
+                                }
+                                <div class="pnj-toolbar__group">
+                                    <span class="pnj-toolbar__lbl">@ToolbarFontLabel</span>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small" OnClick="@(() => AdjustToolbarFont(-1))" />
+                                    <span class="pnj-toolbar__val">@GetToolbarFont()</span>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="@(() => AdjustToolbarFont(1))" />
+                                </div>
+                                @if (HasToolbarSecondary)
+                                {
+                                    <div class="pnj-toolbar__group">
+                                        <span class="pnj-toolbar__lbl">@ToolbarSecondaryLabel</span>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small" OnClick="@(() => AdjustToolbarSecondary(-1))" />
+                                        <span class="pnj-toolbar__val">@GetToolbarSecondary()</span>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="@(() => AdjustToolbarSecondary(1))" />
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
                 </div>
             </div>
         </main>
@@ -191,16 +234,10 @@ else
                             <MudNumericField T="int" @bind-Value="_config.RoleFontSize" Label="Police role" Min="5" Max="14" Dense="true" />
                         </MudItem>
                         <MudItem xs="6">
-                            <div class="d-flex align-center gap-2">
-                                <div class="pnj-color-swatch" style="@($"background:{_config.HeaderBarColorHex}")"></div>
-                                <MudTextField T="string" @bind-Value="_config.HeaderBarColorHex" Label="Fond" Dense="true" />
-                            </div>
+                            <ColorField Label="Fond barre" Value="@_config.HeaderBarColorHex" ValueChanged="@(v => { _config.HeaderBarColorHex = v; StateHasChanged(); })" />
                         </MudItem>
                         <MudItem xs="6">
-                            <div class="d-flex align-center gap-2">
-                                <div class="pnj-color-swatch" style="@($"background:{_config.HeaderTextColorHex}")"></div>
-                                <MudTextField T="string" @bind-Value="_config.HeaderTextColorHex" Label="Texte" Dense="true" />
-                            </div>
+                            <ColorField Label="Texte barre" Value="@_config.HeaderTextColorHex" ValueChanged="@(v => { _config.HeaderTextColorHex = v; StateHasChanged(); })" />
                         </MudItem>
                         <MudItem xs="6">
                             <MudSelect T="string" @bind-Value="_config.HeaderNameAlign" Label="Align. nom" Dense="true">
@@ -220,10 +257,7 @@ else
                             <MudNumericField T="int" @bind-Value="_config.ContextFontSize" Label="Police" Min="6" Max="14" Dense="true" />
                         </MudItem>
                         <MudItem xs="12">
-                            <div class="d-flex align-center gap-2">
-                                <div class="pnj-color-swatch" style="@($"background:{_config.ContextBgColorHex}")"></div>
-                                <MudTextField T="string" @bind-Value="_config.ContextBgColorHex" Label="Fond" Dense="true" />
-                            </div>
+                            <ColorField Label="Fond contexte" Value="@_config.ContextBgColorHex" ValueChanged="@(v => { _config.ContextBgColorHex = v; StateHasChanged(); })" />
                         </MudItem>
                         <MudItem xs="6">
                             <MudSelect T="string" @bind-Value="_config.ContextTextAlign" Label="Align. texte" Dense="true">
@@ -267,10 +301,7 @@ else
                             <MudNumericField T="int" @bind-Value="_config.StatsValueFontSize" Label="P. valeurs" Min="6" Max="18" Dense="true" />
                         </MudItem>
                         <MudItem xs="12">
-                            <div class="d-flex align-center gap-2">
-                                <div class="pnj-color-swatch" style="@($"background:{_config.StatsHeaderBgColorHex}")"></div>
-                                <MudTextField T="string" @bind-Value="_config.StatsHeaderBgColorHex" Label="Fond en-tete" Dense="true" />
-                            </div>
+                            <ColorField Label="Fond en-tete" Value="@_config.StatsHeaderBgColorHex" ValueChanged="@(v => { _config.StatsHeaderBgColorHex = v; StateHasChanged(); })" />
                         </MudItem>
                     </MudGrid>
                 </MudExpansionPanel>
@@ -350,33 +381,33 @@ else
 
             var comps = new List<CompInfo>();
 
-            comps.Add(new("title", "Titre", left, y, w, titleH, "#5c7cfa", 0.20));
+            comps.Add(new("title", "Titre", left, y, w, titleH, "#5c7cfa", 0.55));
             y += titleH + 4;
 
-            comps.Add(new("context", "Contexte", left, y, w, contextH, _config.ContextBgColorHex, 0.50));
+            comps.Add(new("context", "Contexte", left, y, w, contextH, _config.ContextBgColorHex, 0.70));
             y += contextH + 12;
 
-            comps.Add(new("header", "En-tete", left, y, w, headerH, _config.HeaderBarColorHex, 0.75));
+            comps.Add(new("header", "En-tete", left, y, w, headerH, _config.HeaderBarColorHex, 0.85));
             y += headerH + 4;
 
             if (_config.ShowEquipment)
             {
-                comps.Add(new("equipment", "Equipement", left, y, w, equipH, "#a5d6a7", 0.25));
+                comps.Add(new("equipment", "Equipement", left, y, w, equipH, "#a5d6a7", 0.60));
                 y += equipH + 4;
             }
 
-            comps.Add(new("stats", "Stats", left, y, w, statsH, _config.StatsHeaderBgColorHex, 0.40));
+            comps.Add(new("stats", "Stats", left, y, w, statsH, _config.StatsHeaderBgColorHex, 0.65));
             y += statsH + 6;
 
             if (_config.ShowWounds)
             {
-                comps.Add(new("wounds", "Blessures", left, y, w, woundsH, "#fff9c4", 0.30));
+                comps.Add(new("wounds", "Blessures", left, y, w, woundsH, "#fff9c4", 0.60));
                 y += woundsH + _config.MemberSpacing;
             }
 
             if (_config.ShowNotes)
             {
-                comps.Add(new("notes", "Notes", left, y + 20, w, notesH, "#bbdefb", 0.20));
+                comps.Add(new("notes", "Notes", left, y + 20, w, notesH, "#bbdefb", 0.55));
             }
 
             return comps;
@@ -505,6 +536,96 @@ else
     {
         _isDragging = false;
         _isResizing = false;
+    }
+
+    private string ToolbarStyle(CompInfo comp)
+    {
+        var left = comp.X * _zoom;
+        var top = comp.Y * _zoom - 38;
+        if (top < 4) top = (comp.Y + comp.H) * _zoom + 4;
+        return $"left:{left:0.##}px;top:{top:0.##}px;";
+    }
+
+    private string GetCurrentAlign() => _selectedCompId switch
+    {
+        "title" => _config.TitleAlign,
+        "header" => _config.HeaderNameAlign,
+        "context" => _config.ContextTextAlign,
+        _ => "Left"
+    };
+
+    private void SetAlign(string align)
+    {
+        switch (_selectedCompId)
+        {
+            case "title": _config.TitleAlign = align; break;
+            case "header": _config.HeaderNameAlign = align; break;
+            case "context": _config.ContextTextAlign = align; break;
+        }
+    }
+
+    private string ToolbarFontLabel => _selectedCompId switch
+    {
+        "wounds" => "Taille",
+        "stats" => "En-tete",
+        _ => "Police"
+    };
+
+    private int GetToolbarFont() => _selectedCompId switch
+    {
+        "title" => _config.TitleFontSize,
+        "header" => _config.HeaderFontSize,
+        "context" => _config.ContextFontSize,
+        "equipment" => _config.EquipmentFontSize,
+        "stats" => _config.StatsHeaderFontSize,
+        "wounds" => _config.WoundsBoxSize,
+        "notes" => _config.NotesFontSize,
+        _ => 0
+    };
+
+    private void AdjustToolbarFont(int delta)
+    {
+        switch (_selectedCompId)
+        {
+            case "title": _config.TitleFontSize = Math.Clamp(_config.TitleFontSize + delta, 10, 30); break;
+            case "header": _config.HeaderFontSize = Math.Clamp(_config.HeaderFontSize + delta, 6, 20); break;
+            case "context": _config.ContextFontSize = Math.Clamp(_config.ContextFontSize + delta, 6, 14); break;
+            case "equipment": _config.EquipmentFontSize = Math.Clamp(_config.EquipmentFontSize + delta, 5, 12); break;
+            case "stats": _config.StatsHeaderFontSize = Math.Clamp(_config.StatsHeaderFontSize + delta, 5, 14); break;
+            case "wounds": _config.WoundsBoxSize = Math.Clamp(_config.WoundsBoxSize + delta, 8, 28); break;
+            case "notes": _config.NotesFontSize = Math.Clamp(_config.NotesFontSize + delta, 6, 16); break;
+        }
+    }
+
+    private bool HasToolbarSecondary => _selectedCompId is "stats" or "context" or "notes" or "header";
+
+    private string ToolbarSecondaryLabel => _selectedCompId switch
+    {
+        "stats" => "Val.",
+        "context" => "Larg.",
+        "notes" => "Lig.",
+        "header" => "Role",
+        _ => ""
+    };
+
+    private int GetToolbarSecondary() => _selectedCompId switch
+    {
+        "stats" => _config.StatsValueFontSize,
+        "context" => _config.ContextLabelWidth,
+        "notes" => _config.NotesLineCount,
+        "header" => _config.RoleFontSize,
+        _ => 0
+    };
+
+    private void AdjustToolbarSecondary(int delta)
+    {
+        switch (_selectedCompId)
+        {
+            case "stats": _config.StatsValueFontSize = Math.Clamp(_config.StatsValueFontSize + delta, 6, 18); break;
+            case "context": _config.ContextLabelWidth = Math.Clamp(_config.ContextLabelWidth + delta * 10, 80, 400); break;
+            case "notes": _config.NotesLineCount = Math.Clamp(_config.NotesLineCount + delta, 1, 15); break;
+            case "header": _config.RoleFontSize = Math.Clamp(_config.RoleFontSize + delta, 5, 14); break;
+        }
     }
 
     private static string CssAlign(string align) => align switch

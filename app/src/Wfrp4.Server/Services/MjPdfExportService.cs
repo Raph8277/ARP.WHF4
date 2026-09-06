@@ -100,6 +100,7 @@ public class MjPdfExportService
                 var (cr, cg, cb) = HexToRgb(cfg.ContextBgColorHex);
                 canvas.FillRect(left, y, tableW, rowH * contextLines.Count, cr, cg, cb);
                 canvas.Rect(left, y, tableW, rowH * contextLines.Count);
+                var ctxPad = VCenter(rowH, cfg.ContextFontSize);
                 for (var i = 0; i < contextLines.Count; i++)
                 {
                     var rowY = y + i * rowH;
@@ -108,12 +109,12 @@ public class MjPdfExportService
                     var labelW = cfg.ContextLabelWidth;
                     if (cfg.ContextTextAlign == "Center")
                     {
-                        canvas.TextCenteredPx(left + tableW / 2, rowY + 6, cfg.ContextFontSize, $"{contextLines[i].Label}  {contextLines[i].Value}", "Helvetica");
+                        canvas.TextCenteredPx(left + tableW / 2, rowY + ctxPad, cfg.ContextFontSize, $"{contextLines[i].Label}  {contextLines[i].Value}", "Helvetica");
                     }
                     else
                     {
-                        canvas.TextPx(left + 10, rowY + 6, cfg.ContextFontSize, contextLines[i].Label, labelW, "Helvetica", isBold: true);
-                        canvas.TextPx(left + labelW + 10, rowY + 6, cfg.ContextFontSize, contextLines[i].Value, 750, "Helvetica");
+                        canvas.TextPx(left + 10, rowY + ctxPad, cfg.ContextFontSize, contextLines[i].Label, labelW, "Helvetica", isBold: true);
+                        canvas.TextPx(left + labelW + 10, rowY + ctxPad, cfg.ContextFontSize, contextLines[i].Value, 750, "Helvetica");
                     }
                 }
                 y += rowH * contextLines.Count + 12;
@@ -157,11 +158,14 @@ public class MjPdfExportService
                 canvas.FillRect(left, y, tableW, cfg.HeaderBarHeight, hr, hg, hb);
                 var (htr, htg, htb) = HexToRgb(cfg.HeaderTextColorHex);
                 canvas.SetTextColor(htr, htg, htb);
+                var namePad = VCenter(cfg.HeaderBarHeight, cfg.HeaderFontSize);
+                var dangerFont = Math.Max(cfg.HeaderFontSize - 3, 7);
+                var dangerPad = VCenter(cfg.HeaderBarHeight, dangerFont);
                 if (cfg.HeaderNameAlign == "Center")
-                    canvas.TextCenteredPx(left + tableW / 2, y + 7, cfg.HeaderFontSize, nameLabel, "Times-Roman", isBold: true);
+                    canvas.TextCenteredPx(left + tableW / 2, y + namePad, cfg.HeaderFontSize, nameLabel, "Times-Roman", isBold: true);
                 else
-                    canvas.TextPx(left + 10, y + 7, cfg.HeaderFontSize, nameLabel, 500, "Times-Roman", isBold: true);
-                canvas.TextPx(right - 180, y + 8, Math.Max(cfg.HeaderFontSize - 3, 7), stat.Danger, 160, "Helvetica", isBold: true);
+                    canvas.TextPx(left + 10, y + namePad, cfg.HeaderFontSize, nameLabel, 500, "Times-Roman", isBold: true);
+                canvas.TextPx(right - 180, y + dangerPad, dangerFont, stat.Danger, 160, "Helvetica", isBold: true);
                 canvas.SetTextColor(0, 0, 0);
                 y += cfg.HeaderBarHeight;
                 canvas.TextPx(left + 10, y + 2, cfg.RoleFontSize, $"{stat.Role} - {stat.Origin}", 600, "Helvetica");
@@ -183,8 +187,9 @@ public class MjPdfExportService
                             var dashIdx = shortLabel.LastIndexOf(" - ", StringComparison.Ordinal);
                             if (dashIdx >= 0)
                                 shortLabel = shortLabel[(dashIdx + 3)..];
-                            canvas.TextPx(left + 10, rowY + 4, cfg.EquipmentFontSize, shortLabel, cfg.EquipmentLabelWidth, "Helvetica", isBold: true);
-                            canvas.TextPx(left + cfg.EquipmentLabelWidth + 10, rowY + 4, cfg.EquipmentFontSize, equipNonEmpty[i].Value, 700, "Helvetica");
+                            var eqPad = VCenter(eqRowH, cfg.EquipmentFontSize);
+                            canvas.TextPx(left + 10, rowY + eqPad, cfg.EquipmentFontSize, shortLabel, cfg.EquipmentLabelWidth, "Helvetica", isBold: true);
+                            canvas.TextPx(left + cfg.EquipmentLabelWidth + 10, rowY + eqPad, cfg.EquipmentFontSize, equipNonEmpty[i].Value, 700, "Helvetica");
                         }
                         y += eqRowH * equipNonEmpty.Count + 4;
                     }
@@ -234,13 +239,15 @@ public class MjPdfExportService
         canvas.Rect(left, y, tableW, headerH + valueH);
         canvas.Line(left, y + headerH, left + tableW, y + headerH, 0.5);
 
+        var headerPad = VCenter(headerH, cfg.StatsHeaderFontSize);
+        var valuePad = VCenter(valueH, cfg.StatsValueFontSize);
         for (var i = 0; i < headers.Length; i++)
         {
             var colX = left + i * colW;
             if (i > 0)
                 canvas.Line(colX, y, colX, y + headerH + valueH, 0.3);
-            canvas.TextCenteredPx(colX + colW / 2, y + 5, cfg.StatsHeaderFontSize, headers[i], "Helvetica", isBold: true);
-            canvas.TextCenteredPx(colX + colW / 2, y + headerH + 5, cfg.StatsValueFontSize, values[i].ToString(CultureInfo.InvariantCulture), "Helvetica");
+            canvas.TextCenteredPx(colX + colW / 2, y + headerPad, cfg.StatsHeaderFontSize, headers[i], "Helvetica", isBold: true);
+            canvas.TextCenteredPx(colX + colW / 2, y + headerH + valuePad, cfg.StatsValueFontSize, values[i].ToString(CultureInfo.InvariantCulture), "Helvetica");
         }
     }
 
@@ -272,6 +279,9 @@ public class MjPdfExportService
     }
 
     private static int tableWidth(PnjPdfLayoutConfig cfg) => cfg.MarginRight - cfg.MarginLeft;
+
+    private static int VCenter(int cellHeight, int fontSize) =>
+        (int)(cellHeight / 2.0 + 0.51 * fontSize);
 
     private static (double r, double g, double b) HexToRgb(string hex)
     {

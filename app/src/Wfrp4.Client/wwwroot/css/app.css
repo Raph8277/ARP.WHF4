@@ -1385,23 +1385,41 @@ body.mud-theme-dark .guide-malus {
 }
 .pnj-preview-block {
     position: absolute;
-    border: 1px solid rgba(0,0,0,0.25);
-    border-radius: 2px;
+    border: 2px dashed rgba(0,0,0,0.45);
+    border-radius: 3px;
     overflow: visible;
     cursor: grab;
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 .pnj-preview-block:hover {
-    box-shadow: 0 0 0 1px var(--mud-palette-primary);
+    border-color: var(--mud-palette-primary);
+    box-shadow: 0 0 0 2px rgba(var(--mud-palette-primary-rgb, 26,58,92), 0.3);
 }
 .pnj-preview-block--selected {
+    border-color: var(--mud-palette-primary);
+    border-style: solid;
     outline: 2px solid var(--mud-palette-primary);
-    outline-offset: 1px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    outline-offset: 2px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
 }
 .pnj-preview-block--dragging {
     cursor: grabbing;
     opacity: 0.85;
+}
+.pnj-preview-block__label {
+    position: absolute;
+    top: -16px;
+    left: 0;
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(0,0,0,0.65);
+    padding: 1px 6px;
+    border-radius: 3px 3px 0 0;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 5;
+    letter-spacing: 0.3px;
 }
 .pnj-resize-handle {
     position: absolute;
@@ -1435,6 +1453,55 @@ body.mud-theme-dark .guide-malus {
     height: 100%;
     overflow: hidden;
     pointer-events: none;
+}
+.pnj-zone-toolbar {
+    position: absolute;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid var(--mud-palette-primary);
+    border-radius: 8px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+    pointer-events: auto;
+}
+.pnj-toolbar__group {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding-left: 6px;
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+}
+.pnj-toolbar__group:first-child {
+    border-left: none;
+    padding-left: 0;
+}
+.pnj-toolbar__lbl {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.45);
+    margin-right: 2px;
+    user-select: none;
+}
+.pnj-toolbar__val {
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 22px;
+    text-align: center;
+    color: var(--mud-palette-primary);
+    user-select: none;
+}
+.pnj-zone-toolbar .mud-icon-button {
+    padding: 2px !important;
+    min-width: 26px !important;
+    width: 26px !important;
+    height: 26px !important;
+}
+.pnj-zone-toolbar .mud-icon-button .mud-icon-root {
+    font-size: 18px !important;
 }
 .pnj-color-swatch {
     display: inline-block;
