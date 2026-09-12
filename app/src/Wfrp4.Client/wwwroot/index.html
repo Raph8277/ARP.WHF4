@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="splash-active">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,6 +26,10 @@
         body,
         #app {
             min-height: 100%;
+        }
+
+        html.splash-active {
+            overflow: hidden;
         }
 
         body {
@@ -172,7 +176,7 @@
     </script>
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="css/app.css?v=onyx-6" rel="stylesheet" />
+    <link href="css/app.css?v=onyx-7" rel="stylesheet" />
 </head>
 <body>
     <div id="splash-boot" class="splash-boot">
@@ -219,7 +223,7 @@
             window.setTimeout(() => URL.revokeObjectURL(url), 60000);
         };
     </script>
-    <script src="_framework/blazor.webassembly.js?v=onyx-6" autostart="false"></script>
+    <script src="_framework/blazor.webassembly.js?v=onyx-7" autostart="false"></script>
     <script>
         (function () {
             var c = document.getElementById('splash-particles');
@@ -245,6 +249,7 @@
                     var splash = document.getElementById('splash-boot');
                     if (splash) {
                         document.body.style.background = '';
+                        document.documentElement.classList.remove('splash-active');
                         splash.classList.add('fade-out');
                         setTimeout(function () { splash.remove(); }, 900);
                     }
