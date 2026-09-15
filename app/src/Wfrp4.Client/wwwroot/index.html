@@ -163,6 +163,40 @@
             90%  { opacity: 0.6; }
             100% { transform: translateY(-10vh) translateX(30px); opacity: 0; }
         }
+
+        .wfrp4-highlight-pulse { animation: wfrp4Pulse 2s ease-in-out infinite; }
+        @keyframes wfrp4Pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 0.3; }
+        }
+        .wfrp4-map-wrapper { position: relative; border-radius: 8px; overflow: hidden; }
+        .wfrp4-map-legend {
+            position: absolute; bottom: 10px; left: 10px; z-index: 800;
+            background: rgba(0,0,0,0.75); color: #eee; border-radius: 6px;
+            padding: 8px 12px; font-size: 12px; pointer-events: auto;
+        }
+        .wfrp4-map-legend-item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+        .wfrp4-map-legend-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #000; }
+        .wfrp4-map-controls {
+            position: absolute; top: 10px; right: 10px; z-index: 800;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .wfrp4-map-controls button {
+            background: rgba(0,0,0,0.75); color: #eee; border: none;
+            border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 13px;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .wfrp4-map-controls button:hover { background: rgba(0,0,0,0.9); }
+        .leaflet-control-scale-line {
+            background: rgba(0,0,0,0.7) !important; color: #eee !important;
+            border-color: #c9a84c !important; font-size: 11px; text-shadow: none;
+        }
+        .wfrp4-search-fullscreen {
+            display: none; position: absolute; top: 10px; left: 10px; right: 140px; z-index: 900;
+            background: rgba(20,20,30,0.92); border-radius: 8px; padding: 8px 14px;
+            backdrop-filter: blur(6px); box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+        }
+        .wfrp4-search-fullscreen.wfrp4-fs-active { display: block; }
     </style>
     <script>
         try {
@@ -175,6 +209,7 @@
         }
     </script>
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="css/app.css?v=onyx-7" rel="stylesheet" />
 </head>
@@ -221,6 +256,193 @@
             const url = URL.createObjectURL(blob);
             window.open(url, '_blank', 'noopener');
             window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        window.wfrp4Map = {
+            _map: null,
+            _miniMaps: {},
+            _markers: [],
+            _markersLayer: null,
+            _regionsLayer: null,
+            _highlightLayer: null,
+            _isFullscreen: false,
+            _elementId: null,
+
+            init: function (elementId, cities, tileUrl, center, zoom, minZoom, maxZoom, regions) {
+                if (this._map) { this._map.remove(); this._map = null; }
+                this._elementId = elementId;
+                this._map = L.map(elementId, { minZoom: minZoom, maxZoom: maxZoom }).setView(center, zoom);
+                L.tileLayer(tileUrl, {
+                    attribution: '&copy; Gitzman, Blicher &amp; Nunez',
+                    maxZoom: maxZoom
+                }).addTo(this._map);
+
+                L.control.scale({ imperial: false, position: 'bottomright', maxWidth: 150 }).addTo(this._map);
+
+                this._markersLayer = L.layerGroup().addTo(this._map);
+                this._highlightLayer = L.layerGroup().addTo(this._map);
+                this._markers = [];
+
+                var typeIcons = {
+                    'Cité': { color: '#c9a84c', radius: 7 },
+                    'Ville': { color: '#8B4513', radius: 5 },
+                    'Bourg': { color: '#556B2F', radius: 4 },
+                    'Village': { color: '#2F4F4F', radius: 3 },
+                    'Forteresse': { color: '#8B0000', radius: 5 },
+                    '?': { color: '#666', radius: 3 }
+                };
+
+                for (var i = 0; i < cities.length; i++) {
+                    var c = cities[i];
+                    var style = typeIcons[c.type] || typeIcons['?'];
+                    var marker = L.circleMarker([c.lat, c.lng], {
+                        radius: style.radius,
+                        fillColor: style.color,
+                        color: '#000',
+                        weight: 1,
+                        opacity: 0.8,
+                        fillOpacity: 0.85
+                    });
+                    marker.bindPopup('<b>' + c.name + '</b><br/>' + c.type + ' — ' + c.population + '<br/><i>' + c.region + '</i>');
+                    marker.cityData = c;
+                    marker.addTo(this._markersLayer);
+                    this._markers.push(marker);
+                }
+
+                this._regionsLayer = L.layerGroup().addTo(this._map);
+                if (regions) {
+                    for (var j = 0; j < regions.length; j++) {
+                        var r = regions[j];
+                        var hooksHtml = r.hooks.map(function(h) { return '<li>' + h + '</li>'; }).join('');
+                        var tagsHtml = r.tags.map(function(t) { return '<span style="display:inline-block;background:#382C1F;color:#EBE0C7;border-radius:3px;padding:1px 6px;margin:1px;font-size:11px">' + t + '</span>'; }).join(' ');
+                        var label = L.marker([r.lat, r.lng], {
+                            icon: L.divIcon({
+                                className: 'wfrp4-region-label',
+                                html: '<div style="font-family:Cormorant Garamond,Georgia,serif;font-size:14px;font-weight:700;color:#c9a84c;text-shadow:1px 1px 3px #000,-1px -1px 3px #000;white-space:nowrap;pointer-events:auto">' + r.name + '</div>',
+                                iconSize: null,
+                                iconAnchor: [50, 10]
+                            })
+                        });
+                        label.bindPopup('<div style="min-width:220px"><h4 style="margin:0 0 4px;color:#382C1F">' + r.name + '</h4>'
+                            + '<div style="font-size:11px;color:#666;margin-bottom:6px">' + r.type + (r.parent ? ' — ' + r.parent : '') + '</div>'
+                            + '<div style="margin-bottom:6px">' + tagsHtml + '</div>'
+                            + '<b style="font-size:12px">Accroches :</b><ul style="margin:4px 0;padding-left:16px;font-size:12px">' + hooksHtml + '</ul></div>');
+                        label.addTo(this._regionsLayer);
+                    }
+                }
+            },
+
+            highlight: function (lat, lng, isRegion) {
+                if (!this._map) return;
+                this._highlightLayer.clearLayers();
+                var r = isRegion ? 80000 : 12000;
+                var color = isRegion ? '#c9a84c' : '#ff4444';
+                L.circle([lat, lng], { radius: r, color: color, weight: 3, fillColor: color, fillOpacity: 0.12, dashArray: isRegion ? '8 6' : null, className: 'wfrp4-highlight-pulse' }).addTo(this._highlightLayer);
+                L.circleMarker([lat, lng], { radius: isRegion ? 0 : 14, color: color, weight: 2, fillColor: 'transparent', fillOpacity: 0, className: 'wfrp4-highlight-pulse' }).addTo(this._highlightLayer);
+            },
+
+            clearHighlight: function () {
+                if (this._highlightLayer) this._highlightLayer.clearLayers();
+            },
+
+            toggleLayer: function (layer, visible) {
+                if (!this._map) return;
+                var target = layer === 'regions' ? this._regionsLayer : this._markersLayer;
+                if (!target) return;
+                if (visible) { if (!this._map.hasLayer(target)) this._map.addLayer(target); }
+                else { this._map.removeLayer(target); }
+            },
+
+            toggleFullscreen: function () {
+                var el = document.getElementById(this._elementId);
+                if (!el) return;
+                var wrapper = el.closest('.wfrp4-map-wrapper');
+                if (!wrapper) wrapper = el.parentElement;
+                this._isFullscreen = !this._isFullscreen;
+                if (this._isFullscreen) {
+                    wrapper.style.cssText = 'position:fixed;inset:0;z-index:9999;border-radius:0';
+                    el.style.height = '100vh';
+                } else {
+                    wrapper.style.cssText = 'border-radius:8px;overflow:hidden';
+                    el.style.height = '600px';
+                }
+                var self = this;
+                setTimeout(function() { self._map.invalidateSize(); }, 100);
+                return this._isFullscreen;
+            },
+
+            filter: function (region, type, search) {
+                if (!this._map) return;
+                var s = (search || '').toLowerCase();
+                for (var i = 0; i < this._markers.length; i++) {
+                    var m = this._markers[i];
+                    var c = m.cityData;
+                    var show = true;
+                    if (region && region !== 'Toutes' && c.region.toLowerCase().indexOf(region.toLowerCase()) === -1) show = false;
+                    if (type && type !== 'Tous' && c.type !== type) show = false;
+                    if (s && c.name.toLowerCase().indexOf(s) === -1) show = false;
+                    if (show) { if (!this._markersLayer.hasLayer(m)) this._markersLayer.addLayer(m); }
+                    else { this._markersLayer.removeLayer(m); }
+                }
+            },
+
+            flyTo: function (lat, lng, zoom) {
+                if (this._map) this._map.flyTo([lat, lng], zoom || 6);
+            },
+
+            resize: function () {
+                if (this._map) this._map.invalidateSize();
+            },
+
+            dispose: function () {
+                if (this._map) { this._map.remove(); this._map = null; }
+                for (var k in this._miniMaps) { if (this._miniMaps[k]) this._miniMaps[k].remove(); }
+                this._miniMaps = {};
+            },
+
+            initMiniMap: function(elementId, lat, lng, zoom, markers, tileUrl, route) {
+                if (this._miniMaps[elementId]) { this._miniMaps[elementId].remove(); delete this._miniMaps[elementId]; }
+                var el = document.getElementById(elementId);
+                if (!el) return;
+                var map = L.map(elementId, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false }).setView([lat, lng], zoom || 6);
+                L.tileLayer(tileUrl, { maxZoom: 7 }).addTo(map);
+                if (route && route.length > 0) {
+                    var routeCoords = route.map(function(r) { return [r.lat, r.lng]; });
+                    L.polyline(routeCoords, { color: '#c9a84c', weight: 3, opacity: 0.8, dashArray: '8 6' }).addTo(map);
+                    var stepColors = ['#4CAF50', '#FF9800', '#f44336', '#9C27B0', '#00BCD4'];
+                    for (var i = 0; i < route.length; i++) {
+                        var r = route[i];
+                        var col = stepColors[i % stepColors.length];
+                        var icon = L.divIcon({ className: '', html: '<div style="width:24px;height:24px;border-radius:50%;background:' + col + ';color:#fff;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.5)">' + r.step + '</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+                        L.marker([r.lat, r.lng], { icon: icon }).bindTooltip('Acte ' + r.step + ' — ' + r.name, { permanent: false, direction: 'top', offset: [0, -14] }).addTo(map);
+                    }
+                    if (routeCoords.length > 1) map.fitBounds(L.latLngBounds(routeCoords).pad(0.15));
+                } else {
+                    L.circleMarker([lat, lng], { radius: 8, fillColor: '#c9a84c', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(map);
+                    L.circle([lat, lng], { radius: 15000, color: '#c9a84c', weight: 1, fillColor: '#c9a84c', fillOpacity: 0.1, dashArray: '4 4' }).addTo(map);
+                }
+                if (markers) {
+                    for (var i = 0; i < markers.length; i++) {
+                        var m = markers[i];
+                        L.circleMarker([m.lat, m.lng], { radius: 4, fillColor: '#8B4513', color: '#000', weight: 1, fillOpacity: 0.7 })
+                            .bindTooltip(m.name, { permanent: false, direction: 'top' })
+                            .addTo(map);
+                    }
+                }
+                this._miniMaps[elementId] = map;
+            },
+
+            invalidateMiniMap: function(elementId) {
+                var m = this._miniMaps[elementId];
+                if (m) m.invalidateSize();
+            },
+
+            disposeMiniMaps: function() {
+                for (var k in this._miniMaps) { if (this._miniMaps[k]) this._miniMaps[k].remove(); }
+                this._miniMaps = {};
+            }
         };
     </script>
     <script src="_framework/blazor.webassembly.js?v=onyx-7" autostart="false"></script>

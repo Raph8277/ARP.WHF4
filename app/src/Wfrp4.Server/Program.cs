@@ -13,7 +13,8 @@ var keycloakConfiguration = await LoadKeycloakConfigurationAsync(builder.Configu
 
 // --- EF Core + PostgreSQL ---
 builder.Services.AddDbContext<Wfrp4DbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Wfrp4")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Wfrp4"))
+           .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
 // --- Authentication (Keycloak JWT) ---
 builder.Services.AddTransient<KeycloakBackchannelHandler>();

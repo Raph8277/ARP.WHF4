@@ -29,6 +29,7 @@ public class Wfrp4DbContext : DbContext
     public DbSet<CreatureReference> CreaturesReference => Set<CreatureReference>();
     public DbSet<TitreBaseReference> TitresBaseReference => Set<TitreBaseReference>();
     public DbSet<TitreQualificatifReference> TitresQualificatifReference => Set<TitreQualificatifReference>();
+    public DbSet<AventureSauvegardee> AventuresSauvegardees => Set<AventureSauvegardee>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

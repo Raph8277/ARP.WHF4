@@ -205,6 +205,26 @@ public class Wfrp4ApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    // --- Aventures sauvegardées ---
+    public Task<List<AventureSauvegardeeSummaryDto>?> GetAventuresSauvegardeesAsync() =>
+        _http.GetFromJsonAsync<List<AventureSauvegardeeSummaryDto>>("api/aventures");
+
+    public Task<AventureSauvegardeeDetailDto?> GetAventureSauvegardeeAsync(int id) =>
+        _http.GetFromJsonAsync<AventureSauvegardeeDetailDto>($"api/aventures/{id}");
+
+    public async Task<AventureSauvegardeeSummaryDto?> SauvegarderAventureAsync(SaveAventureRequest request)
+    {
+        var response = await _http.PostAsJsonAsync("api/aventures", request);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<AventureSauvegardeeSummaryDto>();
+    }
+
+    public async Task SupprimerAventureSauvegardeeAsync(int id)
+    {
+        var response = await _http.DeleteAsync($"api/aventures/{id}");
+        response.EnsureSuccessStatusCode();
+    }
+
     // --- Référentiels ---
     public Task<List<EspeceDto>?> GetEspecesAsync() =>
         _http.GetFromJsonAsync<List<EspeceDto>>("api/especes");

@@ -29,7 +29,7 @@ public class MjPdfExportService
     private List<string> BuildPages(MjPdfExportRequest request, PdfTheme theme)
     {
         var slug = Slug(request.Type);
-        if (slug is "groupe-pnj" or "pnj")
+        if (slug is "groupe-pnj" or "pnj" or "bestiaire")
             return BuildPnjPages(request, theme);
 
         var pages = new List<string>();
@@ -337,7 +337,7 @@ public class MjPdfExportService
         public static PdfTheme For(string type)
         {
             var normalized = Slug(type);
-            return normalized is "pnj" or "groupe-pnj" or "butin"
+            return normalized is "pnj" or "groupe-pnj" or "butin" or "bestiaire"
                 ? new PdfTheme("wfrp4-mj-page-background.jpg", LightText: false, DrawHeader: false, ContentStartY: 315)
                 : new PdfTheme("wfrp4-character-sheet-1.jpg", LightText: false, DrawHeader: true, ContentStartY: 250);
         }
