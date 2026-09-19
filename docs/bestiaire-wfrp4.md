@@ -701,3 +701,174 @@ Peur, Animosité, Armure, Gros, Brute, Intelligent, Rusé, Élite, Rapide, Robus
 ---
 
 *Source : Warhammer Fantasy Roleplay 4e édition — Livre de Base, pages 309–343.*
+
+---
+
+# Créatures supplémentaires (extensions de lore)
+
+Les entrées suivantes étendent le bestiaire du livre de base avec des créatures des nations étrangères et des menaces supplémentaires du Vieux Monde.
+
+---
+
+## Hommes-Bêtes
+
+### Gor (Homme-Bête)
+**CC 45** · CT 25 · F 45 · E 45 · I 35 · Ag 35 · Dex 25 · Int 25 · FM 35 · Soc 15 · B 18 · M 5
+- **Traits** : Armes naturelles (Cornes), Bestial, Armure 1 (cuir épais), Frénésie
+- **Environnement** : Forêts profondes (Drakwald, Arden, Reikwald)
+- **Description** : Hybrides cornus et brutaux formant le gros des hardes. Combattent en meutes sauvages.
+
+### Ungor (Homme-Bête mineur)
+**CC 35** · CT 30 · F 35 · E 35 · I 35 · Ag 40 · Dex 30 · Int 20 · FM 30 · Soc 10 · B 12 · M 5
+- **Traits** : Armes naturelles (petites cornes), Bestial
+- **Environnement** : Forêts, orée des bois
+- **Description** : Éclaireurs des hardes, moins puissants que les Gors mais plus nombreux et sournois.
+
+### Minotaure
+**CC 60** · CT 15 · F 65 · E 60 · I 25 · Ag 25 · Dex 15 · Int 15 · FM 40 · Soc 10 · B 36 · M 6
+- **Traits** : Armes naturelles (Cornes), Charge, Frénésie du Sang, Taille (Grande), Armure 2
+- **Environnement** : Forêts profondes, sites du Chaos
+- **Description** : Monstruosité mi-homme mi-taureau. Entre en frénésie dès qu'il sent le sang.
+
+---
+
+## Monstres
+
+### Griffon
+**CC 55** · CT 0 · F 55 · E 55 · I 45 · Ag 45 · Dex 0 · Int 20 · FM 40 · Soc 0 · B 30 · M 8
+- **Traits** : Vol (8), Armes naturelles (Serres, Bec), Taille (Grande), Territorial
+- **Environnement** : Montagnes, nids en haute altitude
+- **Description** : Aigle-lion majestueux. Certains sont dressés comme montures par les chevaliers impériaux.
+
+### Wyverne
+**CC 55** · CT 0 · F 60 · E 55 · I 35 · Ag 30 · Dex 0 · Int 15 · FM 40 · Soc 0 · B 35 · M 7
+- **Traits** : Vol (7), Queue venimeuse, Taille (Grande), Armes naturelles (Morsure)
+- **Environnement** : Montagnes, falaises
+- **Description** : Reptile ailé venimeux. Les Orques les utilisent comme montures de guerre.
+
+### Basilic
+**CC 50** · CT 0 · F 50 · E 55 · I 30 · Ag 25 · Dex 0 · Int 10 · FM 45 · Soc 0 · B 28 · M 4
+- **Traits** : Regard pétrifiant, Venin (Mortel), Armure 3 (écailles), Taille (Grande)
+- **Environnement** : Souterrains, mines abandonnées
+- **Description** : Serpent-roi au regard mortel. Un miroir est la meilleure défense.
+
+### Hydre
+**CC 55** · CT 0 · F 55 · E 55 · I 30 · Ag 25 · Dex 0 · Int 10 · FM 40 · Soc 0 · B 40 · M 5
+- **Traits** : Têtes multiples (attaques supplémentaires), Régénération (sauf feu), Taille (Énorme)
+- **Environnement** : Marais, fleuves profonds
+- **Description** : Bête à multiples têtes. Couper une tête en fait repousser deux sauf par le feu.
+
+### Troll de Pierre
+**CC 50** · CT 10 · F 60 · E 60 · I 15 · Ag 15 · Dex 10 · Int 10 · FM 30 · Soc 5 · B 32 · M 4
+- **Traits** : Régénération (sauf feu), Vomi, Stupide, Armure 3 (peau rocheuse), Taille (Grande)
+- **Environnement** : Montagnes, passages de montagne
+- **Description** : Troll à la peau quasi impénétrable ressemblant à la roche.
+
+### Troll des Glaces
+**CC 55** · CT 10 · F 60 · E 60 · I 20 · Ag 15 · Dex 10 · Int 10 · FM 35 · Soc 5 · B 34 · M 4
+- **Traits** : Régénération (sauf feu), Souffle glacial, Résistant au froid, Taille (Grande)
+- **Environnement** : Norsca, Kislev, montagnes du nord
+- **Description** : Horreur gelée du grand nord. Son souffle gèle l'air.
+
+---
+
+## Morts-vivants avancés
+
+### Revenant
+**CC 55** · CT 30 · F 45 · E 50 · I 35 · Ag 35 · Dex 30 · Int 35 · FM 55 · Soc 20 · B 22 · M 4
+- **Traits** : Mort-vivant, Armes, Commandement des morts-vivants, Peur 2
+- **Environnement** : Cimetières, champs de bataille anciens
+- **Description** : Guerrier mort qui refuse le repos. Conserve l'intelligence et la mémoire de sa vie.
+
+### Liche
+**CC 45** · CT 40 · F 35 · E 45 · I 55 · Ag 35 · Dex 45 · Int 65 · FM 75 · Soc 35 · B 30 · M 4
+- **Traits** : Mort-vivant, Magie (Nécromancie), Peur 3, Terreur, Phylactère
+- **Environnement** : Ruines, tours anciennes
+- **Description** : Nécromancien ayant vaincu la mort. Son phylactère doit être détruit pour le tuer définitivement.
+
+### Momie Néhekharane
+**CC 55** · CT 0 · F 55 · E 55 · I 25 · Ag 25 · Dex 20 · Int 35 · FM 60 · Soc 15 · B 26 · M 4
+- **Traits** : Mort-vivant, Malédiction de la tombe, Résistant (sauf feu), Peur 2
+- **Environnement** : Terres Arides, tombes néhekharanes
+- **Description** : Roi mort bandé et furieux gardant son tombeau.
+
+---
+
+## Chaos avancé
+
+### Guerrier du Chaos
+**CC 60** · CT 35 · F 55 · E 55 · I 40 · Ag 40 · Dex 30 · Int 30 · FM 55 · Soc 20 · B 24 · M 4
+- **Traits** : Armure du Chaos (5+), Mutations, Bénédiction du Chaos, Peur 1
+- **Environnement** : Friches du Chaos, Norsca
+- **Description** : Vétéran corrompu du Chaos. Souvent un ancien chevalier ou soldat impérial.
+
+### Maraudeur Norscan
+**CC 45** · CT 30 · F 45 · E 45 · I 35 · Ag 35 · Dex 25 · Int 25 · FM 40 · Soc 20 · B 16 · M 4
+- **Traits** : Frénésie, Résistant au froid
+- **Environnement** : Norsca, côtes du Nordland, Friches
+- **Description** : Pillard nordique endurci par le froid et le combat.
+
+### Loup-garou
+**CC 55** · CT 0 · F 55 · E 50 · I 50 · Ag 50 · Dex 25 · Int 30 · FM 45 · Soc 15 · B 24 · M 7
+- **Traits** : Régénération (sauf argent), Armes naturelles, Infection, Peur 2
+- **Environnement** : Forêts, régions rurales
+- **Description** : Humain maudit changeant à la pleine lune. Transmet la malédiction par morsure.
+
+---
+
+## Humains notables
+
+### Chevalier du Graal (Bretonnie)
+**CC 70** · CT 40 · F 55 · E 55 · I 50 · Ag 50 · Dex 40 · Int 40 · FM 60 · Soc 50 · B 22 · M 4
+- **Traits** : Bénédiction de la Dame, Champion, Armure lourde
+- **Environnement** : Bretonnie, quêtes à travers le Vieux Monde
+- **Description** : Paragon chevaleresque béni par la Dame du Lac. Quasi invincible en combat singulier.
+
+### Cosaque Kislévite
+**CC 45** · CT 40 · F 40 · E 45 · I 40 · Ag 40 · Dex 30 · Int 25 · FM 45 · Soc 25 · B 14 · M 4
+- **Environnement** : Steppes de Kislev
+- **Description** : Cavalier endurci des steppes. Excellent archer à cheval.
+
+### Sorcière des Glaces (Kislev)
+**CC 35** · CT 30 · F 30 · E 35 · I 55 · Ag 40 · Dex 45 · Int 60 · FM 65 · Soc 40 · B 14 · M 4
+- **Traits** : Magie de la Glace, Protections magiques
+- **Environnement** : Kislev
+- **Description** : Maîtresse de la magie de glace kislévite. Voit des présages dans la glace.
+
+### Condottiere Tiléenne
+**CC 50** · CT 45 · F 40 · E 40 · I 45 · Ag 45 · Dex 40 · Int 40 · FM 40 · Soc 45 · B 16 · M 4
+- **Environnement** : Tilée, en campagne partout dans le Vieux Monde
+- **Description** : Chef de compagnie mercenaire expérimenté. Sa loyauté dure tant que l'or coule.
+
+### Diestro Estalien
+**CC 55** · CT 35 · F 35 · E 35 · I 55 · Ag 55 · Dex 50 · Int 35 · FM 40 · Soc 40 · B 14 · M 4
+- **Traits** : Maître d'armes (Rapière), Riposte, Esquive
+- **Environnement** : Estalie, cités du Vieux Monde
+- **Description** : Bretteur d'honneur estalien. Un affront suffit à déclencher un duel à mort.
+
+---
+
+## Bêtes supplémentaires
+
+### Warg (Loup géant)
+**CC 40** · CT 0 · F 40 · E 40 · I 40 · Ag 45 · Dex 0 · Int 15 · FM 30 · Soc 0 · B 14 · M 7
+- **Traits** : Armes naturelles (Morsure), Traqueur, Taille (Grande pour un loup)
+- **Environnement** : Forêts, territoires peaux-vertes
+- **Description** : Loup géant corrompu utilisé comme monture par les Gobelins.
+
+### Chauve-souris Géante
+**CC 30** · CT 0 · F 30 · E 30 · I 40 · Ag 50 · Dex 0 · Int 10 · FM 20 · Soc 0 · B 8 · M 8
+- **Traits** : Vol (8), Armes naturelles (Morsure), Nocturne
+- **Environnement** : Grottes, Sylvania
+- **Description** : Chasseur nocturne aveugle volant en essaim.
+
+### Scorpion Géant
+**CC 45** · CT 0 · F 50 · E 50 · I 30 · Ag 35 · Dex 0 · Int 5 · FM 30 · Soc 0 · B 22 · M 5
+- **Traits** : Armes naturelles (Pinces, Dard), Venin (Mortel), Armure 3 (carapace), Enfoui
+- **Environnement** : Terres Arides, déserts
+- **Description** : Arachnide blindée du désert. Sa carapace intéresse les alchimistes.
+
+### Hobgobelin
+**CC 40** · CT 35 · F 35 · E 40 · I 40 · Ag 40 · Dex 30 · Int 30 · FM 35 · Soc 25 · B 12 · M 4
+- **Environnement** : Steppes de l'est, Montagnes du Bord du Monde
+- **Description** : Gobelin plus grand, plus malin et plus cruel. Sert les khans hobgobelins des steppes orientales.

@@ -33,6 +33,7 @@ public class PersonnageService
         var competenceIdsCarriere = await GetCompetenceIdsCarriere(niveauCarriere);
         var talentIdsCarriere = await GetTalentIdsCarriere(niveauCarriere);
         ValiderChoixCreation(request, competenceIdsCarriere, talentIdsCarriere);
+        await ValiderSortsInitiaux(request);
 
         if (request.TitreBaseReferenceId.HasValue != request.TitreQualificatifReferenceId.HasValue)
             throw new InvalidOperationException("Le titre doit comporter une base et un qualificatif, ou rester vide.");
@@ -134,6 +135,11 @@ public class PersonnageService
                 Fois = 1,
             });
             personnage.TalentsGratuitsRestants--;
+        }
+
+        foreach (var sortId in request.SortsInitiaux.Distinct())
+        {
+            personnage.Sorts.Add(new PersonnageSort { SortReferenceId = sortId });
         }
 
         await AppliquerPlancherCompetencesDeBase(personnage);
@@ -388,6 +394,187 @@ public class PersonnageService
         return cout;
     }
 
+    public async Task<int> AvancerCarriere(int personnageId, int niveauCarriereCibleId)
+    {
+        var personnage = await _db.Personnages
+            .Include(p => p.Espece)
+            .Include(p => p.CarriereCourante!).ThenInclude(n => n.Carriere).ThenInclude(c => c.Niveaux)
+            .Include(p => p.Caracteristiques)
+            .Include(p => p.Competences).ThenInclude(c => c.Competence)
+            .Include(p => p.Talents).ThenInclude(t => t.Talent)
+            .Include(p => p.Carrieres)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(p => p.Id == personnageId)
+            ?? throw new InvalidOperationException("Personnage introuvable.");
+
+        var actuel = personnage.CarriereCourante
+            ?? throw new InvalidOperationException("Le personnage n'a pas de carrière courante.");
+        var cible = await _db.NiveauCarrieres
+            .Include(n => n.Carriere)
+            .FirstOrDefaultAsync(n => n.Id == niveauCarriereCibleId)
+            ?? throw new InvalidOperationException("Niveau de carrière introuvable.");
+
+        var seuil = actuel.Niveau * 5;
+        var codesCompetences = actuel.Carriere.Niveaux
+            .Where(n => n.Niveau <= actuel.Niveau)
+            .SelectMany(n => ParseCodes(n.CompetenceRevenu))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var nombreCompetencesRequis = Math.Min(8, codesCompetences.Count);
+        var nombreCompetencesValidees = personnage.Competences
+            .Where(c => codesCompetences.Contains(c.Competence.Code) && c.Avances >= seuil)
+            .Select(c => c.Competence.Code)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+
+        var codesTalents = ParseCodes(actuel.TalentsRevenu).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var talentValide = codesTalents.Count == 0
+            || personnage.Talents.Any(t => t.Fois > 0 && codesTalents.Contains(t.Talent.Code));
+
+        var codesCaracteristiques = ParseCaracteristiques(actuel.AvancesCarac);
+        var caracteristiquesManquantes = personnage.Caracteristiques
+            .Where(c => codesCaracteristiques.Contains(c.Code) && c.Avances < seuil)
+            .Select(c => c.Code)
+            .ToList();
+        var niveauComplete = nombreCompetencesRequis > 0
+            && nombreCompetencesValidees >= nombreCompetencesRequis
+            && talentValide
+            && caracteristiquesManquantes.Count == 0;
+
+        int cout;
+        string notes;
+        if (cible.CarriereId == actuel.CarriereId)
+        {
+            if (cible.Niveau != actuel.Niveau + 1)
+                throw new InvalidOperationException("Dans la carrière actuelle, seul le niveau suivant peut être choisi.");
+            if (nombreCompetencesRequis > 0 && nombreCompetencesValidees < nombreCompetencesRequis)
+                throw new InvalidOperationException(
+                    $"Prérequis incomplets : {nombreCompetencesValidees}/{nombreCompetencesRequis} compétences possèdent au moins {seuil} Avances.");
+            if (!talentValide)
+                throw new InvalidOperationException("Prérequis incomplet : il faut posséder au moins un Talent du niveau actuel.");
+            if (caracteristiquesManquantes.Count > 0)
+                throw new InvalidOperationException(
+                    $"Prérequis incomplets : {string.Join(", ", caracteristiquesManquantes)} doivent atteindre {seuil} Avances.");
+
+            cout = 100;
+            notes = $"Passage au niveau {cible.Niveau}";
+        }
+        else
+        {
+            if (cible.Niveau != 1)
+                throw new InvalidOperationException("Une nouvelle carrière commence normalement à son premier niveau.");
+            var especesAutorisees = ParseCodes(cible.Carriere.EspecesAutorisees);
+            if (especesAutorisees.Count > 0 && !especesAutorisees.Contains(personnage.Espece.Code))
+                throw new InvalidOperationException("Cette carrière n'est pas accessible à l'espèce du personnage.");
+
+            cout = niveauComplete ? 100 : 200;
+            if (cible.Carriere.ClasseId != actuel.Carriere.ClasseId)
+                cout += 100;
+            notes = niveauComplete
+                ? $"Changement depuis une carrière complétée vers {cible.Carriere.Nom}"
+                : $"Changement depuis une carrière incomplète vers {cible.Carriere.Nom}";
+        }
+
+        if (personnage.XpTotal - personnage.XpDepense < cout)
+            throw new InvalidOperationException($"XP insuffisants : {cout} XP sont nécessaires pour ce changement de carrière.");
+
+        var entreeActuelle = personnage.Carrieres.FirstOrDefault(c => c.EstCourante);
+        if (entreeActuelle != null)
+        {
+            entreeActuelle.EstCourante = false;
+            entreeActuelle.DateSortie = DateTime.UtcNow;
+        }
+
+        personnage.Carrieres.Add(new PersonnageCarriere
+        {
+            PersonnageId = personnageId,
+            NiveauCarriereId = cible.Id,
+            EstCourante = true,
+            DateEntree = DateTime.UtcNow,
+        });
+        personnage.CarriereCouranteId = cible.Id;
+        personnage.XpDepense += cout;
+        personnage.UpdatedAt = DateTime.UtcNow;
+        _db.HistoriqueXPs.Add(new HistoriqueXP
+        {
+            PersonnageId = personnageId,
+            AuteurKeycloakId = personnage.KeycloakId,
+            Montant = -cout,
+            Type = TypeXP.Carriere,
+            Cible = $"{actuel.Carriere.Nom} — {cible.Intitule}",
+            Notes = notes,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        await _db.SaveChangesAsync();
+        return cout;
+    }
+
+    public async Task<int> AnnulerDernierPassageCarriere(int personnageId)
+    {
+        var personnage = await _db.Personnages
+            .Include(p => p.CarriereCourante!).ThenInclude(n => n.Carriere)
+            .Include(p => p.Carrieres).ThenInclude(c => c.NiveauCarriere).ThenInclude(n => n.Carriere)
+            .Include(p => p.HistoriqueXP)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(p => p.Id == personnageId)
+            ?? throw new InvalidOperationException("Personnage introuvable.");
+        var actuel = personnage.CarriereCourante
+            ?? throw new InvalidOperationException("Le personnage n'a pas de carrière courante.");
+        var entreeActuelle = personnage.Carrieres.FirstOrDefault(c => c.EstCourante)
+            ?? throw new InvalidOperationException("Entrée de carrière courante introuvable.");
+        var precedente = personnage.Carrieres
+            .Where(c => c.Id != entreeActuelle.Id && c.DateEntree <= entreeActuelle.DateEntree)
+            .OrderByDescending(c => c.DateEntree)
+            .FirstOrDefault();
+
+        if (precedente == null)
+            throw new InvalidOperationException("Aucune carrière précédente ne peut être restaurée.");
+
+        var depenseCarriere = personnage.HistoriqueXP
+            .Where(h => h.Type == TypeXP.Carriere && h.Montant < 0)
+            .OrderByDescending(h => h.CreatedAt)
+            .FirstOrDefault()
+            ?? throw new InvalidOperationException("La dépense XP du dernier changement de carrière est introuvable.");
+        var remboursement = -depenseCarriere.Montant;
+        if (personnage.XpDepense < remboursement)
+            throw new InvalidOperationException("Le remboursement ne peut pas être appliqué au solde XP dépensé.");
+
+        _db.PersonnageCarrieres.Remove(entreeActuelle);
+        precedente.EstCourante = true;
+        precedente.DateSortie = null;
+        personnage.CarriereCouranteId = precedente.NiveauCarriereId;
+        personnage.XpDepense -= remboursement;
+        personnage.UpdatedAt = DateTime.UtcNow;
+        _db.HistoriqueXPs.Add(new HistoriqueXP
+        {
+            PersonnageId = personnageId,
+            AuteurKeycloakId = personnage.KeycloakId,
+            Montant = remboursement,
+            Type = TypeXP.Carriere,
+            Cible = $"{precedente.NiveauCarriere.Carriere.Nom} — {precedente.NiveauCarriere.Intitule}",
+            Notes = $"Annulation de {actuel.Carriere.Nom} — {actuel.Intitule} et remboursement de {remboursement} XP",
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        await _db.SaveChangesAsync();
+        return remboursement;
+    }
+
+    private static HashSet<string> ParseCaracteristiques(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            return (System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? [])
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return ParseCodes(json);
+        }
+    }
+
     public async Task OctroyerXP(int personnageId, string mjKeycloakId, XPGrantRequest request)
     {
         var personnage = await _db.Personnages.FindAsync(personnageId)
@@ -467,7 +654,7 @@ public class PersonnageService
     private static HashSet<string> ParseCodes(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return [];
-        return raw.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        return raw.Split([',', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
@@ -502,6 +689,33 @@ public class PersonnageService
         else if (request.TalentsInitiaux.Count > 0)
         {
             throw new InvalidOperationException("Aucun talent de carrière n'est disponible pour cette création.");
+        }
+    }
+
+    private async Task ValiderSortsInitiaux(CreatePersonnageRequest request)
+    {
+        var talentCodes = await _db.Talents
+            .Where(t => request.TalentsInitiaux.Contains(t.Id))
+            .Select(t => t.Code)
+            .ToListAsync();
+        var sorts = await _db.SortsReference
+            .Where(s => request.SortsInitiaux.Contains(s.Id))
+            .ToListAsync();
+
+        if (sorts.Count != request.SortsInitiaux.Distinct().Count())
+            throw new InvalidOperationException("Un ou plusieurs sorts sélectionnés sont introuvables.");
+        if (sorts.Any(s => !SortAccessService.EstAccessible(s, talentCodes)))
+            throw new InvalidOperationException("Un sort sélectionné n'est pas accessible avec les talents magiques du personnage.");
+
+        if (talentCodes.Contains("MAGIE_MINEUR", StringComparer.OrdinalIgnoreCase))
+        {
+            var bonusForceMentale = request.CaracteristiquesInitiales.GetValueOrDefault("FM") / 10;
+            if (sorts.Count(s => s.Categorie == "Mineur") != bonusForceMentale)
+                throw new InvalidOperationException($"Magie Mineure impose de choisir exactement {bonusForceMentale} sorts mineurs (bonus de Force Mentale).");
+        }
+        else if (request.SortsInitiaux.Count > 0)
+        {
+            throw new InvalidOperationException("Aucun sort initial n'est accordé sans talent magique approprié.");
         }
     }
 }

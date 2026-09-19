@@ -13,7 +13,8 @@ var keycloakConfiguration = await LoadKeycloakConfigurationAsync(builder.Configu
 
 // --- EF Core + PostgreSQL ---
 builder.Services.AddDbContext<Wfrp4DbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Wfrp4")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Wfrp4"))
+           .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
 // --- Authentication (Keycloak JWT) ---
 builder.Services.AddTransient<KeycloakBackchannelHandler>();
@@ -76,6 +77,7 @@ builder.Services.AddAuthorization(options =>
 
 // --- Services ---
 builder.Services.AddScoped<PersonnageService>();
+builder.Services.AddScoped<SortAccessService>();
 builder.Services.AddScoped<XPService>();
 builder.Services.AddScoped<CharacterSheetPdfService>();
 builder.Services.AddScoped<MjPdfExportService>();
@@ -119,22 +121,23 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
-    app.Use(async (context, next) =>
-    {
-        if (!context.Request.Path.StartsWithSegments("/api"))
-        {
-            context.Response.OnStarting(() =>
-            {
-                context.Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
-                context.Response.Headers.Pragma = "no-cache";
-                context.Response.Headers.Expires = "0";
-                return Task.CompletedTask;
-            });
-        }
-
-        await next();
-    });
 }
+
+app.Use(async (context, next) =>
+{
+    if (!context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
+            context.Response.Headers.Pragma = "no-cache";
+            context.Response.Headers.Expires = "0";
+            return Task.CompletedTask;
+        });
+    }
+
+    await next();
+});
 
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();

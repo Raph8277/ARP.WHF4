@@ -1,0 +1,450 @@
+@page "/personnage/{Id:int}/grimoire"
+@attribute [Authorize]
+@using Wfrp4.Shared.DTOs
+@inject Wfrp4ApiClient Api
+@inject NavigationManager Nav
+@inject IDialogService Dialog
+@inject ISnackbar Snackbar
+
+<PageTitle>Grimoire — @(_personnage?.Nom ?? "Personnage")</PageTitle>
+
+@if (_loading)
+{
+    <div class="old-world-loading"><MudProgressCircular Indeterminate="true" Color="Color.Primary" /></div>
+}
+else if (_personnage == null)
+{
+    <MudAlert Severity="Severity.Error">Le personnage est introuvable ou inaccessible.</MudAlert>
+}
+else
+{
+    <section class="old-world-hero grimoire-hero mb-5">
+        <div>
+            <MudText Class="old-world-kicker">Livre des arcanes</MudText>
+            <MudText Typo="Typo.h2" Class="old-world-hero__title">Grimoire de @_personnage.Nom</MudText>
+            <MudText Class="old-world-hero__text">
+                @(_personnage.ClasseNom ?? "Classe inconnue") — @(_personnage.CarriereCouranteIntitule ?? "Sans carrière")
+            </MudText>
+        </div>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="RetourFiche">Retour à la fiche</MudButton>
+    </section>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-5">
+        <strong>Rappel :</strong> Magie Mineure autorise les sorts mineurs ; Magie des Arcanes autorise les sorts
+        arcaniques. Les sorts d'une Tradition nécessitent le Savoir correspondant. Le CN représente le niveau de
+        lancement utilisé dans l'arborescence ci-dessous.
+    </MudAlert>
+
+    <div class="grimoire-tabs" role="tablist" aria-label="Sections du grimoire">
+        <button class='@TabClass("sorts")' role="tab" aria-selected='@(_activeTab == "sorts")' @onclick='() => _activeTab = "sorts"'>Répertoire des sorts</button>
+        <button class='@TabClass("parchemins")' role="tab" aria-selected='@(_activeTab == "parchemins")' @onclick='() => _activeTab = "parchemins"'>Parchemins</button>
+        <button class='@TabClass("grimoire")' role="tab" aria-selected='@(_activeTab == "grimoire")' @onclick='() => _activeTab = "grimoire"'>Grimoire</button>
+    </div>
+
+    <MudGrid>
+        @if (_activeTab == "sorts")
+        {
+        <MudItem xs="12">
+            <MudPaper Class="old-world-panel grimoire-panel pa-5" Elevation="2">
+                <div class="d-flex align-center justify-space-between mb-4">
+                    <div>
+                        <MudText Class="old-world-kicker">Sorts mémorisés</MudText>
+                        <MudText Typo="Typo.h4">Répertoire des sorts</MudText>
+                    </div>
+                    @if (_personnage.PeutModifier)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Add" OnClick="OuvrirAjoutSort">Ajouter</MudButton>
+                    }
+                </div>
+                @if (_personnage.Sorts.Count == 0)
+                {
+                    <div class="grimoire-empty">Aucun sort mémorisé.</div>
+                }
+                else
+                {
+                    @foreach (var categorie in _personnage.Sorts.GroupBy(s => s.Categorie).OrderBy(g => g.Key))
+                    {
+                        <details class="grimoire-branch" open>
+                            <summary>@categorie.Key <span>@categorie.Count()</span></summary>
+                            @foreach (var domaine in categorie.GroupBy(s => Domaine(s.Domaine)).OrderBy(g => g.Key))
+                            {
+                                <details class="grimoire-branch grimoire-branch--domain" open>
+                                    <summary>@domaine.Key <span>@domaine.Count()</span></summary>
+                                    @foreach (var niveau in domaine.GroupBy(s => s.Cn).OrderBy(g => g.Key ?? -1))
+                                    {
+                                        <details class="grimoire-branch grimoire-branch--level" open>
+                                            <summary>@Niveau(niveau.Key) <span>@niveau.Count()</span></summary>
+                                            @foreach (var sort in niveau.OrderBy(s => s.SortNom))
+                                            {
+                                                <article class="grimoire-leaf">
+                                                    <div>
+                                                        <strong>@sort.SortNom</strong>
+                                                        <small>@(sort.Portee ?? "Portée —") · @(sort.Duree ?? "Durée —")</small>
+                                                    </div>
+                                                    <div class="grimoire-leaf__actions">
+                                                        <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small" OnClick="() => AfficherDetail(sort)" />
+                                                        @if (_personnage.PeutModifier)
+                                                        {
+                                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                                           OnClick="() => SupprimerSort(sort)" />
+                                                        }
+                                                    </div>
+                                                </article>
+                                            }
+                                        </details>
+                                    }
+                                </details>
+                            }
+                        </details>
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+        }
+
+        @if (_activeTab == "parchemins")
+        {
+        <MudItem xs="12">
+            <MudPaper Class="old-world-panel grimoire-panel pa-5" Elevation="2">
+                <div class="d-flex align-center justify-space-between mb-4">
+                    <div>
+                        <MudText Class="old-world-kicker">Objets mystiques</MudText>
+                        <MudText Typo="Typo.h4">Parchemins</MudText>
+                    </div>
+                    @if (_personnage.PeutModifier)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Add" OnClick="OuvrirAjoutParchemin">Ajouter</MudButton>
+                    }
+                </div>
+                @if (_personnage.Parchemins.Count == 0)
+                {
+                    <div class="grimoire-empty">Aucun parchemin consigné.</div>
+                }
+                else
+                {
+                    @foreach (var categorie in _personnage.Parchemins.GroupBy(s => s.Categorie).OrderBy(g => g.Key))
+                    {
+                        <details class="grimoire-branch" open>
+                            <summary>@categorie.Key <span>@categorie.Sum(p => p.Quantite)</span></summary>
+                            @foreach (var domaine in categorie.GroupBy(s => Domaine(s.Domaine)).OrderBy(g => g.Key))
+                            {
+                                <details class="grimoire-branch grimoire-branch--domain" open>
+                                    <summary>@domaine.Key <span>@domaine.Sum(p => p.Quantite)</span></summary>
+                                    @foreach (var niveau in domaine.GroupBy(s => s.Cn).OrderBy(g => g.Key ?? -1))
+                                    {
+                                        <details class="grimoire-branch grimoire-branch--level" open>
+                                            <summary>@Niveau(niveau.Key) <span>@niveau.Sum(p => p.Quantite)</span></summary>
+                                            @foreach (var parchemin in niveau.OrderBy(s => s.SortNom))
+                                            {
+                                                <article class="grimoire-leaf">
+                                                    <div>
+                                                        <strong>@parchemin.SortNom <em>×@parchemin.Quantite</em></strong>
+                                                        <small>@(parchemin.Portee ?? "Portée —") · @(parchemin.Duree ?? "Durée —")</small>
+                                                    </div>
+                                                    <div class="grimoire-leaf__actions">
+                                                        <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small" OnClick="() => AfficherDetail(parchemin)" />
+                                                        @if (_personnage.PeutModifier)
+                                                        {
+                                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                                           OnClick="() => SupprimerParchemin(parchemin)" />
+                                                        }
+                                                    </div>
+                                                </article>
+                                            }
+                                        </details>
+                                    }
+                                </details>
+                            }
+                        </details>
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+        }
+
+        @if (_activeTab == "grimoire")
+        {
+        <MudItem xs="12">
+            <MudPaper Class="old-world-panel grimoire-panel pa-5" Elevation="2">
+                <div class="mb-4">
+                    <MudText Class="old-world-kicker">Corpus magique</MudText>
+                    <MudText Typo="Typo.h4">Tous les sorts</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Catalogue de référence complet. Ouvrez les branches pour consulter les conditions de lancement et l'utilisation de chaque sort.
+                    </MudText>
+                </div>
+
+                @foreach (var categorie in _tousLesSorts.GroupBy(s => s.Categorie).OrderBy(g => g.Key))
+                {
+                    <details class="grimoire-branch" open>
+                        <summary>@categorie.Key <span>@categorie.Count()</span></summary>
+                        @foreach (var domaine in categorie.GroupBy(s => Domaine(s.Domaine)).OrderBy(g => g.Key))
+                        {
+                            <details class="grimoire-branch grimoire-branch--domain">
+                                <summary>@domaine.Key <span>@domaine.Count()</span></summary>
+                                @foreach (var niveau in domaine.GroupBy(s => s.Cn).OrderBy(g => g.Key ?? -1))
+                                {
+                                    <details class="grimoire-branch grimoire-branch--level">
+                                        <summary>@Niveau(niveau.Key) <span>@niveau.Count()</span></summary>
+                                        @foreach (var sort in niveau.OrderBy(s => s.Nom))
+                                        {
+                                            <details class="@SortClass(sort)">
+                                                <summary>
+                                                    <span>@sort.Nom</span>
+                                                    <span class="grimoire-spell__markers">
+                                                        @if (EstDansRepertoire(sort.Id))
+                                                        {
+                                                            <span class="grimoire-marker grimoire-marker--known">Mémorisé</span>
+                                                        }
+                                                        @if (EstDansParchemins(sort.Id))
+                                                        {
+                                                            <span class="grimoire-marker grimoire-marker--scroll">Parchemin ×@QuantiteParchemins(sort.Id)</span>
+                                                        }
+                                                    </span>
+                                                </summary>
+                                                <div class="grimoire-spell__body">
+                                                    <dl class="grimoire-spell__stats">
+                                                        <div><dt>CN</dt><dd>@(sort.Cn?.ToString() ?? "—")</dd></div>
+                                                        <div><dt>Portée</dt><dd>@(sort.Portee ?? "—")</dd></div>
+                                                        <div><dt>Cible</dt><dd>@(sort.Cible ?? "—")</dd></div>
+                                                        <div><dt>Durée</dt><dd>@(sort.Duree ?? "—")</dd></div>
+                                                    </dl>
+                                                    <div class="grimoire-prerequisite @(SortAccessible(sort) ? "grimoire-prerequisite--met" : "grimoire-prerequisite--missing")">
+                                                        <MudIcon Icon="@(SortAccessible(sort) ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Lock)" Size="Size.Small" />
+                                                        <div>
+                                                            <strong>Prérequis pour mémoriser</strong>
+                                                            <span>@PrerequisMagique(sort)</span>
+                                                        </div>
+                                                    </div>
+                                                    <MudText Typo="Typo.body1">@(sort.Resume ?? "Aucune description disponible.")</MudText>
+                                                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                                               StartIcon="@Icons.Material.Filled.Info" OnClick="() => AfficherDetail(sort)">
+                                                        Ouvrir la fiche du sort
+                                                    </MudButton>
+                                                    @if (_personnage.PeutModifier)
+                                                    {
+                                                        <div class="grimoire-spell__actions">
+                                                            @if (EstDansRepertoire(sort.Id))
+                                                            {
+                                                                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                                                                           StartIcon="@Icons.Material.Filled.RemoveCircle"
+                                                                           Disabled="@EstOccupe(sort.Id)" OnClick="() => RetirerDuRepertoire(sort)">
+                                                                    Retirer du répertoire
+                                                                </MudButton>
+                                                            }
+                                                            else
+                                                            {
+                                                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                                                           StartIcon="@Icons.Material.Filled.AddCircle"
+                                                                           Disabled="@(!SortAccessible(sort) || EstOccupe(sort.Id))" OnClick="() => AjouterAuRepertoire(sort)">
+                                                                    Ajouter au répertoire
+                                                                </MudButton>
+                                                            }
+
+                                                            @if (EstDansParchemins(sort.Id))
+                                                            {
+                                                                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                                                                           StartIcon="@Icons.Material.Filled.RemoveCircle"
+                                                                           Disabled="@EstOccupe(sort.Id)" OnClick="() => RetirerDesParchemins(sort)">
+                                                                    Retirer un parchemin
+                                                                </MudButton>
+                                                            }
+                                                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                                                       StartIcon="@Icons.Material.Filled.PostAdd"
+                                                                       Disabled="@EstOccupe(sort.Id)" OnClick="() => AjouterAuxParchemins(sort)">
+                                                                Ajouter un parchemin
+                                                            </MudButton>
+                                                        </div>
+                                                        @if (!EstDansRepertoire(sort.Id) && !SortAccessible(sort))
+                                                        {
+                                                            <MudText Typo="Typo.caption" Color="Color.Warning">
+                                                                Prérequis manquant : @PrerequisMagique(sort). Un parchemin peut néanmoins être conservé.
+                                                            </MudText>
+                                                        }
+                                                    }
+                                                </div>
+                                            </details>
+                                        }
+                                    </details>
+                                }
+                            </details>
+                        }
+                    </details>
+                }
+            </MudPaper>
+        </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private PersonnageDetailDto? _personnage;
+    private List<SortReferenceDto> _tousLesSorts = [];
+    private bool _loading = true;
+    private string _activeTab = "sorts";
+    private readonly HashSet<int> _busySortIds = [];
+
+    protected override async Task OnParametersSetAsync() => await Recharger();
+
+    private async Task Recharger()
+    {
+        _loading = true;
+        try
+        {
+            _personnage = await Api.GetPersonnageAsync(Id);
+            _tousLesSorts = await Api.GetSortsAsync() ?? [];
+        }
+        catch { _personnage = null; }
+        finally { _loading = false; }
+    }
+
+    private void RetourFiche() => Nav.NavigateTo($"/personnage/{Id}?mode=edition&onglet=sorts");
+    private string TabClass(string tab) => $"grimoire-tabs__tab{(_activeTab == tab ? " grimoire-tabs__tab--active" : string.Empty)}";
+    private static string Domaine(string? domaine) => string.IsNullOrWhiteSpace(domaine) ? "Général" : domaine;
+    private static string Niveau(int? cn) => cn.HasValue ? $"Niveau CN {cn}" : "Niveau non défini";
+    private bool EstDansRepertoire(int sortId) => _personnage?.Sorts.Any(s => s.SortReferenceId == sortId) == true;
+    private bool EstDansParchemins(int sortId) => _personnage?.Parchemins.Any(s => s.SortReferenceId == sortId) == true;
+    private int QuantiteParchemins(int sortId) => _personnage?.Parchemins.FirstOrDefault(s => s.SortReferenceId == sortId)?.Quantite ?? 0;
+    private bool EstOccupe(int sortId) => _busySortIds.Contains(sortId);
+    private string SortClass(SortReferenceDto sort) => "grimoire-spell"
+        + (EstDansRepertoire(sort.Id) ? " grimoire-spell--known" : string.Empty)
+        + (EstDansParchemins(sort.Id) ? " grimoire-spell--scroll" : string.Empty);
+    private bool SortAccessible(SortReferenceDto sort)
+    {
+        var talents = _personnage?.Talents.Select(t => t.TalentCode).ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+        return (sort.Categorie == "Mineur" && talents.Contains("MAGIE_MINEUR"))
+            || (sort.Categorie == "Arcanique" && talents.Contains("MAGIE_ARCANE"));
+    }
+    private static string PrerequisMagique(SortReferenceDto sort) => sort.Categorie switch
+    {
+        "Mineur" => "Talent Magie Mineure",
+        "Arcanique" => "Talent Magie des Arcanes (un Savoir)",
+        "Tradition" => $"Talent Magie des Arcanes ({sort.Domaine ?? "Savoir correspondant"})",
+        "Sombre" => $"Talent Magie des Arcanes ({sort.Domaine ?? "Savoir sombre correspondant"})",
+        "Chaos" => $"Talent Magie du Chaos ({sort.Domaine ?? "Savoir correspondant"})",
+        "Sorcellerie" => "Talent de Sorcellerie approprié",
+        _ => "Talent ou aptitude de lanceur de sorts correspondant",
+    };
+
+    private async Task OuvrirAjoutSort()
+    {
+        if (_personnage == null) return;
+        var parameters = new DialogParameters<Components.AjoutSortDialog>
+        {
+            { x => x.PersonnageId, Id },
+            { x => x.SortsExistants, _personnage.Sorts.Select(s => s.SortReferenceId).ToList() },
+            { x => x.TalentCodes, _personnage.Talents.Select(t => t.TalentCode).ToList() },
+        };
+        var dialog = await Dialog.ShowAsync<Components.AjoutSortDialog>("Ajouter un sort", parameters);
+        if (await dialog.Result is { Canceled: false }) await Recharger();
+    }
+
+    private async Task OuvrirAjoutParchemin()
+    {
+        var parameters = new DialogParameters<Components.AjoutParcheminDialog> { { x => x.PersonnageId, Id } };
+        var dialog = await Dialog.ShowAsync<Components.AjoutParcheminDialog>("Ajouter un parchemin", parameters);
+        if (await dialog.Result is { Canceled: false }) await Recharger();
+    }
+
+    private Task AfficherDetail(PersonnageSortDto sort) => AfficherDetail(ToReference(sort));
+    private Task AfficherDetail(PersonnageParcheminDto parchemin) => AfficherDetail(ToReference(parchemin));
+    private async Task AfficherDetail(SortReferenceDto sort)
+    {
+        var parameters = new DialogParameters<Components.SortDetailsDialog> { { x => x.Sort, sort } };
+        await Dialog.ShowAsync<Components.SortDetailsDialog>(sort.Nom, parameters);
+    }
+
+    private async Task AjouterAuRepertoire(SortReferenceDto sort)
+    {
+        _busySortIds.Add(sort.Id);
+        try
+        {
+            await Api.AjouterSortAsync(Id, new AjoutSortRequest { SortReferenceId = sort.Id });
+            Snackbar.Add($"{sort.Nom} ajouté au répertoire.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex) { Snackbar.Add($"Erreur : {ex.Message}", Severity.Error); }
+        finally { _busySortIds.Remove(sort.Id); }
+    }
+
+    private async Task RetirerDuRepertoire(SortReferenceDto sort)
+    {
+        var entree = _personnage?.Sorts.FirstOrDefault(s => s.SortReferenceId == sort.Id);
+        if (entree == null) return;
+        _busySortIds.Add(sort.Id);
+        try
+        {
+            await Api.SupprimerSortAsync(Id, entree.Id);
+            Snackbar.Add($"{sort.Nom} retiré du répertoire.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex) { Snackbar.Add($"Erreur : {ex.Message}", Severity.Error); }
+        finally { _busySortIds.Remove(sort.Id); }
+    }
+
+    private async Task AjouterAuxParchemins(SortReferenceDto sort)
+    {
+        _busySortIds.Add(sort.Id);
+        try
+        {
+            await Api.AjouterParcheminAsync(Id, new AjoutParcheminRequest { SortReferenceId = sort.Id, Quantite = 1 });
+            Snackbar.Add($"Un parchemin de {sort.Nom} a été ajouté.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex) { Snackbar.Add($"Erreur : {ex.Message}", Severity.Error); }
+        finally { _busySortIds.Remove(sort.Id); }
+    }
+
+    private async Task RetirerDesParchemins(SortReferenceDto sort)
+    {
+        var entree = _personnage?.Parchemins.FirstOrDefault(s => s.SortReferenceId == sort.Id);
+        if (entree == null) return;
+        _busySortIds.Add(sort.Id);
+        try
+        {
+            await Api.SupprimerParcheminAsync(Id, entree.Id);
+            Snackbar.Add($"Un parchemin de {sort.Nom} a été retiré.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex) { Snackbar.Add($"Erreur : {ex.Message}", Severity.Error); }
+        finally { _busySortIds.Remove(sort.Id); }
+    }
+
+    private async Task SupprimerSort(PersonnageSortDto sort)
+    {
+        try
+        {
+            await Api.SupprimerSortAsync(Id, sort.Id);
+            Snackbar.Add($"{sort.SortNom} retiré du grimoire.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex) { Snackbar.Add($"Erreur : {ex.Message}", Severity.Error); }
+    }
+
+    private async Task SupprimerParchemin(PersonnageParcheminDto parchemin)
+    {
+        try
+        {
+            await Api.SupprimerParcheminAsync(Id, parchemin.Id);
+            Snackbar.Add($"Parchemin de {parchemin.SortNom} supprimé.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex) { Snackbar.Add($"Erreur : {ex.Message}", Severity.Error); }
+    }
+
+    private static SortReferenceDto ToReference(PersonnageSortDto s) => new()
+    {
+        Id = s.SortReferenceId, Nom = s.SortNom, Categorie = s.Categorie, Domaine = s.Domaine,
+        Cn = s.Cn, Portee = s.Portee, Cible = s.Cible, Duree = s.Duree, Resume = s.Resume,
+    };
+
+    private static SortReferenceDto ToReference(PersonnageParcheminDto s) => new()
+    {
+        Id = s.SortReferenceId, Nom = s.SortNom, Categorie = s.Categorie, Domaine = s.Domaine,
+        Cn = s.Cn, Portee = s.Portee, Cible = s.Cible, Duree = s.Duree, Resume = s.Resume,
+    };
+}

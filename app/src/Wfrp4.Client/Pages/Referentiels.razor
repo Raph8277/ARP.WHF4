@@ -59,35 +59,51 @@
                         Chaque carrière comporte <strong>4 niveaux</strong> de progression.
                         Monter de niveau débloque de nouvelles compétences, talents et améliore votre statut social.
                     </MudText>
-                    <MudText Typo="Typo.subtitle2" Class="mb-2">Exemple : Prêtre Guerrier</MudText>
-                    <div class="career-progression mb-3">
-                        <div class="career-progression__level career-progression__level--active">
-                            <div class="d-flex align-center gap-2">
-                                <MudText Typo="Typo.body2"><strong>Noviciat</strong></MudText>
+                    <div class="d-flex align-baseline gap-3 mb-2 flex-wrap">
+                        <MudText Typo="Typo.subtitle2">Exemple : Prêtre Guerrier</MudText>
+                        <MudText Typo="Typo.caption" Class="old-world-kicker" Style="font-size:.7rem">Classe · Universitaire</MudText>
+                    </div>
+                    <div class="career-progression mb-4">
+                        <div class="career-progression__level career-progression__level--bronze career-progression__level--active">
+                            <div class="career-progression__accent"></div>
+                            <div class="career-progression__body">
+                                <MudText Typo="Typo.subtitle2">Noviciat</MudText>
+                                <MudText Typo="Typo.caption" Class="career-progression__tier-label">Niveau 1</MudText>
                                 <StatutBadge Tier="StatutTier.Bronze" Rang="2" />
                             </div>
-                            <MudText Typo="Typo.caption">Niveau 1</MudText>
                         </div>
-                        <div class="career-progression__level">
-                            <div class="d-flex align-center gap-2">
-                                <MudText Typo="Typo.body2"><strong>Initié</strong></MudText>
+                        <div class="career-progression__connector">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                        </div>
+                        <div class="career-progression__level career-progression__level--argent">
+                            <div class="career-progression__accent"></div>
+                            <div class="career-progression__body">
+                                <MudText Typo="Typo.subtitle2">Initié</MudText>
+                                <MudText Typo="Typo.caption" Class="career-progression__tier-label">Niveau 2</MudText>
                                 <StatutBadge Tier="StatutTier.Argent" Rang="1" />
                             </div>
-                            <MudText Typo="Typo.caption">Niveau 2</MudText>
                         </div>
-                        <div class="career-progression__level">
-                            <div class="d-flex align-center gap-2">
-                                <MudText Typo="Typo.body2"><strong>Prêtre Guerrier</strong></MudText>
+                        <div class="career-progression__connector">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                        </div>
+                        <div class="career-progression__level career-progression__level--argent">
+                            <div class="career-progression__accent"></div>
+                            <div class="career-progression__body">
+                                <MudText Typo="Typo.subtitle2">Prêtre Guerrier</MudText>
+                                <MudText Typo="Typo.caption" Class="career-progression__tier-label">Niveau 3</MudText>
                                 <StatutBadge Tier="StatutTier.Argent" Rang="2" />
                             </div>
-                            <MudText Typo="Typo.caption">Niveau 3</MudText>
                         </div>
-                        <div class="career-progression__level">
-                            <div class="d-flex align-center gap-2">
-                                <MudText Typo="Typo.body2"><strong>Grand Prêtre</strong></MudText>
+                        <div class="career-progression__connector">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                        </div>
+                        <div class="career-progression__level career-progression__level--or">
+                            <div class="career-progression__accent"></div>
+                            <div class="career-progression__body">
+                                <MudText Typo="Typo.subtitle2">Grand Prêtre</MudText>
+                                <MudText Typo="Typo.caption" Class="career-progression__tier-label">Niveau 4</MudText>
                                 <StatutBadge Tier="StatutTier.Or" Rang="1" />
                             </div>
-                            <MudText Typo="Typo.caption">Niveau 4</MudText>
                         </div>
                     </div>
                     <MudText Typo="Typo.subtitle2" Class="mb-2">Coût XP de changement de carrière</MudText>

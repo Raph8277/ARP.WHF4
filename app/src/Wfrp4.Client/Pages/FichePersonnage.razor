@@ -71,7 +71,7 @@ else
             <MudText Class="old-world-kicker">Révision du dossier</MudText>
             <MudText Typo="Typo.h4" Class="mb-4">Édition par chapitres</MudText>
 
-            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="old-world-tabs">
+            <MudTabs @bind-ActivePanelIndex="_editionTabIndex" Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="old-world-tabs">
                 @* Chapitre I-III : Identité *@
                 <MudTabPanel Text="Identité">
                     <div class="old-world-tab-body">
@@ -326,6 +326,11 @@ else
                 <MudTabPanel Text="Sorts & parchemins">
                     <div class="old-world-tab-body">
                         <MudText Class="old-world-kicker">Chapitre VII</MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mb-4"
+                                   StartIcon="@Icons.Material.Filled.MenuBook"
+                                   OnClick="OuvrirGrimoire">
+                            Ouvrir le grimoire
+                        </MudButton>
                         <div class="d-flex align-center justify-space-between mb-3">
                             <MudText Typo="Typo.h5">Sorts connus</MudText>
                             <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
@@ -833,6 +838,11 @@ else
             @* Onglet Sorts et parchemins *@
             <MudTabPanel Text="Sorts & parchemins">
                 <div class="old-world-tab-body">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mb-4"
+                           StartIcon="@Icons.Material.Filled.MenuBook"
+                           OnClick="OuvrirGrimoire">
+                    Ouvrir le grimoire
+                </MudButton>
                 <div class="d-flex align-center justify-space-between mb-2">
                     <MudText Typo="Typo.h6">Sorts connus</MudText>
                     @if (_personnage.PeutModifier)
@@ -1119,6 +1129,18 @@ else
                         </MudTimelineItem>
                     }
                 </MudTimeline>
+                @if (CarriereCouranteReference is { } carriereCourante)
+                {
+                    <MudText Class="old-world-kicker mt-5">Parcours et prérequis</MudText>
+                    <CarriereDetails Carriere="carriereCourante" ActiveLevel="NiveauCarriereCourante"
+                                     EspeceCode="@_personnage.EspeceCode"
+                                     CompetenceNames="CompetenceReferenceNames"
+                                     TalentNames="TalentReferenceNames"
+                                     Personnage="_personnage" AllowAdvancement="@_personnage.PeutAvancer"
+                                     IsSubmitting="_enregistrementCarriere" OnAdvance="AvancerCarriere"
+                                     AllCareers="_carrieresReference" OnChangeCareer="ChangerCarriere"
+                                     OnRollback="AnnulerDernierPassageCarriere" />
+                }
                 </div>
             </MudTabPanel>
 
@@ -1143,20 +1165,27 @@ else
 
 @code {
     [Parameter] public int Id { get; set; }
+    [SupplyParameterFromQuery(Name = "onglet")] public string? Onglet { get; set; }
+    [SupplyParameterFromQuery(Name = "mode")] public string? Mode { get; set; }
 
     private PersonnageDetailDto? _personnage;
     private bool _loading = true;
     private bool _editionActive;
+    private int _editionTabIndex;
     private bool _enregistrementEdition;
     private UpdatePersonnageRequest _edition = new();
     private List<ArmeReferenceDto>? _armesReference;
     private List<TitreBaseReferenceDto> _titresBase = [];
     private List<TitreQualificatifReferenceDto> _titresQualificatifs = [];
+    private List<CarriereDto> _carrieresReference = [];
+    private List<CompetenceDto> _competencesReference = [];
+    private List<TalentDto> _talentsReference = [];
     private int _deltaCO = 1;
     private int _deltaPA = 1;
     private int _deltaSC = 1;
     private const int MinAjustement = -50;
     private bool _enregistrementAvancement;
+    private bool _enregistrementCarriere;
     private readonly Dictionary<string, int> _pointsCaracteristiques = new();
     private readonly Dictionary<int, int> _pointsCompetences = new();
     private readonly Dictionary<int, int> _foisTalents = new();
@@ -1291,6 +1320,27 @@ else
         ?? _personnage?.Carrieres.OrderByDescending(c => c.DateEntree).FirstOrDefault()?.Niveau
         ?? 1;
 
+    private int NiveauCarriereCourante =>
+        _personnage?.Carrieres.FirstOrDefault(c => c.EstCourante)?.Niveau
+        ?? _personnage?.Carrieres.OrderByDescending(c => c.DateEntree).FirstOrDefault()?.Niveau
+        ?? 1;
+
+    private CarriereDto? CarriereCouranteReference
+    {
+        get
+        {
+            var nom = _personnage?.Carrieres.FirstOrDefault(c => c.EstCourante)?.CarriereNom
+                      ?? _personnage?.Carrieres.OrderByDescending(c => c.DateEntree).FirstOrDefault()?.CarriereNom;
+            return _carrieresReference.FirstOrDefault(c => string.Equals(c.Nom, nom, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private IReadOnlyDictionary<string, string> CompetenceReferenceNames =>
+        _competencesReference.ToDictionary(c => c.Code, c => c.Nom);
+
+    private IReadOnlyDictionary<string, string> TalentReferenceNames =>
+        _talentsReference.ToDictionary(t => t.Code, t => t.Nom);
+
     private IEnumerable<TitreBaseReferenceDto> TitresBaseAccessibles =>
         _titresBase.Where(t => t.NiveauMaitrise <= NiveauMaitriseTitreMax || t.Id == _edition.TitreBaseReferenceId)
             .OrderBy(t => t.NiveauMaitrise)
@@ -1303,18 +1353,32 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
+        if (string.Equals(Mode, "edition", StringComparison.OrdinalIgnoreCase))
+            _editionActive = true;
+        if (string.Equals(Onglet, "sorts", StringComparison.OrdinalIgnoreCase))
+            _editionTabIndex = 4;
         await Recharger();
     }
 
     private async Task Recharger()
     {
         _loading = true;
-        _personnage = await Api.GetPersonnageAsync(Id);
-        _armesReference ??= await Api.GetArmesAsync() ?? [];
-        if (_titresBase.Count == 0)
-            _titresBase = await Api.GetTitresBaseAsync() ?? [];
-        if (_titresQualificatifs.Count == 0)
-            _titresQualificatifs = await Api.GetTitresQualificatifsAsync() ?? [];
+        var personnageTask = Api.GetPersonnageAsync(Id);
+        var armesTask = _armesReference == null ? Api.GetArmesAsync() : Task.FromResult<List<ArmeReferenceDto>?>(_armesReference);
+        var titresBaseTask = _titresBase.Count == 0 ? Api.GetTitresBaseAsync() : Task.FromResult<List<TitreBaseReferenceDto>?>(_titresBase);
+        var titresQualificatifsTask = _titresQualificatifs.Count == 0 ? Api.GetTitresQualificatifsAsync() : Task.FromResult<List<TitreQualificatifReferenceDto>?>(_titresQualificatifs);
+        var carrieresTask = _carrieresReference.Count == 0 ? Api.GetCarrieresAsync() : Task.FromResult<List<CarriereDto>?>(_carrieresReference);
+        var competencesTask = _competencesReference.Count == 0 ? Api.GetCompetencesAsync() : Task.FromResult<List<CompetenceDto>?>(_competencesReference);
+        var talentsTask = _talentsReference.Count == 0 ? Api.GetTalentsAsync() : Task.FromResult<List<TalentDto>?>(_talentsReference);
+
+        await Task.WhenAll(personnageTask, armesTask, titresBaseTask, titresQualificatifsTask, carrieresTask, competencesTask, talentsTask);
+        _personnage = await personnageTask;
+        _armesReference = await armesTask ?? [];
+        _titresBase = await titresBaseTask ?? [];
+        _titresQualificatifs = await titresQualificatifsTask ?? [];
+        _carrieresReference = await carrieresTask ?? [];
+        _competencesReference = await competencesTask ?? [];
+        _talentsReference = await talentsTask ?? [];
         if (_personnage != null)
         {
             _edition = new UpdatePersonnageRequest
@@ -1344,6 +1408,75 @@ else
             _foisTalents.Clear();
         }
         _loading = false;
+    }
+
+    private async Task AvancerCarriere(int niveauCarriereId)
+    {
+        if (_personnage == null || _enregistrementCarriere) return;
+        _enregistrementCarriere = true;
+        try
+        {
+            await Api.AvancerAsync(Id, new AvanceRequest
+            {
+                Type = TypeXP.Carriere,
+                NiveauCarriereId = niveauCarriereId,
+            });
+            Snackbar.Add("Niveau de carrière validé : 100 XP dépensés.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Progression impossible : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _enregistrementCarriere = false;
+        }
+    }
+
+    private async Task ChangerCarriere(int niveauCarriereId)
+    {
+        if (_personnage == null || _enregistrementCarriere) return;
+        _enregistrementCarriere = true;
+        try
+        {
+            var ancienneCarriere = CarriereCouranteReference?.Nom ?? "la carrière actuelle";
+            await Api.AvancerAsync(Id, new AvanceRequest
+            {
+                Type = TypeXP.Carriere,
+                NiveauCarriereId = niveauCarriereId,
+            });
+            Snackbar.Add($"{ancienneCarriere} quittée : la nouvelle carrière est maintenant active.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Changement impossible : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _enregistrementCarriere = false;
+        }
+    }
+
+    private async Task AnnulerDernierPassageCarriere()
+    {
+        if (_personnage == null || _enregistrementCarriere) return;
+        _enregistrementCarriere = true;
+        try
+        {
+            await Api.AnnulerDernierPassageCarriereAsync(Id);
+            Snackbar.Add("La carrière précédente a été restaurée et la dépense XP remboursée.", Severity.Success);
+            await Recharger();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Retour impossible : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _enregistrementCarriere = false;
+        }
     }
 
     private void BasculerEdition() => _editionActive = !_editionActive;
@@ -1782,6 +1915,8 @@ else
         }
     }
 
+    private void OuvrirGrimoire() => Navigation.NavigateTo($"/personnage/{Id}/grimoire");
+
     private async Task OuvrirAjoutSort()
     {
         if (_personnage == null) return;
@@ -1790,6 +1925,7 @@ else
         {
             { x => x.PersonnageId, Id },
             { x => x.SortsExistants, _personnage.Sorts.Select(s => s.SortReferenceId).ToList() },
+            { x => x.TalentCodes, _personnage.Talents.Select(t => t.TalentCode).ToList() },
         };
 
         var dialog = await Dialog.ShowAsync<Components.AjoutSortDialog>("Ajouter un sort", parameters);
@@ -1971,7 +2107,7 @@ else
         try
         {
             await Api.SupprimerParcheminAsync(Id, parchemin.Id);
-            Snackbar.Add($"Parchemin de {parchemin.SortNom} supprimé.", Severity.Success);
+            Snackbar.Add($"Un parchemin de {parchemin.SortNom} a été retiré.", Severity.Success);
             await Recharger();
         }
         catch (Exception ex)

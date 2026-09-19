@@ -84,6 +84,7 @@ public class NiveauCarriereDto
     public string Intitule { get; set; } = null!;
     public StatutTier Statut { get; set; }
     public int StatutNumerique { get; set; }
+    public List<string> CaracteristiqueCodes { get; set; } = [];
     public List<string> CompetenceCodes { get; set; } = [];
     public List<string> TalentCodes { get; set; } = [];
     public List<string> Dotations { get; set; } = [];

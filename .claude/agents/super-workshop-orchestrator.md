@@ -12,6 +12,8 @@ Global orchestrator for cross-domain workflows spanning .NET, Git, SQLite, Warha
 - `url-verification-agent` — URL validation across SQL, Markdown, JSON, and generated data
 - `grpc-web-ui-specialist` — gRPC reflection, gRPC-Web, grpcui/grpcurl, launch profiles
 - `warhammer-analyst` — WFRP4 rules, careers, spells, bestiary, equipment, lore (all in French)
+- `wfrp4-catalog` — quick structured lookups on WFRP4 spells, bestiary, geography, religions, factions, encounters
+- `wfrp4-adventure-builder` — create/enrich adventure content for MJ tools (hooks, NPCs, locations, encounters, factions)
 - Family specialists directly when the task is clearly atomic within one responsibility.
 
 Delegate via the Agent tool, passing `subagent_type` as the specialist name above.

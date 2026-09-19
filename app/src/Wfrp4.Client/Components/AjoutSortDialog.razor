@@ -11,32 +11,54 @@
         }
         else
         {
-            <MudAutocomplete T="SortReferenceDto" Label="Sort"
-                             @bind-Value="_sortSelectionne"
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                Magie Mineure donne accès aux sorts mineurs. Magie des Arcanes donne accès aux sorts arcaniques ;
+                un sort de Tradition nécessite également le Savoir correspondant.
+            </MudAlert>
+            <MudAutocomplete T="SortReferenceDto" Label="Rechercher un sort"
+                             Value="_sortSelectionne"
+                             ValueChanged="OnSortSelected"
                              SearchFunc="RechercherSorts"
-                             ToStringFunc="@(s => s?.Nom ?? string.Empty)"
+                             ToStringFunc="AfficherSort"
+                             Adornment="Adornment.Start"
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                             Placeholder="Nom, domaine, catégorie, effet…"
+                             Clearable="true"
                              Dense="true"
                              Variant="Variant.Outlined"
                              ResetValueOnEmptyText="true"
-                             CoerceText="false" />
+                             CoerceText="false"
+                             MaxItems="30" />
+
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                @_sortsDisponibles.Count sorts accessibles — commencez à saisir pour filtrer la liste.
+            </MudText>
 
             @if (_sortsDisponibles.Count == 0)
             {
-                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">Tous les sorts du référentiel sont déjà connus.</MudAlert>
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">Aucun nouveau sort n'est accessible avec les talents magiques actuels.</MudAlert>
             }
 
             @if (_sortSelectionne != null)
             {
-                <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mt-3">
-                    <tbody>
-                        <tr><td><strong>Catégorie</strong></td><td>@_sortSelectionne.Categorie</td></tr>
-                        <tr><td><strong>Domaine</strong></td><td>@(_sortSelectionne.Domaine ?? "—")</td></tr>
-                        <tr><td><strong>CN</strong></td><td>@(_sortSelectionne.Cn?.ToString() ?? "—")</td></tr>
-                        <tr><td><strong>Portée</strong></td><td>@(_sortSelectionne.Portee ?? "—")</td></tr>
-                        <tr><td><strong>Cible</strong></td><td>@(_sortSelectionne.Cible ?? "—")</td></tr>
-                        <tr><td><strong>Durée</strong></td><td>@(_sortSelectionne.Duree ?? "—")</td></tr>
-                    </tbody>
-                </MudSimpleTable>
+                <MudPaper Class="spell-search-preview pa-3 mt-3" Outlined="true">
+                    <div class="d-flex align-center justify-space-between gap-2">
+                        <MudText Typo="Typo.h6">@_sortSelectionne.Nom</MudText>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">CN @(_sortSelectionne.Cn?.ToString() ?? "—")</MudChip>
+                    </div>
+                    <MudText Typo="Typo.caption" Class="mt-1">
+                        @_sortSelectionne.Categorie · @(_sortSelectionne.Domaine ?? "Général") · @_sortSelectionne.Code
+                    </MudText>
+                    @if (!string.IsNullOrWhiteSpace(_sortSelectionne.Resume))
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2">@_sortSelectionne.Resume</MudText>
+                    }
+                    <MudText Typo="Typo.caption" Class="mt-2">
+                        Portée : <strong>@(_sortSelectionne.Portee ?? "—")</strong>
+                        · Cible : <strong>@(_sortSelectionne.Cible ?? "—")</strong>
+                        · Durée : <strong>@(_sortSelectionne.Duree ?? "—")</strong>
+                    </MudText>
+                </MudPaper>
             }
         }
     </DialogContent>
@@ -53,6 +75,7 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public int PersonnageId { get; set; }
     [Parameter] public List<int> SortsExistants { get; set; } = [];
+    [Parameter] public List<string> TalentCodes { get; set; } = [];
 
     private List<SortReferenceDto>? _sorts;
     private List<SortReferenceDto> _sortsDisponibles = [];
@@ -64,21 +87,41 @@
         _sorts = await Api.GetSortsAsync() ?? [];
         _sortsDisponibles = _sorts
             .Where(s => !SortsExistants.Contains(s.Id))
+            .Where(s => (s.Categorie == "Mineur" && TalentCodes.Contains("MAGIE_MINEUR"))
+                     || (s.Categorie == "Arcanique" && TalentCodes.Contains("MAGIE_ARCANE")))
             .OrderBy(s => s.Nom)
             .ToList();
     }
 
-    private Task<IEnumerable<SortReferenceDto>> RechercherSorts(string? value, CancellationToken ct)
+    private void OnSortSelected(SortReferenceDto? sort) => _sortSelectionne = sort;
+
+    private Task<IEnumerable<SortReferenceDto>> RechercherSorts(string? recherche, CancellationToken ct)
     {
         var source = _sortsDisponibles.AsEnumerable();
-        if (string.IsNullOrWhiteSpace(value))
-            return Task.FromResult(source);
+        if (string.IsNullOrWhiteSpace(recherche))
+            return Task.FromResult(source.Take(30));
 
-        var results = source.Where(s =>
-            s.Nom.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-            s.Categorie.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-            (s.Domaine?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false));
-        return Task.FromResult(results);
+        var termes = Normaliser(recherche).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var resultats = source.Where(s =>
+        {
+            var texte = Normaliser($"{s.Nom} {s.Code} {s.Categorie} {s.Domaine} {s.Cn} {s.Portee} {s.Cible} {s.Duree} {s.Resume}");
+            return termes.All(texte.Contains);
+        }).Take(30);
+        return Task.FromResult(resultats);
+    }
+
+    private static string AfficherSort(SortReferenceDto? sort)
+    {
+        if (sort == null) return string.Empty;
+        var domaine = string.IsNullOrWhiteSpace(sort.Domaine) ? sort.Categorie : $"{sort.Categorie} · {sort.Domaine}";
+        return $"{sort.Nom} — {domaine} · CN {sort.Cn?.ToString() ?? "—"}";
+    }
+
+    private static string Normaliser(string valeur)
+    {
+        var decomposed = valeur.ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        return string.Concat(decomposed.Where(c =>
+            System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark));
     }
 
     private void Cancel() => MudDialog.Cancel();

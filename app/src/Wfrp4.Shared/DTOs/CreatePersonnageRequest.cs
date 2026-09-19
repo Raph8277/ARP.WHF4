@@ -20,4 +20,5 @@ public class CreatePersonnageRequest
     public int XpBonus { get; set; } = 0;
     public Dictionary<int, int> CompetencesInitiales { get; set; } = new();
     public List<int> TalentsInitiaux { get; set; } = [];
+    public List<int> SortsInitiaux { get; set; } = [];
 }

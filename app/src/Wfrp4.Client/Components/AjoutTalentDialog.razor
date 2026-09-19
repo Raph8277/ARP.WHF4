@@ -10,12 +10,41 @@
         }
         else
         {
-            <MudSelect T="int?" Label="Talent" @bind-Value="_selectedId" Required="true">
-                @foreach (var t in _talents)
-                {
-                    <MudSelectItem T="int?" Value="@((int?)t.Id)">@t.Nom</MudSelectItem>
-                }
-            </MudSelect>
+            <MudAutocomplete T="Wfrp4.Shared.DTOs.TalentDto"
+                             Label="Rechercher un talent"
+                             Value="_selectedTalent"
+                             ValueChanged="OnTalentSelected"
+                             SearchFunc="RechercherTalents"
+                             ToStringFunc="AfficherTalent"
+                             Adornment="Adornment.Start"
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                             Placeholder="Nom, code, description ou effet…"
+                             Clearable="true"
+                             ResetValueOnEmptyText="true"
+                             CoerceText="false"
+                             MaxItems="30"
+                             Required="true" />
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                @_talents.Count talents disponibles — commencez à saisir pour filtrer la liste.
+            </MudText>
+            @if (_selectedTalent != null)
+            {
+                <MudPaper Class="talent-search-preview pa-3 mt-3" Outlined="true">
+                    <div class="d-flex align-center justify-space-between gap-2">
+                        <MudText Typo="Typo.h6">@_selectedTalent.Nom</MudText>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">@_selectedTalent.Code</MudChip>
+                    </div>
+                    <MudText Typo="Typo.body2" Class="mt-2">@(_selectedTalent.Description ?? "Aucune description disponible.")</MudText>
+                    @if (!string.IsNullOrWhiteSpace(_selectedTalent.Effet))
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">@_selectedTalent.Effet</MudAlert>
+                    }
+                    <MudText Typo="Typo.caption" Class="mt-2">
+                        Rang actuel : <strong>@TalentsExistants.GetValueOrDefault(_selectedTalent.Id)</strong>
+                        · Maximum : <strong>@(_selectedTalent.MaxFois?.ToString() ?? "illimité")</strong>
+                    </MudText>
+                </MudPaper>
+            }
             <div class="d-flex align-center gap-2 mt-3">
                 <MudIconButton Icon="@Icons.Material.Filled.Remove"
                                Size="Size.Small"
@@ -53,7 +82,7 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annuler</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirmer" Disabled="@(_submitting || _selectedId == null || _nombreFois == 0)">
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirmer" Disabled="@(_submitting || _selectedTalent == null || _nombreFois == 0)">
             Ajouter
         </MudButton>
     </DialogActions>
@@ -67,12 +96,12 @@
     [Parameter] public int TalentsGratuitsDisponibles { get; set; }
 
     private List<Wfrp4.Shared.DTOs.TalentDto>? _talents;
-    private int? _selectedId;
+    private Wfrp4.Shared.DTOs.TalentDto? _selectedTalent;
     private int _nombreFois = 1;
     private bool _submitting;
     private const int MinNombreFois = -50;
-    private int CoutTalentSelectionne => _selectedId.HasValue
-        ? CalculerCoutTalentAvecGratuit(TalentsExistants.GetValueOrDefault(_selectedId.Value), _nombreFois)
+    private int CoutTalentSelectionne => _selectedTalent != null
+        ? CalculerCoutTalentAvecGratuit(TalentsExistants.GetValueOrDefault(_selectedTalent.Id), _nombreFois)
         : CalculerCoutTalentAvecGratuit(0, _nombreFois);
     private bool _xpSuffisante => _nombreFois != 0 && (CoutTalentSelectionne <= 0 || XpDisponible >= CoutTalentSelectionne);
 
@@ -82,6 +111,37 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private void OnTalentSelected(Wfrp4.Shared.DTOs.TalentDto? talent) => _selectedTalent = talent;
+
+    private Task<IEnumerable<Wfrp4.Shared.DTOs.TalentDto>> RechercherTalents(string? recherche, CancellationToken ct)
+    {
+        var source = _talents?.AsEnumerable() ?? [];
+        if (string.IsNullOrWhiteSpace(recherche))
+            return Task.FromResult(source.Take(30));
+
+        var termes = Normaliser(recherche).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var resultats = source.Where(t =>
+        {
+            var texte = Normaliser($"{t.Nom} {t.Code} {t.Description} {t.Effet}");
+            return termes.All(texte.Contains);
+        }).Take(30);
+        return Task.FromResult(resultats);
+    }
+
+    private string AfficherTalent(Wfrp4.Shared.DTOs.TalentDto? talent)
+    {
+        if (talent == null) return string.Empty;
+        var rang = TalentsExistants.GetValueOrDefault(talent.Id);
+        return rang > 0 ? $"{talent.Nom} — rang {rang}" : talent.Nom;
+    }
+
+    private static string Normaliser(string valeur)
+    {
+        var decomposed = valeur.ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        return string.Concat(decomposed.Where(c =>
+            System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark));
+    }
 
     private void AjouterTalent() => ChangerNombreFois(_nombreFois + 1);
 
@@ -94,7 +154,7 @@
 
     private async Task Confirmer()
     {
-        if (_selectedId == null) return;
+        if (_selectedTalent == null) return;
         if (_nombreFois == 0) return;
 
         _submitting = true;
@@ -102,7 +162,7 @@
         {
             await Api.AjouterTalentAsync(PersonnageId, new Wfrp4.Shared.DTOs.AjoutTalentRequest
             {
-                TalentId = _selectedId.Value,
+                TalentId = _selectedTalent.Id,
                 NombreFois = _nombreFois,
             });
             Snackbar.Add(_nombreFois > 0

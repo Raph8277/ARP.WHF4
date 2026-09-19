@@ -14,6 +14,18 @@
             <MudText Typo="Typo.h5" Class="old-world-brand__title">WFRP4 — Gestion de Personnages</MudText>
         </div>
         <MudSpacer />
+        <div style="flex:none;width:170px;margin-right:8px">
+            <MudSelect T="string" Value="@ThemeService.ActivePreset.Id"
+                       ValueChanged="OnPresetChanged"
+                       Variant="Variant.Text" Margin="Margin.Dense" Dense="true"
+                       Class="old-world-appbar-theme-select"
+                       AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                @foreach (var p in ThemeService.AllPresets)
+                {
+                    <MudSelectItem T="string" Value="@p.Id">@p.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
         <MudIconButton Icon="@Icons.Material.Filled.Palette" Color="Color.Inherit"
                        Class="old-world-header-button mr-2"
                        OnClick="ToggleThemePanel" />
@@ -29,7 +41,7 @@
             </Authorized>
             <NotAuthorized>
                 <MudButton Variant="Variant.Text" Color="Color.Inherit"
-                           Class="old-world-header-button"
+                           Class="old-world-header-button mr-2"
                            Href="inscription">Créer un compte</MudButton>
                 <MudButton Variant="Variant.Text" Color="Color.Inherit"
                            Class="old-world-header-button"
@@ -80,6 +92,12 @@
     private void OnThemePanelChanged(bool open) => _themePanelOpen = open;
 
     private async Task ToggleDarkMode() => await ThemeService.ToggleDarkModeAsync();
+
+    private async Task OnPresetChanged(string presetId)
+    {
+        if (!string.IsNullOrEmpty(presetId))
+            await ThemeService.SelectPresetAsync(presetId);
+    }
 
     private void Logout() => Nav.NavigateToLogout("authentication/logout", "authentication/logged-out");
 }

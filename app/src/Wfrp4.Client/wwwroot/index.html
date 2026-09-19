@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="splash-active">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -28,85 +28,205 @@
             min-height: 100%;
         }
 
+        html.splash-active {
+            overflow: hidden;
+        }
+
         body {
             margin: 0;
             color: var(--mud-palette-text-primary);
-            background: var(--wfrp4-body-bg);
-            background-attachment: fixed;
+            background: #000;
             font-family: "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
         }
 
-        body::before {
-            content: "";
+        .splash-boot {
             position: fixed;
             inset: 0;
-            pointer-events: none;
-            background:
-                linear-gradient(rgba(255, 255, 255, 0.05), rgba(6, 18, 34, 0.16)),
-                repeating-linear-gradient(90deg, rgba(210, 231, 255, 0.035) 0, rgba(210, 231, 255, 0.035) 1px, transparent 1px, transparent 120px),
-                repeating-linear-gradient(0deg, rgba(210, 231, 255, 0.025) 0, rgba(210, 231, 255, 0.025) 1px, transparent 1px, transparent 96px);
-            opacity: 0.7;
-        }
-
-        .app-boot {
+            z-index: 9999;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            padding: 2rem;
-            box-sizing: border-box;
+            background: #000;
+            transition: opacity 0.8s ease;
         }
 
-        .app-boot__plate {
-            min-width: min(520px, 100%);
-            padding: 2rem 2.5rem;
-            border: 1px solid rgba(201, 168, 76, 0.48);
-            background: var(--old-world-boot-bg);
-            box-shadow: 0 24px 80px var(--old-world-paper-shadow);
-            text-align: center;
-            color: var(--mud-palette-text-primary);
+        .splash-boot.fade-out {
+            opacity: 0;
+            pointer-events: none;
         }
 
-        .app-boot__eyebrow {
-            margin: 0;
-            color: var(--old-world-kicker);
-            font-size: 0.78rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
+        .splash-boot__vignette {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.7) 100%);
         }
 
-        .app-boot__title {
-            margin: 0.5rem 0 0;
-            color: #1a3a5c;
+        .splash-boot__particles {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .splash-boot__particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(180, 120, 60, 0.4);
+            border-radius: 50%;
+            animation: splashParticleFloat linear infinite;
+        }
+
+        .splash-boot__kicker {
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            margin: 0 0 2rem;
+            color: #c9a84c;
             font-family: "Cormorant Garamond", Georgia, serif;
-            font-size: clamp(2rem, 5vw, 3rem);
+            font-size: clamp(0.85rem, 2.5vw, 1.2rem);
             font-weight: 600;
-            letter-spacing: 0.01em;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            animation: splashTextIn 1.8s ease 0.3s forwards;
         }
+
+        .splash-boot__logo {
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            transform: scale(0.92);
+            animation: splashLogoIn 2.4s cubic-bezier(0.22, 1, 0.36, 1) 0.6s forwards;
+        }
+
+        .splash-boot__logo img {
+            max-width: min(80vw, 700px);
+            height: auto;
+            filter: drop-shadow(0 0 40px rgba(180, 30, 20, 0.3))
+                    drop-shadow(0 0 80px rgba(180, 30, 20, 0.1));
+        }
+
+        .splash-boot__subtitle {
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            margin: 2.5rem 0 0;
+            color: #8a7d6b;
+            font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+            font-size: clamp(0.75rem, 2vw, 1.1rem);
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            animation: splashTextIn 2s ease 1.8s forwards;
+        }
+
+        .splash-boot__line {
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            width: 0;
+            height: 1px;
+            margin-top: 1.5rem;
+            background: linear-gradient(90deg, transparent, #5a3a2a, #8a5a3a, #5a3a2a, transparent);
+            animation: splashLineExpand 1.8s ease 2.2s forwards;
+        }
+
+        .splash-boot__version {
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            margin-top: 1rem;
+            color: #4a4038;
+            font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+            font-size: 0.7rem;
+            letter-spacing: 0.5em;
+            text-transform: uppercase;
+            animation: splashTextIn 1.5s ease 2.8s forwards;
+        }
+
+        @keyframes splashLogoIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes splashTextIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes splashLineExpand {
+            to { opacity: 1; width: min(60vw, 400px); }
+        }
+
+        @keyframes splashParticleFloat {
+            0%   { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10%  { opacity: 0.6; }
+            90%  { opacity: 0.6; }
+            100% { transform: translateY(-10vh) translateX(30px); opacity: 0; }
+        }
+
+        .wfrp4-highlight-pulse { animation: wfrp4Pulse 2s ease-in-out infinite; }
+        @keyframes wfrp4Pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 0.3; }
+        }
+        .wfrp4-map-wrapper { position: relative; border-radius: 8px; overflow: hidden; }
+        .wfrp4-map-legend {
+            position: absolute; bottom: 10px; left: 10px; z-index: 800;
+            background: rgba(0,0,0,0.75); color: #eee; border-radius: 6px;
+            padding: 8px 12px; font-size: 12px; pointer-events: auto;
+        }
+        .wfrp4-map-legend-item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+        .wfrp4-map-legend-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #000; }
+        .wfrp4-map-controls {
+            position: absolute; top: 10px; right: 10px; z-index: 800;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .wfrp4-map-controls button {
+            background: rgba(0,0,0,0.75); color: #eee; border: none;
+            border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 13px;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .wfrp4-map-controls button:hover { background: rgba(0,0,0,0.9); }
+        .leaflet-control-scale-line {
+            background: rgba(0,0,0,0.7) !important; color: #eee !important;
+            border-color: #c9a84c !important; font-size: 11px; text-shadow: none;
+        }
+        .wfrp4-search-fullscreen {
+            display: none; position: absolute; top: 10px; left: 10px; right: 140px; z-index: 900;
+            background: rgba(20,20,30,0.92); border-radius: 8px; padding: 8px 14px;
+            backdrop-filter: blur(6px); box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+        }
+        .wfrp4-search-fullscreen.wfrp4-fs-active { display: block; }
     </style>
     <script>
         try {
-            const defaultThemeVersion = 'imperial-azure-1';
+            const defaultThemeVersion = 'onyx-dark-1';
             if (localStorage.getItem('wfrp4_theme_default_version') !== defaultThemeVersion) {
-                localStorage.setItem('wfrp4_theme_active', 'imperial');
+                localStorage.setItem('wfrp4_theme_active', 'onyx');
                 localStorage.setItem('wfrp4_theme_default_version', defaultThemeVersion);
             }
         } catch {
         }
     </script>
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="css/app.css?v=xp-inline-20260829-4" rel="stylesheet" />
+    <link href="css/app.css?v=onyx-7" rel="stylesheet" />
 </head>
 <body>
-    <div id="app">
-        <div class="app-boot">
-            <div class="app-boot__plate">
-                <p class="app-boot__eyebrow">Registre du Reikland</p>
-                <p class="app-boot__title">Chargement de l'application</p>
-            </div>
+    <div id="splash-boot" class="splash-boot">
+        <div class="splash-boot__particles" id="splash-particles"></div>
+        <p class="splash-boot__kicker">Registre du Reikland</p>
+        <div class="splash-boot__logo">
+            <img src="images/WFRP4.png" alt="Warhammer Fantasy Roleplay">
         </div>
+        <p class="splash-boot__subtitle">4th Edition</p>
+        <div class="splash-boot__line"></div>
+        <p class="splash-boot__version">Chargement en cours&hellip;</p>
+        <div class="splash-boot__vignette"></div>
     </div>
+
+    <div id="app"></div>
 
     <div id="blazor-error-ui" style="display:none;">
         Une erreur est survenue.
@@ -138,6 +258,226 @@
             window.setTimeout(() => URL.revokeObjectURL(url), 60000);
         };
     </script>
-    <script src="_framework/blazor.webassembly.js?v=xp-inline-20260829-4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        window.wfrp4Map = {
+            _map: null,
+            _miniMaps: {},
+            _markers: [],
+            _markersLayer: null,
+            _regionsLayer: null,
+            _highlightLayer: null,
+            _isFullscreen: false,
+            _elementId: null,
+
+            init: function (elementId, cities, tileUrl, center, zoom, minZoom, maxZoom, regions) {
+                if (this._map) { this._map.remove(); this._map = null; }
+                this._elementId = elementId;
+                this._map = L.map(elementId, { minZoom: minZoom, maxZoom: maxZoom }).setView(center, zoom);
+                L.tileLayer(tileUrl, {
+                    attribution: '&copy; Gitzman, Blicher &amp; Nunez',
+                    maxZoom: maxZoom
+                }).addTo(this._map);
+
+                L.control.scale({ imperial: false, position: 'bottomright', maxWidth: 150 }).addTo(this._map);
+
+                this._markersLayer = L.layerGroup().addTo(this._map);
+                this._highlightLayer = L.layerGroup().addTo(this._map);
+                this._markers = [];
+
+                var typeIcons = {
+                    'Cité': { color: '#c9a84c', radius: 7 },
+                    'Ville': { color: '#8B4513', radius: 5 },
+                    'Bourg': { color: '#556B2F', radius: 4 },
+                    'Village': { color: '#2F4F4F', radius: 3 },
+                    'Forteresse': { color: '#8B0000', radius: 5 },
+                    '?': { color: '#666', radius: 3 }
+                };
+
+                for (var i = 0; i < cities.length; i++) {
+                    var c = cities[i];
+                    var style = typeIcons[c.type] || typeIcons['?'];
+                    var marker = L.circleMarker([c.lat, c.lng], {
+                        radius: style.radius,
+                        fillColor: style.color,
+                        color: '#000',
+                        weight: 1,
+                        opacity: 0.8,
+                        fillOpacity: 0.85
+                    });
+                    marker.bindPopup('<b>' + c.name + '</b><br/>' + c.type + ' — ' + c.population + '<br/><i>' + c.region + '</i>');
+                    marker.cityData = c;
+                    marker.addTo(this._markersLayer);
+                    this._markers.push(marker);
+                }
+
+                this._regionsLayer = L.layerGroup().addTo(this._map);
+                if (regions) {
+                    for (var j = 0; j < regions.length; j++) {
+                        var r = regions[j];
+                        var hooksHtml = r.hooks.map(function(h) { return '<li>' + h + '</li>'; }).join('');
+                        var tagsHtml = r.tags.map(function(t) { return '<span style="display:inline-block;background:#382C1F;color:#EBE0C7;border-radius:3px;padding:1px 6px;margin:1px;font-size:11px">' + t + '</span>'; }).join(' ');
+                        var label = L.marker([r.lat, r.lng], {
+                            icon: L.divIcon({
+                                className: 'wfrp4-region-label',
+                                html: '<div style="font-family:Cormorant Garamond,Georgia,serif;font-size:14px;font-weight:700;color:#c9a84c;text-shadow:1px 1px 3px #000,-1px -1px 3px #000;white-space:nowrap;pointer-events:auto">' + r.name + '</div>',
+                                iconSize: null,
+                                iconAnchor: [50, 10]
+                            })
+                        });
+                        label.bindPopup('<div style="min-width:220px"><h4 style="margin:0 0 4px;color:#382C1F">' + r.name + '</h4>'
+                            + '<div style="font-size:11px;color:#666;margin-bottom:6px">' + r.type + (r.parent ? ' — ' + r.parent : '') + '</div>'
+                            + '<div style="margin-bottom:6px">' + tagsHtml + '</div>'
+                            + '<b style="font-size:12px">Accroches :</b><ul style="margin:4px 0;padding-left:16px;font-size:12px">' + hooksHtml + '</ul></div>');
+                        label.addTo(this._regionsLayer);
+                    }
+                }
+            },
+
+            highlight: function (lat, lng, isRegion) {
+                if (!this._map) return;
+                this._highlightLayer.clearLayers();
+                var r = isRegion ? 80000 : 12000;
+                var color = isRegion ? '#c9a84c' : '#ff4444';
+                L.circle([lat, lng], { radius: r, color: color, weight: 3, fillColor: color, fillOpacity: 0.12, dashArray: isRegion ? '8 6' : null, className: 'wfrp4-highlight-pulse' }).addTo(this._highlightLayer);
+                L.circleMarker([lat, lng], { radius: isRegion ? 0 : 14, color: color, weight: 2, fillColor: 'transparent', fillOpacity: 0, className: 'wfrp4-highlight-pulse' }).addTo(this._highlightLayer);
+            },
+
+            clearHighlight: function () {
+                if (this._highlightLayer) this._highlightLayer.clearLayers();
+            },
+
+            toggleLayer: function (layer, visible) {
+                if (!this._map) return;
+                var target = layer === 'regions' ? this._regionsLayer : this._markersLayer;
+                if (!target) return;
+                if (visible) { if (!this._map.hasLayer(target)) this._map.addLayer(target); }
+                else { this._map.removeLayer(target); }
+            },
+
+            toggleFullscreen: function () {
+                var el = document.getElementById(this._elementId);
+                if (!el) return;
+                var wrapper = el.closest('.wfrp4-map-wrapper');
+                if (!wrapper) wrapper = el.parentElement;
+                this._isFullscreen = !this._isFullscreen;
+                if (this._isFullscreen) {
+                    wrapper.style.cssText = 'position:fixed;inset:0;z-index:9999;border-radius:0';
+                    el.style.height = '100vh';
+                } else {
+                    wrapper.style.cssText = 'border-radius:8px;overflow:hidden';
+                    el.style.height = '600px';
+                }
+                var self = this;
+                setTimeout(function() { self._map.invalidateSize(); }, 100);
+                return this._isFullscreen;
+            },
+
+            filter: function (region, type, search) {
+                if (!this._map) return;
+                var s = (search || '').toLowerCase();
+                for (var i = 0; i < this._markers.length; i++) {
+                    var m = this._markers[i];
+                    var c = m.cityData;
+                    var show = true;
+                    if (region && region !== 'Toutes' && c.region.toLowerCase().indexOf(region.toLowerCase()) === -1) show = false;
+                    if (type && type !== 'Tous' && c.type !== type) show = false;
+                    if (s && c.name.toLowerCase().indexOf(s) === -1) show = false;
+                    if (show) { if (!this._markersLayer.hasLayer(m)) this._markersLayer.addLayer(m); }
+                    else { this._markersLayer.removeLayer(m); }
+                }
+            },
+
+            flyTo: function (lat, lng, zoom) {
+                if (this._map) this._map.flyTo([lat, lng], zoom || 6);
+            },
+
+            resize: function () {
+                if (this._map) this._map.invalidateSize();
+            },
+
+            dispose: function () {
+                if (this._map) { this._map.remove(); this._map = null; }
+                for (var k in this._miniMaps) { if (this._miniMaps[k]) this._miniMaps[k].remove(); }
+                this._miniMaps = {};
+            },
+
+            initMiniMap: function(elementId, lat, lng, zoom, markers, tileUrl, route) {
+                if (this._miniMaps[elementId]) { this._miniMaps[elementId].remove(); delete this._miniMaps[elementId]; }
+                var el = document.getElementById(elementId);
+                if (!el) return;
+                var map = L.map(elementId, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false }).setView([lat, lng], zoom || 6);
+                L.tileLayer(tileUrl, { maxZoom: 7 }).addTo(map);
+                if (route && route.length > 0) {
+                    var routeCoords = route.map(function(r) { return [r.lat, r.lng]; });
+                    L.polyline(routeCoords, { color: '#c9a84c', weight: 3, opacity: 0.8, dashArray: '8 6' }).addTo(map);
+                    var stepColors = ['#4CAF50', '#FF9800', '#f44336', '#9C27B0', '#00BCD4'];
+                    for (var i = 0; i < route.length; i++) {
+                        var r = route[i];
+                        var col = stepColors[i % stepColors.length];
+                        var icon = L.divIcon({ className: '', html: '<div style="width:24px;height:24px;border-radius:50%;background:' + col + ';color:#fff;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.5)">' + r.step + '</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+                        L.marker([r.lat, r.lng], { icon: icon }).bindTooltip('Acte ' + r.step + ' — ' + r.name, { permanent: false, direction: 'top', offset: [0, -14] }).addTo(map);
+                    }
+                    if (routeCoords.length > 1) map.fitBounds(L.latLngBounds(routeCoords).pad(0.15));
+                } else {
+                    L.circleMarker([lat, lng], { radius: 8, fillColor: '#c9a84c', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(map);
+                    L.circle([lat, lng], { radius: 15000, color: '#c9a84c', weight: 1, fillColor: '#c9a84c', fillOpacity: 0.1, dashArray: '4 4' }).addTo(map);
+                }
+                if (markers) {
+                    for (var i = 0; i < markers.length; i++) {
+                        var m = markers[i];
+                        L.circleMarker([m.lat, m.lng], { radius: 4, fillColor: '#8B4513', color: '#000', weight: 1, fillOpacity: 0.7 })
+                            .bindTooltip(m.name, { permanent: false, direction: 'top' })
+                            .addTo(map);
+                    }
+                }
+                this._miniMaps[elementId] = map;
+            },
+
+            invalidateMiniMap: function(elementId) {
+                var m = this._miniMaps[elementId];
+                if (m) m.invalidateSize();
+            },
+
+            disposeMiniMaps: function() {
+                for (var k in this._miniMaps) { if (this._miniMaps[k]) this._miniMaps[k].remove(); }
+                this._miniMaps = {};
+            }
+        };
+    </script>
+    <script src="_framework/blazor.webassembly.js?v=onyx-7" autostart="false"></script>
+    <script>
+        (function () {
+            var c = document.getElementById('splash-particles');
+            for (var i = 0; i < 25; i++) {
+                var p = document.createElement('div');
+                p.className = 'splash-boot__particle';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.animationDuration = (8 + Math.random() * 12) + 's';
+                p.style.animationDelay = (Math.random() * 10) + 's';
+                var s = (1 + Math.random() * 2) + 'px';
+                p.style.width = s;
+                p.style.height = s;
+                c.appendChild(p);
+            }
+
+            var splashStart = Date.now();
+            var MIN_SPLASH_MS = 4000;
+
+            Blazor.start().then(function () {
+                var elapsed = Date.now() - splashStart;
+                var remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
+                setTimeout(function () {
+                    var splash = document.getElementById('splash-boot');
+                    if (splash) {
+                        document.body.style.background = '';
+                        document.documentElement.classList.remove('splash-active');
+                        splash.classList.add('fade-out');
+                        setTimeout(function () { splash.remove(); }, 900);
+                    }
+                }, remaining);
+            });
+        })();
+    </script>
 </body>
 </html>

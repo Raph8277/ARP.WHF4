@@ -1,8 +1,10 @@
 @page "/mj"
 @attribute [Authorize]
+@using System.Text.Json
 @inject Wfrp4ApiClient Api
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
+@implements IAsyncDisposable
 
 <PageTitle>Atelier MJ - WFRP4</PageTitle>
 
@@ -29,7 +31,7 @@
 </section>
 
 <MudPaper Class="old-world-panel pa-4">
-<MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="old-world-tabs">
+<MudTabs @ref="_mjTabs" Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="old-world-tabs" ActivePanelIndex="@_activeTabIndex" ActivePanelIndexChanged="OnTabChanged">
     <MudTabPanel Text="Bestiaire" Icon="@Icons.Material.Filled.MenuBook">
         <div class="old-world-tab-body">
             <MudText Class="old-world-kicker mb-2">Bestiaire</MudText>
@@ -619,8 +621,499 @@
             }
         </div>
     </MudTabPanel>
+
+    <MudTabPanel Text="Aventures" Icon="@Icons.Material.Filled.Map">
+        <div class="old-world-tab-body">
+            <div class="d-flex flex-wrap align-center justify-space-between gap-3 mb-3">
+                <div>
+                    <MudText Class="old-world-kicker mb-2">Scenario</MudText>
+                    <MudText Typo="Typo.h4" Style="font-family: var(--wfrp4-font-heading)">Generateur d'aventures</MudText>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AutoStories"
+                               OnClick="GenererAventure">
+                        Generer une aventure
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.AccountTree"
+                               OnClick="GenererCampagne">
+                        Generer une campagne
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Save"
+                               Disabled="@((_aventure is null && _campagne is null) || _sauvegardeEnCours)" OnClick="SauvegarderAventure">
+                        @(_sauvegardeEnCours ? "Sauvegarde..." : "Sauvegarder")
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                               Disabled="@((_aventure is null && _campagne is null) || _pdfExportEnCours)" OnClick="ExporterAventurePdf">
+                        Export PDF
+                    </MudButton>
+                </div>
+            </div>
+
+            <MudGrid Spacing="2" Class="mb-3">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="string" @bind-Value="_advTheme" Label="Theme" Dense="true">
+                        @foreach (var theme in AdvThemeOptions)
+                        {
+                            <MudSelectItem Value="@theme">@theme</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="string" @bind-Value="_advRegion" Label="Region" Dense="true">
+                        @foreach (var region in AdvRegionOptions)
+                        {
+                            <MudSelectItem Value="@region">@region</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="string" @bind-Value="_advThreat" Label="Menace principale" Dense="true">
+                        @foreach (var threat in AdvThreatOptions)
+                        {
+                            <MudSelectItem Value="@threat">@threat</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="string" @bind-Value="_advDanger" Label="Danger" Dense="true">
+                        <MudSelectItem Value="@("Faible")">Faible</MudSelectItem>
+                        <MudSelectItem Value="@("Moyen")">Moyen</MudSelectItem>
+                        <MudSelectItem Value="@("Eleve")">Eleve</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="string" @bind-Value="_advDuration" Label="Duree" Dense="true">
+                        <MudSelectItem Value="@("One-shot")">One-shot (1 seance)</MudSelectItem>
+                        <MudSelectItem Value="@("Court")">Court (2-3 seances)</MudSelectItem>
+                        <MudSelectItem Value="@("Long")">Long (4+ seances)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="_campagneSize" Label="Aventures par campagne" Min="2" Max="8" Dense="true" />
+                </MudItem>
+            </MudGrid>
+
+            @if (_aventure is not null && _campagne is null)
+            {
+                <MudPaper Class="old-world-panel pa-4 mb-4" Elevation="0">
+                    <div class="d-flex flex-wrap align-center justify-space-between gap-2 mb-3">
+                        <div>
+                            <MudText Class="old-world-kicker mb-1">@_aventure.Theme — @_aventure.Region</MudText>
+                            <MudText Typo="Typo.h4" Style="font-family: var(--wfrp4-font-heading)">@_aventure.Title</MudText>
+                        </div>
+                        <MudChip T="string" Color="@AdvDangerColor(_aventure.Danger)" Variant="Variant.Filled">@_aventure.Danger</MudChip>
+                    </div>
+                    @RenderAventureBody(_aventure, 0)
+                </MudPaper>
+            }
+
+            @if (_campagne is not null)
+            {
+                <MudPaper Class="old-world-panel pa-4 mb-4" Elevation="0">
+                    <div class="d-flex flex-wrap align-center justify-space-between gap-2 mb-3">
+                        <MudText Typo="Typo.h4" Style="font-family: var(--wfrp4-font-heading)">@_campagne.Title</MudText>
+                        <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">Campagne — @_campagne.Episodes.Count aventures</MudChip>
+                    </div>
+                    <MudText Typo="Typo.body1" Class="mb-2"><strong>Fil rouge :</strong> @_campagne.ArcSummary</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-4"><strong>Antagoniste recurrent :</strong> @_campagne.RecurringVillain</MudText>
+
+                    <MudExpansionPanels MultiExpansion="true" Class="guide-panels">
+                        @foreach (var (episode, idx) in _campagne.Episodes.Select((e, i) => (e, i)))
+                        {
+                            <MudExpansionPanel Text="@($"Episode {idx + 1} — {episode.Title}")"
+                                               IsExpandedChanged="@((bool expanded) => OnEpisodePanelToggle(expanded, idx + 1))">
+                                <div class="pa-2">
+                                    <div class="d-flex flex-wrap gap-2 mb-2">
+                                        <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small">@episode.Theme</MudChip>
+                                        <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small">@episode.Region</MudChip>
+                                        <MudChip T="string" Color="@AdvDangerColor(episode.Danger)" Variant="Variant.Filled" Size="Size.Small">@episode.Danger</MudChip>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(episode.CampaignLink))
+                                    {
+                                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">@episode.CampaignLink</MudAlert>
+                                    }
+                                    @RenderAventureBody(episode, idx + 1)
+                                </div>
+                            </MudExpansionPanel>
+                        }
+                    </MudExpansionPanels>
+
+                    <MudText Typo="Typo.h6" Class="mt-4 mb-2" Style="font-family: var(--wfrp4-font-heading)">Notes de campagne</MudText>
+                    <MudTextField T="string" @bind-Value="_campagne.Notes"
+                                  Variant="Variant.Outlined" Lines="4"
+                                  Placeholder="Ajoutez vos notes de campagne ici..." />
+                </MudPaper>
+            }
+
+            @if (_aventure is null && _campagne is null)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">Generez une aventure ou une campagne pour obtenir un scenario pret a jouer.</MudAlert>
+            }
+
+            <MudExpansionPanels Class="mt-4">
+                <MudExpansionPanel Text="Mes sauvegardes" Icon="@Icons.Material.Filled.FolderOpen"
+                                   IsExpandedChanged="@((bool expanded) => { if (expanded && _aventuresSauvegardees is null) _ = ChargerAventuresSauvegardees(); })">
+                    @if (_aventuresSauvegardeesChargement)
+                    {
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="ma-4" />
+                    }
+                    else if (_aventuresSauvegardees is null || _aventuresSauvegardees.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="pa-2" Style="color:var(--mud-palette-text-secondary)">Aucune sauvegarde.</MudText>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table">
+                            <thead>
+                                <tr>
+                                    <th>Titre</th>
+                                    <th style="width:100px">Type</th>
+                                    <th style="width:140px">Date</th>
+                                    <th style="width:100px">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in _aventuresSauvegardees)
+                                {
+                                    <tr>
+                                        <td>@item.Titre</td>
+                                        <td>
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                                                     Color="@(item.Type == "campagne" ? Color.Primary : Color.Warning)">
+                                                @(item.Type == "campagne" ? "Campagne" : "Aventure")
+                                            </MudChip>
+                                        </td>
+                                        <td>@item.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>
+                                            <MudIconButton Icon="@Icons.Material.Filled.FileOpen" Size="Size.Small" Color="Color.Primary"
+                                                           OnClick="() => ChargerAventureSauvegardee(item)" Title="Charger" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                           OnClick="() => SupprimerAventureSauvegardee(item)" Title="Supprimer" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </div>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Cartographe" Icon="@Icons.Material.Filled.Public">
+        <div class="pa-4">
+            <MudText Class="old-world-kicker mb-2">Cartographe du Vieux Monde</MudText>
+
+            @{
+                var filteredCities = MapCities.AsEnumerable();
+                if (_mapRegionFilter != "Toutes")
+                    filteredCities = filteredCities.Where(c => c.Region.Contains(_mapRegionFilter, StringComparison.OrdinalIgnoreCase));
+                if (_mapTypeFilter != "Tous")
+                    filteredCities = filteredCities.Where(c => c.Type == _mapTypeFilter);
+                if (!string.IsNullOrWhiteSpace(_mapSearch))
+                    filteredCities = filteredCities.Where(c => c.Name.Contains(_mapSearch, StringComparison.OrdinalIgnoreCase));
+                var cityList = filteredCities.OrderBy(c => c.Name).ToList();
+            }
+
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+                <div style="flex:2;min-width:400px">
+                    <div class="d-flex gap-2 mb-2 align-end" style="@(_mapFullscreen ? "display:none!important" : "")">
+                        <MudTextField T="string" Value="@_mapSearch" ValueChanged="OnMapSearchChanged"
+                                      Label="Rechercher une ville" Immediate="true" DebounceInterval="300"
+                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Dense="true" Style="flex:1" />
+                        <MudSelect T="string" Value="_mapTypeFilter" Label="Type" Dense="true" ValueChanged="OnMapTypeChanged" Style="width:140px">
+                            <MudSelectItem Value="@("Tous")">Tous</MudSelectItem>
+                            <MudSelectItem Value="@("Cité")">Cite</MudSelectItem>
+                            <MudSelectItem Value="@("Ville")">Ville</MudSelectItem>
+                            <MudSelectItem Value="@("Bourg")">Bourg</MudSelectItem>
+                            <MudSelectItem Value="@("Village")">Village</MudSelectItem>
+                            <MudSelectItem Value="@("Forteresse")">Forteresse</MudSelectItem>
+                        </MudSelect>
+                        @if (_mapRegionFilter != "Toutes")
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" OnClose="ClearRegionFilter">@_mapRegionFilter</MudChip>
+                        }
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="InitMap" Title="Recharger la carte" Size="Size.Small" />
+                    </div>
+
+                    <div class="wfrp4-map-wrapper" style="position:relative">
+                        <div class="wfrp4-search-fullscreen @(_mapFullscreen ? "wfrp4-fs-active" : "")">
+                            <div class="d-flex gap-2 align-end">
+                                <MudTextField T="string" Value="@_mapSearch" ValueChanged="OnMapSearchChanged"
+                                              Label="Rechercher une ville" Immediate="true" DebounceInterval="300"
+                                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                              Dense="true" Style="flex:1" />
+                                <MudSelect T="string" Value="_mapTypeFilter" Label="Type" Dense="true" ValueChanged="OnMapTypeChanged" Style="width:160px">
+                                    <MudSelectItem Value="@("Tous")">Tous</MudSelectItem>
+                                    <MudSelectItem Value="@("Cité")">Cite</MudSelectItem>
+                                    <MudSelectItem Value="@("Ville")">Ville</MudSelectItem>
+                                    <MudSelectItem Value="@("Bourg")">Bourg</MudSelectItem>
+                                    <MudSelectItem Value="@("Village")">Village</MudSelectItem>
+                                    <MudSelectItem Value="@("Forteresse")">Forteresse</MudSelectItem>
+                                </MudSelect>
+                                @if (_mapRegionFilter != "Toutes")
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" OnClose="ClearRegionFilter">@_mapRegionFilter</MudChip>
+                                }
+                            </div>
+                        </div>
+                        <div id="wfrp4-map" style="height:600px;width:100%;background:#1a1a2e"></div>
+                        <div class="wfrp4-map-legend">
+                            <div style="font-weight:600;margin-bottom:4px">Legende</div>
+                            <div class="wfrp4-map-legend-item"><span class="wfrp4-map-legend-dot" style="background:#c9a84c"></span> Cite</div>
+                            <div class="wfrp4-map-legend-item"><span class="wfrp4-map-legend-dot" style="background:#8B4513"></span> Ville</div>
+                            <div class="wfrp4-map-legend-item"><span class="wfrp4-map-legend-dot" style="background:#556B2F"></span> Bourg</div>
+                            <div class="wfrp4-map-legend-item"><span class="wfrp4-map-legend-dot" style="background:#2F4F4F"></span> Village</div>
+                            <div class="wfrp4-map-legend-item"><span class="wfrp4-map-legend-dot" style="background:#8B0000"></span> Forteresse</div>
+                        </div>
+                        <div class="wfrp4-map-controls">
+                            <button @onclick="ToggleMapFullscreen" title="Plein ecran">
+                                <MudIcon Icon="@(_mapFullscreen ? Icons.Material.Filled.FullscreenExit : Icons.Material.Filled.Fullscreen)" Size="Size.Small" />
+                            </button>
+                            <button @onclick='() => ToggleMapLayer("cities")' title="Villes">
+                                <MudIcon Icon="@(_mapShowCities ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)" Size="Size.Small" />
+                                <span>Villes</span>
+                            </button>
+                            <button @onclick='() => ToggleMapLayer("regions")' title="Regions">
+                                <MudIcon Icon="@(_mapShowRegions ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)" Size="Size.Small" />
+                                <span>Regions</span>
+                            </button>
+                            @if (_mapSelectedCity is not null || _mapSelectedRegion is not null)
+                            {
+                                <button @onclick="ClearMapSelection" title="Effacer selection">
+                                    <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+                                    <span>Effacer</span>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div style="flex:1;min-width:280px;max-height:700px;overflow-y:auto">
+                    <MudExpansionPanels MultiExpansion="true" Dense="true">
+                        <MudExpansionPanel Text="@($"Provinces ({MapRegions.Length})")" IsInitiallyExpanded="false" Style="font-family:var(--wfrp4-font-heading)">
+                            @foreach (var region in MapRegions)
+                            {
+                                var isRegSel = _mapSelectedRegion == region;
+                                <MudCard Elevation="@(isRegSel ? 4 : 1)" Class="mb-2" Style="@($"cursor:pointer;{(isRegSel ? "border:2px solid #c9a84c" : "")}")" @onclick="() => SelectRegion(region)">
+                                    <MudCardContent Class="pa-2">
+                                        <div class="d-flex align-center gap-2 mb-1">
+                                            <MudIcon Icon="@Icons.Material.Filled.Map" Size="Size.Small" Color="Color.Warning" />
+                                            <MudText Typo="Typo.subtitle2" Style="font-family:var(--wfrp4-font-heading)">@region.Name</MudText>
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">@region.Type</MudChip>
+                                            @if (region.Parent is not null)
+                                            {
+                                                <MudText Typo="Typo.caption" Style="color:var(--mud-palette-text-secondary)">@region.Parent</MudText>
+                                            }
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-1 mb-1">
+                                            @foreach (var tag in region.Tags)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="Color.Dark" Style="font-size:0.65rem">@tag</MudChip>
+                                            }
+                                        </div>
+                                        @if (isRegSel)
+                                        {
+                                            <MudText Typo="Typo.caption"><strong>Accroches :</strong></MudText>
+                                            <ul style="margin:2px 0 0;padding-left:16px;font-size:0.75rem">
+                                                @foreach (var hook in region.ScenarioHooks)
+                                                {
+                                                    <li>@hook</li>
+                                                }
+                                            </ul>
+                                        }
+                                    </MudCardContent>
+                                </MudCard>
+                            }
+                        </MudExpansionPanel>
+
+                        <MudExpansionPanel Text="@($"Villes ({cityList.Count})")" IsInitiallyExpanded="true" Style="font-family:var(--wfrp4-font-heading)">
+                            @foreach (var city in cityList)
+                            {
+                                var isSelected = _mapSelectedCity == city;
+                                <MudCard Elevation="@(isSelected ? 4 : 1)" Class="mb-1" Style="@($"cursor:pointer;{(isSelected ? "border:2px solid #c9a84c" : "")}")" @onclick="() => SelectCity(city)">
+                                    <MudCardContent Class="pa-2">
+                                        <div class="d-flex align-center gap-2">
+                                            <MudIcon Icon="@CityIcon(city.Type)" Size="Size.Small" Color="@CityColor(city.Type)" />
+                                            <div>
+                                                <MudText Typo="Typo.subtitle2">@city.Name</MudText>
+                                                <MudText Typo="Typo.caption">@city.Type — @city.Population</MudText>
+                                                <MudText Typo="Typo.caption" Style="color:var(--mud-palette-text-secondary)">@city.Region</MudText>
+                                            </div>
+                                        </div>
+                                    </MudCardContent>
+                                </MudCard>
+                            }
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </div>
+            </div>
+        </div>
+    </MudTabPanel>
 </MudTabs>
 </MudPaper>
+
+@{
+    RenderFragment RenderAventureBody(GeneratedAdventure adv, int mapIndex = 0) =>
+        @<text>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:24px">
+                <div style="flex:1;min-width:300px">
+                    <MudText Typo="Typo.body1" Style="font-style:italic;line-height:1.8;color:var(--mud-palette-text-secondary)" Class="mb-3">
+                        @adv.Atmosphere
+                    </MudText>
+                    <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mb-3">
+                        <tbody>
+                            <tr><td style="width:140px"><strong>Synopsis</strong></td><td>@adv.Synopsis</td></tr>
+                            <tr><td><strong>Accroche</strong></td><td>@adv.Hook</td></tr>
+                            <tr><td><strong>Menace</strong></td><td>@adv.Threat</td></tr>
+                            <tr><td><strong>Duree</strong></td><td>@adv.Duration</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </div>
+                <div style="flex:0 0 320px;min-width:280px">
+                    <MudPaper Elevation="2" Style="border-radius:8px;overflow:hidden">
+                        <div id="wfrp4-adventure-map-@mapIndex" style="height:220px;width:100%;background:#1a1a2e"></div>
+                        <div style="padding:10px 12px;background:var(--mud-palette-surface)">
+                            <div class="d-flex align-center gap-2 mb-1">
+                                <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Color="Color.Warning" />
+                                <MudText Typo="Typo.subtitle2" Style="font-family:var(--wfrp4-font-heading)">@adv.CityName</MudText>
+                            </div>
+                            <MudText Typo="Typo.caption">@adv.Location</MudText>
+                            @if (!string.IsNullOrWhiteSpace(adv.RegionDescription))
+                            {
+                                <div class="d-flex flex-wrap gap-1 mt-1">
+                                    @foreach (var tag in adv.RegionDescription.Split(',', StringSplitOptions.TrimEntries))
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="Color.Dark" Style="font-size:0.6rem">@tag</MudChip>
+                                    }
+                                </div>
+                            }
+                            @if (adv.NearbyCities.Count > 0)
+                            {
+                                <MudText Typo="Typo.caption" Class="mt-2" Style="color:var(--mud-palette-text-secondary)">
+                                    <strong>A proximite :</strong> @string.Join(" • ", adv.NearbyCities)
+                                </MudText>
+                            }
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Warning" Class="mt-1"
+                                       StartIcon="@Icons.Material.Filled.Map" OnClick="() => VoirSurLaCarte(adv)">
+                                Voir sur la carte
+                            </MudButton>
+                        </div>
+                    </MudPaper>
+                </div>
+            </div>
+
+            <div class="d-flex align-center justify-space-between mb-2">
+                <MudText Typo="Typo.h6" Style="font-family: var(--wfrp4-font-heading)">PNJ cles</MudText>
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Success"
+                           StartIcon="@Icons.Material.Filled.PersonAdd"
+                           OnClick="() => { AjouterNpc(adv); StateHasChanged(); }">
+                    Ajouter un PNJ
+                </MudButton>
+            </div>
+            <MudGrid Spacing="2" Class="mb-3">
+                @foreach (var npc in adv.KeyNpcs)
+                {
+                    var capturedNpc = npc;
+                    <MudItem xs="12" md="4">
+                        <MudCard Elevation="2" Class="old-world-panel">
+                            <MudCardContent Class="pa-3">
+                                <div class="d-flex align-center justify-space-between mb-2">
+                                    <MudText Typo="Typo.subtitle1" Style="font-family:var(--wfrp4-font-heading)">@npc.Name</MudText>
+                                    <div class="d-flex align-center gap-1">
+                                        <MudChip T="string" Size="Size.Small" Color="@(npc.Role == "Antagoniste" ? Color.Error : npc.Role == "Allie" ? Color.Success : Color.Info)" Variant="Variant.Filled">@npc.Role</MudChip>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                       Title="Supprimer ce PNJ"
+                                                       OnClick="() => { SupprimerNpc(adv, capturedNpc); StateHasChanged(); }" />
+                                    </div>
+                                </div>
+                                <MudText Typo="Typo.body2"><strong>Carriere :</strong> @npc.Profession</MudText>
+                                <MudText Typo="Typo.body2"><strong>Origine :</strong> @npc.Origin</MudText>
+                                <MudText Typo="Typo.caption">@npc.Appearance — @npc.Manner</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Warning">Motivation : @npc.Motivation</MudText>
+                                <MudDivider Class="my-2" />
+                                <div style="display:flex;flex-wrap:wrap;gap:2px;font-size:0.7rem;font-family:monospace">
+                                    <span title="CC">CC @npc.Stats.WS</span> |
+                                    <span title="CT">CT @npc.Stats.BS</span> |
+                                    <span title="F">F @npc.Stats.S</span> |
+                                    <span title="E">E @npc.Stats.T</span> |
+                                    <span title="I">I @npc.Stats.I</span> |
+                                    <span title="Ag">Ag @npc.Stats.Ag</span> |
+                                    <span title="Int">Int @npc.Stats.Int</span> |
+                                    <span title="FM">FM @npc.Stats.WP</span> |
+                                    <span title="Soc">Soc @npc.Stats.Fel</span> |
+                                    <span title="B">B @npc.Stats.Wounds</span>
+                                </div>
+                                <MudDivider Class="my-2" />
+                                <MudText Typo="Typo.caption"><strong>Arme :</strong> @npc.Weapon</MudText>
+                                <MudText Typo="Typo.caption"><strong>Equipement :</strong> @npc.Equipment</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudAlert Severity="Severity.Warning" Dense="true" NoIcon="true" Class="mt-1" Style="font-size:0.75rem">
+                                    <strong>Secret :</strong> @npc.Secret
+                                </MudAlert>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Style="font-family: var(--wfrp4-font-heading)">Itineraire</MudText>
+            <MudTimeline TimelinePosition="TimelinePosition.Start" Class="mb-3">
+                @foreach (var (act, actIdx) in adv.Acts.Select((a, i) => (a, i)))
+                {
+                    <MudTimelineItem Color="@ActColor(actIdx, adv.Acts.Count)" Variant="Variant.Filled">
+                        <ItemContent>
+                            <MudText Typo="Typo.subtitle2">Acte @(actIdx + 1) — @act.Title</MudText>
+                            <div class="d-flex align-center gap-1 mb-1">
+                                <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Style="font-size:0.9rem" />
+                                <MudText Typo="Typo.caption" Style="font-weight:600;color:var(--mud-palette-text-secondary)">@act.CityName</MudText>
+                            </div>
+                            <MudText Typo="Typo.body2" Style="line-height:1.6">@act.Description</MudText>
+                            @if (!string.IsNullOrWhiteSpace(act.Challenge))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Warning">Defi : @act.Challenge</MudText>
+                            }
+                        </ItemContent>
+                    </MudTimelineItem>
+                }
+            </MudTimeline>
+
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.h6" Class="mb-2" Style="font-family: var(--wfrp4-font-heading)">Retournement</MudText>
+                    <MudAlert Severity="Severity.Warning" Dense="true">@adv.Twist</MudAlert>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.h6" Class="mb-2" Style="font-family: var(--wfrp4-font-heading)">Climax</MudText>
+                    <MudAlert Severity="Severity.Error" Dense="true">@adv.Climax</MudAlert>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.h6" Class="mb-2" Style="font-family: var(--wfrp4-font-heading)">Resolutions possibles</MudText>
+                    <MudList T="string" Dense="true">
+                        @foreach (var resolution in adv.Resolutions)
+                        {
+                            <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success" Text="@resolution" />
+                        }
+                    </MudList>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.h6" Class="mb-2" Style="font-family: var(--wfrp4-font-heading)">Recompenses</MudText>
+                    <MudList T="string" Dense="true">
+                        @foreach (var reward in adv.Rewards)
+                        {
+                            <MudListItem Icon="@Icons.Material.Filled.Star" IconColor="Color.Warning" Text="@reward" />
+                        }
+                    </MudList>
+                </MudItem>
+            </MudGrid>
+
+            <MudText Typo="Typo.h6" Class="mt-4 mb-2" Style="font-family: var(--wfrp4-font-heading)">Notes</MudText>
+            <MudTextField T="string" @bind-Value="adv.Notes"
+                          Variant="Variant.Outlined" Lines="4"
+                          Placeholder="Ajoutez vos notes ici pour enrichir l'aventure..." />
+        </text>;
+}
 
 @code {
     private string? _bestiarySearch;
@@ -657,6 +1150,29 @@
     private GeneratedGroup? _group;
     private GeneratedLoot? _loot;
     private bool _pdfExportEnCours;
+    private string _advTheme = "Aleatoire";
+    private string _advRegion = "Aleatoire";
+    private string _advThreat = "Aleatoire";
+    private string _advDanger = "Moyen";
+    private string _advDuration = "Court";
+    private int _campagneSize = 3;
+    private GeneratedAdventure? _aventure;
+    private GeneratedCampaign? _campagne;
+    private List<AventureSauvegardeeSummaryDto>? _aventuresSauvegardees;
+    private bool _aventuresSauvegardeesChargement;
+    private bool _sauvegardeEnCours;
+    private MudTabs? _mjTabs;
+    private int _activeTabIndex;
+    private string _mapSearch = "";
+    private string _mapRegionFilter = "Toutes";
+    private string _mapTypeFilter = "Tous";
+    private bool _mapInitialized;
+    private bool _mapNeedsInit;
+    private bool _mapFullscreen;
+    private bool _mapShowCities = true;
+    private bool _mapShowRegions = true;
+    private MapCity? _mapSelectedCity;
+    private MapRegion? _mapSelectedRegion;
     private List<GroupMemberSetup> _groupMemberSetups = [];
     private List<EspeceDto> _especes = [];
     private List<ClasseDto> _classes = [];
@@ -2150,6 +2666,523 @@
         new("Poudre d'os de pendu", "alimente un rite de mort ou de divination", "Les ombres semblent plus longues autour du sachet."),
     ];
 
+    // ──── Aventures ────
+
+    private static readonly JsonSerializerOptions _jsonOpts = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+    private async Task ChargerAventuresSauvegardees()
+    {
+        _aventuresSauvegardeesChargement = true;
+        try { _aventuresSauvegardees = await Api.GetAventuresSauvegardeesAsync(); }
+        catch { Snackbar.Add("Erreur lors du chargement des sauvegardes", Severity.Error); }
+        finally { _aventuresSauvegardeesChargement = false; }
+    }
+
+    private async Task SauvegarderAventure()
+    {
+        if (_aventure is null && _campagne is null) return;
+        _sauvegardeEnCours = true;
+        try
+        {
+            var type = _campagne is not null ? "campagne" : "aventure";
+            var titre = _campagne?.Title ?? _aventure!.Title;
+            var data = _campagne is not null
+                ? JsonSerializer.Serialize(_campagne, _jsonOpts)
+                : JsonSerializer.Serialize(_aventure, _jsonOpts);
+            await Api.SauvegarderAventureAsync(new SaveAventureRequest { Type = type, Titre = titre, DataJson = data });
+            Snackbar.Add($"{(type == "campagne" ? "Campagne" : "Aventure")} sauvegardee", Severity.Success);
+            await ChargerAventuresSauvegardees();
+        }
+        catch { Snackbar.Add("Erreur lors de la sauvegarde", Severity.Error); }
+        finally { _sauvegardeEnCours = false; }
+    }
+
+    private async Task ChargerAventureSauvegardee(AventureSauvegardeeSummaryDto item)
+    {
+        try
+        {
+            var detail = await Api.GetAventureSauvegardeeAsync(item.Id);
+            if (detail is null) return;
+            if (detail.Type == "campagne")
+            {
+                _aventure = null;
+                _campagne = JsonSerializer.Deserialize<GeneratedCampaign>(detail.DataJson, _jsonOpts);
+                _campaignMapsNeedInit = true;
+                StateHasChanged();
+            }
+            else
+            {
+                _campagne = null;
+                _aventure = JsonSerializer.Deserialize<GeneratedAdventure>(detail.DataJson, _jsonOpts);
+                if (_aventure is not null)
+                {
+                    StateHasChanged();
+                    await Task.Yield();
+                    await InitAdventureMap(_aventure);
+                }
+            }
+            Snackbar.Add($"{item.Titre} charge", Severity.Info);
+        }
+        catch { Snackbar.Add("Erreur lors du chargement", Severity.Error); }
+    }
+
+    private async Task SupprimerAventureSauvegardee(AventureSauvegardeeSummaryDto item)
+    {
+        try
+        {
+            await Api.SupprimerAventureSauvegardeeAsync(item.Id);
+            Snackbar.Add("Sauvegarde supprimee", Severity.Info);
+            await ChargerAventuresSauvegardees();
+        }
+        catch { Snackbar.Add("Erreur lors de la suppression", Severity.Error); }
+    }
+
+    private async Task GenererAventure()
+    {
+        _campagne = null;
+        _aventure = BuildAdventure(_advTheme, _advRegion, _advThreat, _advDanger, _advDuration, null);
+        StateHasChanged();
+        await Task.Yield();
+        await InitAdventureMap(_aventure);
+    }
+
+    private async Task VoirSurLaCarte(GeneratedAdventure adv)
+    {
+        _activeTabIndex = 5;
+        if (!_mapInitialized)
+            _mapNeedsInit = true;
+        StateHasChanged();
+        await Task.Yield();
+        if (_mapInitialized)
+        {
+            await JS.InvokeVoidAsync("wfrp4Map.flyTo", adv.CityLat, adv.CityLng, 6);
+            await JS.InvokeVoidAsync("wfrp4Map.highlight", adv.CityLat, adv.CityLng, false);
+        }
+    }
+
+    private async Task InitAdventureMap(GeneratedAdventure adv, int mapIndex = 0)
+    {
+        var elementId = $"wfrp4-adventure-map-{mapIndex}";
+        var nearbyMarkers = adv.NearbyCities.Count > 0
+            ? MapCities.Where(c => adv.NearbyCities.Any(n => n.StartsWith(c.Name)))
+                .Select(c => new { name = c.Name, lat = c.Lat, lng = c.Lng }).ToArray()
+            : Array.Empty<object>();
+        var route = adv.Acts.Select((a, i) => new { name = a.CityName, lat = a.Lat, lng = a.Lng, step = i + 1 }).ToArray();
+        await JS.InvokeVoidAsync("wfrp4Map.initMiniMap", elementId, adv.CityLat, adv.CityLng, 5, nearbyMarkers,
+            "https://wjrf.bimondiens.com/content/tools/tile.rpc.php?map=oldworld&zoom={z}&x={x}&y={y}", route);
+    }
+
+    private bool _campaignMapsNeedInit;
+
+    private async Task OnEpisodePanelToggle(bool expanded, int mapIndex)
+    {
+        if (expanded)
+        {
+            await Task.Delay(100);
+            await JS.InvokeVoidAsync("wfrp4Map.invalidateMiniMap", $"wfrp4-adventure-map-{mapIndex}");
+        }
+    }
+
+    private async Task GenererCampagne()
+    {
+        _aventure = null;
+        var theme = ResolveAdvChoice(_advTheme, AdvThemeOptionsNoRandom);
+        var villain = $"{Pick(AdvVillainTitles)} {Pick(LastNames)}";
+        var arc = Pick(AdvCampaignArcs[theme]);
+        var episodes = new List<GeneratedAdventure>();
+
+        var regionPool = _advRegion == "Aleatoire" ? AdvRegionOptionsNoRandom : new[] { _advRegion };
+        var dangers = _advDanger switch
+        {
+            "Faible" => new[] { "Faible", "Faible", "Moyen" },
+            "Eleve" => new[] { "Moyen", "Eleve", "Eleve" },
+            _ => new[] { "Faible", "Moyen", "Eleve" },
+        };
+
+        for (var i = 0; i < _campagneSize; i++)
+        {
+            var epTheme = i == 0 ? theme : ResolveAdvChoice("Aleatoire", AdvThemeOptionsNoRandom);
+            var epRegion = Pick(regionPool);
+            var epDanger = dangers[Math.Min(i, dangers.Length - 1)];
+            var link = i == 0
+                ? $"Premiere apparition de {villain}. {arc}"
+                : i == _campagneSize - 1
+                    ? $"Confrontation finale avec {villain}."
+                    : Pick(AdvCampaignLinks);
+            episodes.Add(BuildAdventure(epTheme, epRegion, _advThreat, epDanger, _advDuration, link));
+        }
+
+        _campagne = new GeneratedCampaign(
+            Title: $"{Pick(AdvCampaignTitles)} — {arc.Split('.')[0]}",
+            ArcSummary: arc,
+            RecurringVillain: villain,
+            Episodes: episodes);
+
+        _campaignMapsNeedInit = true;
+    }
+
+    private GeneratedAdventure BuildAdventure(string themePref, string regionPref, string threatPref, string danger, string duration, string? campaignLink)
+    {
+        var theme = ResolveAdvChoice(themePref, AdvThemeOptionsNoRandom);
+        var region = ResolveAdvChoice(regionPref, AdvRegionOptionsNoRandom);
+        var threat = ResolveAdvChoice(threatPref, AdvThreatOptionsNoRandom);
+
+        // Pick a real city from the map for this region
+        var regionCities = MapCities.Where(c => c.Region.Contains(region, StringComparison.OrdinalIgnoreCase)).ToArray();
+        MapCity? mapCity = regionCities.Length > 0 ? Pick(regionCities) : null;
+        var cityName = mapCity?.Name ?? (AdvLocations.TryGetValue(region, out var locPool) ? Pick(locPool).Split(',')[0] : region);
+        var cityLat = mapCity?.Lat ?? 52.0;
+        var cityLng = mapCity?.Lng ?? -10.0;
+
+        // Get nearby cities (same region, different from picked city)
+        var nearby = regionCities.Where(c => c != mapCity).OrderBy(_ => Random.Shared.Next()).Take(3).Select(c => $"{c.Name} ({c.Type})").ToList();
+
+        // Get region info from MapRegions
+        var mapRegion = MapRegions.FirstOrDefault(r => r.Name.Equals(region, StringComparison.OrdinalIgnoreCase));
+        var regionDesc = mapRegion is not null ? string.Join(", ", mapRegion.Tags) : "";
+
+        var location = AdvLocations.TryGetValue(region, out var locs) ? $"{Pick(locs)}, {region}" : $"{cityName}, {region}";
+        var titlePrefix = Pick(AdvTitlePrefixes[theme]);
+        var titleSuffix = Pick(AdvTitleSuffixes);
+
+        var actCount = duration switch { "One-shot" => 2, "Long" => 4, _ => 3 };
+        var actCities = new List<MapCity>();
+        if (mapCity is not null) actCities.Add(mapCity);
+        var otherCities = regionCities.Where(c => c != mapCity).OrderBy(_ => Random.Shared.Next()).ToList();
+        while (actCities.Count < actCount && otherCities.Count > 0)
+        {
+            actCities.Add(otherCities[0]);
+            otherCities.RemoveAt(0);
+        }
+        if (actCities.Count == 0)
+            actCities.Add(new MapCity(cityName, "Ville", "Inconnue", region, cityLat, cityLng));
+        while (actCities.Count < actCount)
+            actCities.Add(actCities[^1]);
+
+        var acts = Enumerable.Range(0, actCount).Select(i =>
+        {
+            var pool = i == 0 ? AdvActsOpening : i == actCount - 1 ? AdvActsClimax : AdvActsDevelopment;
+            var actCity = actCities[i];
+            return new AdventureAct(
+                Title: Pick(pool),
+                Description: Pick(AdvSceneDescriptions[theme]),
+                Challenge: Pick(AdvChallenges[theme]),
+                CityName: actCity.Name,
+                Lat: actCity.Lat,
+                Lng: actCity.Lng);
+        }).ToList();
+
+        var power = danger switch { "Faible" => "Ordinaire", "Eleve" => "Dangereux", _ => "Competent" };
+        var toneForTheme = theme switch
+        {
+            "Intrigue" or "Politique" => "Urbain",
+            "Exploration" => "Foret",
+            "Horreur" => "Souterrain",
+            _ => "Route",
+        };
+        var roles = new[] { "Allie", "Contact", "Antagoniste" };
+        var npcs = roles.Select(role =>
+        {
+            var profession = Pick(AdvNpcProfessions);
+            var profile = ResolveHumanoidProfile("Aleatoire", "Aleatoire", "Aleatoire", profession);
+            var loadout = GenerateLoadout(toneForTheme, profile.Career, "human", "Aleatoire", "Aleatoire", "Aleatoire");
+            var stats = GenerateNpcStats(power, role, profile.Career, profile.Race, profile.Class);
+            return new AdventureNpc(
+                Name: $"{Pick(FirstNames)} {Pick(LastNames)}",
+                Role: role,
+                Profession: profile.Career,
+                Origin: $"{profile.Race} — {profile.Class}",
+                Appearance: Pick(Appearances),
+                Manner: Pick(Manners),
+                Motivation: Pick(Motivations),
+                Secret: Pick(AdvNpcSecrets),
+                Weapon: loadout.Weapon,
+                Equipment: loadout.Equipment,
+                Stats: stats);
+        }).ToList();
+
+        return new GeneratedAdventure(
+            Title: $"{titlePrefix} {titleSuffix}",
+            Theme: theme,
+            Region: region,
+            Danger: danger,
+            Duration: duration,
+            Synopsis: Pick(AdvSynopsis[theme]),
+            Location: location,
+            Hook: Pick(AdvHooks[theme]),
+            Threat: $"{threat} — {Pick(AdvThreatDetails[threat])}",
+            KeyNpcs: npcs,
+            Acts: acts,
+            Twist: Pick(AdvTwists),
+            Climax: Pick(AdvClimaxes[theme]),
+            Resolutions: PickMany(AdvResolutions, 3),
+            Rewards: PickMany(AdvRewards[danger], 2),
+            CityName: cityName,
+            CityLat: cityLat,
+            CityLng: cityLng,
+            RegionDescription: regionDesc,
+            NearbyCities: nearby,
+            Atmosphere: Pick(AdvAtmospheres[theme]),
+            CampaignLink: campaignLink);
+    }
+
+    private AdventureNpc GenererUnNpc(string danger, string theme, string role)
+    {
+        var power = danger switch { "Faible" => "Ordinaire", "Eleve" => "Dangereux", _ => "Competent" };
+        var toneForTheme = theme switch
+        {
+            "Intrigue" or "Politique" => "Urbain",
+            "Exploration" => "Foret",
+            "Horreur" => "Souterrain",
+            _ => "Route",
+        };
+        var profession = Pick(AdvNpcProfessions);
+        var profile = ResolveHumanoidProfile("Aleatoire", "Aleatoire", "Aleatoire", profession);
+        var loadout = GenerateLoadout(toneForTheme, profile.Career, "human", "Aleatoire", "Aleatoire", "Aleatoire");
+        var stats = GenerateNpcStats(power, role, profile.Career, profile.Race, profile.Class);
+        return new AdventureNpc(
+            Name: $"{Pick(FirstNames)} {Pick(LastNames)}",
+            Role: role,
+            Profession: profile.Career,
+            Origin: $"{profile.Race} — {profile.Class}",
+            Appearance: Pick(Appearances),
+            Manner: Pick(Manners),
+            Motivation: Pick(Motivations),
+            Secret: Pick(AdvNpcSecrets),
+            Weapon: loadout.Weapon,
+            Equipment: loadout.Equipment,
+            Stats: stats);
+    }
+
+    private void AjouterNpc(GeneratedAdventure adv)
+    {
+        var role = Pick(AdvNpcRoles);
+        adv.KeyNpcs.Add(GenererUnNpc(adv.Danger, adv.Theme, role));
+    }
+
+    private void SupprimerNpc(GeneratedAdventure adv, AdventureNpc npc)
+    {
+        adv.KeyNpcs.Remove(npc);
+    }
+
+    private async Task ExporterAventurePdf()
+    {
+        if (_aventure is not null)
+        {
+            var sections = new List<MjPdfSectionDto>
+            {
+                new() { Title = "Synopsis", Lines = [Line("Synopsis", _aventure.Synopsis), Line("Lieu", _aventure.Location), Line("Accroche", _aventure.Hook), Line("Menace", _aventure.Threat), Line("Duree", _aventure.Duration)] },
+                new() { Title = "PNJ cles", Lines = _aventure.KeyNpcs.Select(n => Line(n.Name, $"{n.Role} — {n.Profession} ({n.Origin}) | CC {n.Stats.WS} CT {n.Stats.BS} F {n.Stats.S} E {n.Stats.T} I {n.Stats.I} Ag {n.Stats.Ag} Int {n.Stats.Int} FM {n.Stats.WP} Soc {n.Stats.Fel} B {n.Stats.Wounds} | {n.Weapon} | Secret : {n.Secret}")).ToList() },
+                new() { Title = "Actes", Lines = _aventure.Acts.Select((a, i) => Line($"Acte {i + 1} — {a.Title}", $"{a.Description} [Defi : {a.Challenge}]")).ToList() },
+                new() { Title = "Resolution", Lines = [Line("Retournement", _aventure.Twist), Line("Climax", _aventure.Climax), .. _aventure.Resolutions.Select(r => Line("Resolution", r)), .. _aventure.Rewards.Select(r => Line("Recompense", r))] }
+            };
+            await ExporterMjPdf(new MjPdfExportRequest { Type = "aventure", Title = _aventure.Title, Sections = sections });
+        }
+        else if (_campagne is not null)
+        {
+            var sections = new List<MjPdfSectionDto>
+            {
+                new() { Title = "Campagne", Lines = [Line("Fil rouge", _campagne.ArcSummary), Line("Antagoniste", _campagne.RecurringVillain)] }
+            };
+            foreach (var (ep, idx) in _campagne.Episodes.Select((e, i) => (e, i)))
+            {
+                sections.Add(new MjPdfSectionDto
+                {
+                    Title = $"Episode {idx + 1} — {ep.Title}",
+                    Lines =
+                    [
+                        Line("Theme", ep.Theme), Line("Region", ep.Region), Line("Danger", ep.Danger),
+                        Line("Synopsis", ep.Synopsis), Line("Lieu", ep.Location), Line("Accroche", ep.Hook), Line("Menace", ep.Threat),
+                        .. ep.KeyNpcs.Select(n => Line(n.Name, $"{n.Role} — {n.Profession} ({n.Origin}) | {n.Weapon}")),
+                        .. ep.Acts.Select((a, i) => Line($"Acte {i + 1}", $"{a.Title} — {a.Description}")),
+                        Line("Retournement", ep.Twist), Line("Climax", ep.Climax),
+                        .. ep.Resolutions.Select(r => Line("Resolution", r)),
+                        .. ep.Rewards.Select(r => Line("Recompense", r)),
+                        .. (ep.CampaignLink is not null ? new[] { Line("Lien de campagne", ep.CampaignLink) } : Array.Empty<MjPdfLineDto>()),
+                    ]
+                });
+            }
+            await ExporterMjPdf(new MjPdfExportRequest { Type = "campagne", Title = _campagne.Title, Sections = sections });
+        }
+    }
+
+    private static string ResolveAdvChoice(string choice, IReadOnlyList<string> options) =>
+        choice == "Aleatoire" ? Pick(options) : choice;
+
+    private static Color AdvDangerColor(string danger) => danger switch
+    {
+        "Faible" => Color.Success,
+        "Eleve" => Color.Error,
+        _ => Color.Warning,
+    };
+
+    private static Color ActColor(int index, int total) => index switch
+    {
+        0 => Color.Info,
+        _ when index == total - 1 => Color.Error,
+        _ => Color.Warning,
+    };
+
+    // ──── Cartographe ────
+
+    private Task OnTabChanged(int index)
+    {
+        _activeTabIndex = index;
+        if (index == 5 && !_mapInitialized)
+            _mapNeedsInit = true;
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_mapNeedsInit)
+        {
+            _mapNeedsInit = false;
+            await InitMap();
+        }
+        if (_campaignMapsNeedInit && _campagne is not null)
+        {
+            _campaignMapsNeedInit = false;
+            for (var i = 0; i < _campagne.Episodes.Count; i++)
+                await InitAdventureMap(_campagne.Episodes[i], i + 1);
+        }
+    }
+
+    private async Task InitMap()
+    {
+        var cities = MapCities.Select(c => new { name = c.Name, type = c.Type, population = c.Population, region = c.Region, lat = c.Lat, lng = c.Lng }).ToArray();
+        var regions = MapRegions.Select(r => new { name = r.Name, type = r.Type, parent = r.Parent ?? "", tags = r.Tags, hooks = r.ScenarioHooks, lat = r.Lat, lng = r.Lng }).ToArray();
+        await JS.InvokeVoidAsync("wfrp4Map.init", "wfrp4-map", cities,
+            "https://wjrf.bimondiens.com/content/tools/tile.rpc.php?map=oldworld&zoom={z}&x={x}&y={y}",
+            new[] { 66.5, -31.0 }, 3, 2, 7, regions);
+        _mapInitialized = true;
+    }
+
+    private async Task ApplyMapFilter()
+    {
+        if (_mapInitialized)
+            await JS.InvokeVoidAsync("wfrp4Map.filter", _mapRegionFilter, _mapTypeFilter, _mapSearch);
+    }
+
+    private async Task OnMapSearchChanged(string value)
+    {
+        _mapSearch = value;
+        await ApplyMapFilter();
+    }
+
+    private async Task OnMapTypeChanged(string value)
+    {
+        _mapTypeFilter = value;
+        await ApplyMapFilter();
+    }
+
+    private async Task ClearRegionFilter()
+    {
+        _mapRegionFilter = "Toutes";
+        await ApplyMapFilter();
+    }
+
+    private async Task FlyToCity(MapCity city)
+    {
+        if (!_mapInitialized) await InitMap();
+        await JS.InvokeVoidAsync("wfrp4Map.flyTo", city.Lat, city.Lng);
+    }
+
+    private async Task FlyToRegion(MapRegion region)
+    {
+        if (!_mapInitialized) await InitMap();
+        await JS.InvokeVoidAsync("wfrp4Map.flyTo", region.Lat, region.Lng, 4);
+    }
+
+    private async Task SelectCity(MapCity city)
+    {
+        _mapSelectedCity = _mapSelectedCity == city ? null : city;
+        _mapSelectedRegion = null;
+        if (_mapSelectedCity is not null)
+        {
+            await FlyToCity(_mapSelectedCity);
+            await JS.InvokeVoidAsync("wfrp4Map.highlight", _mapSelectedCity.Lat, _mapSelectedCity.Lng, false);
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("wfrp4Map.clearHighlight");
+        }
+    }
+
+    private async Task SelectRegion(MapRegion region)
+    {
+        var wasSame = _mapSelectedRegion == region;
+        _mapSelectedRegion = wasSame ? null : region;
+        _mapSelectedCity = null;
+        _mapRegionFilter = wasSame ? "Toutes" : region.Name;
+        await ApplyMapFilter();
+        if (_mapSelectedRegion is not null)
+        {
+            await FlyToRegion(_mapSelectedRegion);
+            await JS.InvokeVoidAsync("wfrp4Map.highlight", _mapSelectedRegion.Lat, _mapSelectedRegion.Lng, true);
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("wfrp4Map.clearHighlight");
+        }
+    }
+
+    private async Task ClearMapSelection()
+    {
+        _mapSelectedCity = null;
+        _mapSelectedRegion = null;
+        await JS.InvokeVoidAsync("wfrp4Map.clearHighlight");
+    }
+
+    private async Task ToggleMapFullscreen()
+    {
+        if (_mapInitialized)
+            _mapFullscreen = await JS.InvokeAsync<bool>("wfrp4Map.toggleFullscreen");
+    }
+
+    private async Task ToggleMapLayer(string layer)
+    {
+        if (layer == "cities")
+        {
+            _mapShowCities = !_mapShowCities;
+            await JS.InvokeVoidAsync("wfrp4Map.toggleLayer", "cities", _mapShowCities);
+        }
+        else
+        {
+            _mapShowRegions = !_mapShowRegions;
+            await JS.InvokeVoidAsync("wfrp4Map.toggleLayer", "regions", _mapShowRegions);
+        }
+    }
+
+    private static string CityIcon(string type) => type switch
+    {
+        "Cité" => Icons.Material.Filled.Castle,
+        "Ville" => Icons.Material.Filled.LocationCity,
+        "Bourg" => Icons.Material.Filled.Home,
+        "Village" => Icons.Material.Filled.Cottage,
+        "Forteresse" => Icons.Material.Filled.Shield,
+        _ => Icons.Material.Filled.Place
+    };
+
+    private static Color CityColor(string type) => type switch
+    {
+        "Cité" => Color.Warning,
+        "Ville" => Color.Primary,
+        "Bourg" => Color.Success,
+        "Village" => Color.Default,
+        "Forteresse" => Color.Error,
+        _ => Color.Default
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_mapInitialized)
+            await JS.InvokeVoidAsync("wfrp4Map.dispose");
+    }
+
+    private sealed record MapCity(string Name, string Type, string Population, string Region, double Lat, double Lng);
+    private sealed record MapRegion(string Name, string Type, string? Parent, string[] Tags, string[] ScenarioHooks, double Lat, double Lng);
+
     private sealed record BestiaryEntry(string Name, string Role, string Environment, string Danger, string Visual, CreatureStats BaseStats, string Profile, string Attack, string Defense, string Special, string Hook);
     private sealed record CreatureStats(int WS, int BS, int S, int T, int I, int Ag, int Dex, int Int, int WP, int Fel, int Wounds, int Move);
     private sealed record GeneratedLoadout(string Weapon, string Equipment, string Spell);
@@ -2159,6 +3192,16 @@
     private sealed record GeneratedLoot(string Context, string Nature, string Danger, string Coins, IReadOnlyList<string> Items, string UsefulItem, string MagicItem, string MagicEffect, string MagicRisk, string ValueEstimate, string Owner, string Condition, string Clue, string Complication);
     private sealed record MagicLoot(string Name, string Effect, string Risk);
     private sealed record HumanoidProfile(string Race, string Class, string Career);
+    private sealed record GeneratedAdventure(string Title, string Theme, string Region, string Danger, string Duration, string Synopsis, string Location, string Hook, string Threat, List<AdventureNpc> KeyNpcs, IReadOnlyList<AdventureAct> Acts, string Twist, string Climax, IReadOnlyList<string> Resolutions, IReadOnlyList<string> Rewards, string CityName, double CityLat, double CityLng, string RegionDescription, IReadOnlyList<string> NearbyCities, string Atmosphere, string? CampaignLink)
+    {
+        public string? Notes { get; set; }
+    }
+    private sealed record AdventureNpc(string Name, string Role, string Profession, string Origin, string Appearance, string Manner, string Motivation, string Secret, string Weapon, string Equipment, CreatureStats Stats);
+    private sealed record AdventureAct(string Title, string Description, string Challenge, string CityName, double Lat, double Lng);
+    private sealed record GeneratedCampaign(string Title, string ArcSummary, string RecurringVillain, IReadOnlyList<GeneratedAdventure> Episodes)
+    {
+        public string? Notes { get; set; }
+    }
 
     private sealed class GroupMemberSetup
     {
@@ -2182,4 +3225,458 @@
             BestiaryChoice = BestiaryChoice
         };
     }
+
+    // ──── Aventures data ────
+
+    private static readonly IReadOnlyList<string> AdvThemeOptions = ["Aleatoire", "Intrigue", "Exploration", "Combat", "Horreur", "Politique"];
+    private static readonly IReadOnlyList<string> AdvThemeOptionsNoRandom = AdvThemeOptions.Skip(1).ToList();
+    private static readonly IReadOnlyList<string> AdvRegionOptions = ["Aleatoire", "Reikland", "Middenland", "Nordland", "Averland", "Stirland", "Wissenland", "Hochland", "Ostland", "Talabecland", "Ostermark", "Solland", "Sylvania", "Les Friches"];
+    private static readonly IReadOnlyList<string> AdvRegionOptionsNoRandom = AdvRegionOptions.Skip(1).ToList();
+    private static readonly IReadOnlyList<string> AdvThreatOptions = ["Aleatoire", "Chaos", "Morts-vivants", "Peaux-vertes", "Skavens", "Criminels", "Politique", "Betes sauvages", "Secte", "Sorcellerie"];
+    private static readonly IReadOnlyList<string> AdvThreatOptionsNoRandom = AdvThreatOptions.Skip(1).ToList();
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> AdvTitlePrefixes = new()
+    {
+        ["Intrigue"] = new[] { "L'ombre de", "Le complot de", "Les secrets de", "La trahison de", "Le masque de", "La conspiration de" },
+        ["Exploration"] = new[] { "Les ruines de", "La quete de", "Au-dela de", "Les profondeurs de", "Le chemin de", "La decouverte de" },
+        ["Combat"] = new[] { "La bataille de", "Le siege de", "L'assaut de", "La chute de", "La defense de", "La charge de" },
+        ["Horreur"] = new[] { "La malediction de", "Le tombeau de", "Les murmures de", "La nuit de", "L'eveil de", "Le cri de" },
+        ["Politique"] = new[] { "Le decret de", "L'election de", "Le pacte de", "La cour de", "L'heritage de", "Le tribunal de" },
+    };
+    private static readonly IReadOnlyList<string> AdvTitleSuffixes = ["Altdorf", "Bogenhafen", "l'Empereur", "Middenheim", "la Reik", "Ubersreik", "Karak Azgaraz", "la foret de Drakwald", "Nuln", "Helmgart", "Talabheim", "la Sylvanie", "l'Ostland", "Mordheim", "la passe du Feu Noir"];
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> AdvLocations = new()
+    {
+        ["Reikland"] = new[] { "Altdorf, capitale de l'Empire", "Bogenhafen, cite marchande prospere", "Ubersreik, verrou du col de la Hache", "Grunburg, bourg fluvial", "Auerswald, au bord des marais", "Kemperbad, port fluvial sur la Reik" },
+        ["Middenland"] = new[] { "Middenheim, la Cite du Loup Blanc", "Delberz, bourg fortifie", "Carroburg, bastion des chevaliers du Loup Blanc", "Un hameau isole dans la foret de Drakwald" },
+        ["Nordland"] = new[] { "Salzenmund, cite portuaire", "Un village de pecheurs battu par les vents", "Les falaises du littoral nordique" },
+        ["Averland"] = new[] { "Averheim, coeur du commerce de betail", "Grenzstadt, avant-poste pres des montagnes", "Loningbruck, halte sur la route du sud" },
+        ["Stirland"] = new[] { "Wurtbad, la cite des eaux thermales", "Un village cerne de brumes", "Siegfriedhof, aux portes de la Sylvanie" },
+        ["Wissenland"] = new[] { "Nuln, cite des canons et de l'universite", "Wissenburg, port fluvial", "Pfeildorf, cite marchande du sud" },
+        ["Hochland"] = new[] { "Hergig, capitale forestiere", "Un relais de chasse dans les bois profonds", "Un pont fortifie sur un torrent de montagne" },
+        ["Ostland"] = new[] { "Wolfenburg, la cite de l'Ours", "Un fort de patrouilleurs sur la frontiere est", "Un moulin abandonne dans les Friches" },
+        ["Talabecland"] = new[] { "Talabheim, la cite du Cratere", "Un campement de bucherons sur le Talabec", "Volgen, bourg fluvial discret" },
+        ["Ostermark"] = new[] { "Bechafen, cite frontiere", "Un poste de garde face aux steppes", "Mordheim, la Cite Damnee en ruines" },
+        ["Solland"] = new[] { "Les ruines de l'ancienne capitale", "Un village de refugies", "Un pont strategique sur le Soll" },
+        ["Sylvania"] = new[] { "Drakenhof, le chateau maudit", "Un village ou les morts ne restent pas couches", "La foret de Hunger, ou les arbres saignent" },
+        ["Les Friches"] = new[] { "Un campement kislevite abandonne", "Une forteresse naine en ruines", "Un site de bataille ancien couvert de cairns" },
+    };
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> AdvAtmospheres = new()
+    {
+        ["Intrigue"] = new[] {
+            "Les ruelles etroites de la cite sont plongees dans une brume epaisse. Des ombres se glissent le long des murs, et chaque conversation chuchotee pourrait cacher un complot.",
+            "L'air est charge de tension. Dans les salons feutres, les sourires masquent des intentions mortelles, et chaque verre de vin pourrait etre le dernier.",
+            "La pluie battante transforme les paves en miroirs sombres. Derriere les fenetres eclairees, des silhouettes echangent des documents que personne ne devrait voir.",
+        },
+        ["Exploration"] = new[] {
+            "La foret ancienne s'epaissit a chaque pas. Les arbres centenaires semblent observer les intrus, et le silence n'est brise que par le craquement de branches mortes sous les bottes.",
+            "L'air souterrain est humide et froid. Les torches projettent des ombres dansantes sur des murs graves de runes oubliees depuis des siecles.",
+            "Le sentier disparait sous la vegetation sauvage. Au loin, les ruines d'une civilisation oubliee emergent de la brume matinale comme les os d'un geant.",
+        },
+        ["Combat"] = new[] {
+            "Le son des tambours de guerre resonne dans la vallee. La fumee des feux de camp ennemi s'eleve au-dessus de la ligne d'horizon, et l'air empeste la poudre a canon.",
+            "Les fortifications craquent sous les impacts. Les defenseurs, epuises, savent que la prochaine vague pourrait etre la derniere.",
+            "Le champ de bataille est jonche de debris. Le cri de guerre de l'ennemi se rapproche, et il ne reste que quelques minutes pour preparer une defense desesperee.",
+        },
+        ["Horreur"] = new[] {
+            "Un froid surnaturel s'installe malgre les feux allumes. Les chandelles vacillent sans courant d'air, et les ombres aux murs semblent se mouvoir d'elles-memes.",
+            "Le brouillard rampe sur le sol comme un etre vivant. Des murmures incomprehensibles s'elevent de partout et de nulle part a la fois.",
+            "La nuit de Morrslieb baigne le paysage d'une lueur verdatre malsaine. Les animaux se taisent, et meme les insectes semblent retenir leur souffle.",
+        },
+        ["Politique"] = new[] {
+            "Les lustres du palais illuminent une assemblee ou chaque sourire est une arme et chaque poignee de main un contrat implicite.",
+            "La salle du conseil est chargee d'une tension palpable. Les factions s'observent, calculant chaque mot comme un joueur d'echecs calcule chaque coup.",
+            "Dans les jardins du palais, sous les tonnelles de roses, les vrais accords se negocient loin des oreilles indiscretes du tribunal.",
+        },
+    };
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> AdvSynopsis = new()
+    {
+        ["Intrigue"] = new[] {
+            "Un noble influent est retrouve mort dans des circonstances suspectes. Les PJ doivent demeler un reseau de mensonges avant que le coupable ne frappe a nouveau.",
+            "Un document compromettant a ete vole et plusieurs factions sont pretes a tuer pour le recuperer.",
+            "Un marchand respecte est accuse de trahison. Les PJ decouvrent que l'accusation cache une verite plus sombre.",
+            "Des messages codes circulent dans la cite, annoncant un coup d'etat imminent que personne ne semble voir venir.",
+        },
+        ["Exploration"] = new[] {
+            "Une carte ancienne mene a un temple oublie dans les profondeurs de la foret. Mais d'autres chercheurs sont deja sur la piste.",
+            "Un tunnel nain effondre vient d'etre degage, revelant des passages que personne n'a foules depuis des siecles.",
+            "Un village entier a disparu du jour au lendemain. Seuls restent des traces de pas menant dans la foret.",
+            "Un explorateur revient de l'Est avec des artefacts etranges et une histoire invraisemblable. Puis il disparait.",
+        },
+        ["Combat"] = new[] {
+            "Une horde de peaux-vertes descend des montagnes. Un village frontalier a besoin de defenseurs de toute urgence.",
+            "Des bandits ont pris le controle d'un pont strategique et ranconnent tous les voyageurs.",
+            "Un seigneur de guerre chaos rassemble ses forces dans les bois. Les patrouilleurs demandent de l'aide pour une frappe preventive.",
+            "Un regiment mercenaire deserte et terrorise la campagne. Il faut les arreter avant que l'armee imperiale n'intervienne.",
+        },
+        ["Horreur"] = new[] {
+            "Des villageois disparaissent la nuit. Les survivants parlent d'ombres qui marchent et de murmures dans les murs.",
+            "Un cimetiere refuse de garder ses morts. Chaque nuit, de nouvelles tombes sont retrouvees ouvertes et vides.",
+            "Une epidemie frappe la cite, mais ce n'est pas une maladie ordinaire — les malades murmurent tous le meme nom.",
+            "Un manoir herite par un PJ recele des secrets que ses anciens proprietaires ont paye de leur vie pour cacher.",
+        },
+        ["Politique"] = new[] {
+            "L'election du nouveau bourgmestre tourne au chaos quand un candidat est empoisonne lors du banquet.",
+            "Deux guildes s'affrontent pour le monopole du commerce fluvial. Les PJ sont pris entre les deux camps.",
+            "Un decret imperial menace de ruiner toute une province. Les nobles locaux cherchent des champions pour plaider leur cause.",
+            "Un ambassadeur elfique est insulte lors d'une reception. La guerre diplomatique qui s'ensuit menace la paix de toute la region.",
+        },
+    };
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> AdvHooks = new()
+    {
+        ["Intrigue"] = new[] { "Un ami d'enfance supplie les PJ de l'aider a prouver son innocence.", "Une lettre anonyme propose une recompense genereuse pour une enquete discrete.", "Les PJ tombent sur une scene de crime en pleine rue.", "Un mourant leur confie un message code avec son dernier souffle." },
+        ["Exploration"] = new[] { "Un vieux nain mourant revele l'emplacement d'un tresor ancestral.", "Une tempete revele l'entree d'une caverne inconnue.", "Les PJ trouvent une carte dans le double-fond d'un coffre achete au marche.", "Un erudit les engage pour escorter une expedition dans des ruines dangereuses." },
+        ["Combat"] = new[] { "Un messager blesse arrive au village, poursuivi par des eclaireurs ennemis.", "Les PJ sont embusques sur la route et decouvrent un plan d'invasion.", "Un capitaine de milice recrute des volontaires pour une mission desespere.", "La garnison locale a ete decimee. Les PJ sont les seuls combattants disponibles." },
+        ["Horreur"] = new[] { "Les PJ passent la nuit dans une auberge ou tous les miroirs ont ete retournes.", "Un enfant perdu les guide vers un village qui n'apparait sur aucune carte.", "Un pretre de Morr demande de l'aide : ses rituels funeraires ne fonctionnent plus.", "Les PJ trouvent un journal intime dont les pages recentes decrivent des evenements futurs." },
+        ["Politique"] = new[] { "Un noble leur offre un titre en echange d'un service delicat.", "Les PJ sont convoques comme temoins dans un proces truque.", "Un conseiller imperial les charge d'espionner un rival.", "Une guilde influente les engage pour negocier un accord commercial." },
+    };
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> AdvThreatDetails = new()
+    {
+        ["Chaos"] = new[] { "Un culte de Tzeentch manipule les evenements depuis l'ombre.", "Des mutations apparaissent dans le betail, puis chez les villageois.", "De la malepierre a ete trouvee dans le puits du village.", "Un champion de Khorne rassemble les bannis dans la foret." },
+        ["Morts-vivants"] = new[] { "Un necromancien releve les morts des anciens champs de bataille.", "Un vampire se fait passer pour un noble bienfaiteur.", "Les esprits d'un cimetiere profane refusent de trouver le repos.", "Une liche reveille ses serviteurs dans les catacombes sous la cite." },
+        ["Peaux-vertes"] = new[] { "Une Waaagh! orque menace les villages frontaliers.", "Des gobelins de la nuit s'infiltrent par les egouts.", "Un chef orque exceptionnellement ruse unit les tribus.", "Des trolls descendent des montagnes, pousses par quelque chose de pire." },
+        ["Skavens"] = new[] { "Des tunnels mysterieux apparaissent sous les fondations de la cite.", "Du grain empoisonne est retrouve dans les reserves.", "Des rats geants sont apercus dans les egouts.", "Une peste mysterieuse ne touche que certains quartiers." },
+        ["Criminels"] = new[] { "Une guilde des voleurs vise le tresor de la cite.", "Un reseau de contrebandiers opere depuis les quais.", "Des faux-monnayeurs menacent l'economie locale.", "Un maitre-chanteur detient les secrets de tous les notables." },
+        ["Politique"] = new[] { "Deux factions nobles s'affrontent pour le siege du comte electeur.", "Un pretendant au trone menace la stabilite de la province.", "Des espions d'une puissance etrangere sement la discorde.", "Une reforme fiscale provoque des emeutes." },
+        ["Betes sauvages"] = new[] { "Un griffon blesse terrorise les fermes isolees.", "Des meutes de loups affames attaquent les caravanes.", "Un basilic a elu domicile dans une mine abandonnee.", "Une hydre remonte le fleuve, detruisant les ponts." },
+        ["Secte"] = new[] { "Un culte de Slaanesh se cache derriere un cercle artistique.", "Des flagellants radicaux prennent le controle d'un village.", "Une societe secrete recrute parmi la noblesse.", "Un faux prophete de Sigmar leve une armee de fanatiques." },
+        ["Sorcellerie"] = new[] { "Un sorcier renegat mene des experiences interdites.", "Les Vents de Magie soufflent en tempete, causant des phenomenes etranges.", "Un apprenti a vole un grimoire interdit du College.", "Un rituel ancien a ete declenche par accident dans des ruines." },
+    };
+
+    private static readonly IReadOnlyList<string> AdvNpcRoles = ["Allie", "Contact", "Antagoniste", "Temoin", "Victime", "Traitre"];
+    private static readonly IReadOnlyList<string> AdvNpcProfessions = ["marchand itinerant", "garde de nuit", "herboriste du village", "ancien soldat", "pretresse de Shallya", "scribe du bourgmestre", "batelier", "forgeron", "chasseur de primes", "sorcier ambulant", "aubergiste", "noble desargente", "patrouilleur", "contrebandier", "medecin de campagne"];
+    private static readonly IReadOnlyList<string> AdvNpcSecrets = [
+        "Agent secret d'un culte du Chaos", "Endette aupres de la guilde des voleurs", "Cache un enfant mutant",
+        "A tue accidentellement un noble", "Possede un artefact maudit", "Est en realite un espion kislevite",
+        "Prepare sa fuite depuis des mois", "A passe un pacte avec un demon", "Protege un criminel recherche",
+        "Est atteint d'une mutation cachee", "Detient la preuve d'un complot", "Est le dernier heritier d'une lignee maudite",
+    ];
+
+    private static readonly IReadOnlyList<string> AdvActsOpening = ["L'appat", "Le premier signe", "L'arrivee", "La rencontre", "Le marche", "La decouverte"];
+    private static readonly IReadOnlyList<string> AdvActsDevelopment = ["L'enquete", "La piste", "Le piege", "La revelation", "La course", "L'epreuve", "Le choix", "La confrontation"];
+    private static readonly IReadOnlyList<string> AdvActsClimax = ["L'affrontement final", "La verite eclate", "Le sacrifice", "La chute", "Le jugement", "L'heure de verite"];
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> AdvSceneDescriptions = new()
+    {
+        ["Intrigue"] = new[] { "Les PJ infiltrent une reception mondaine pour observer un suspect.", "Une filature dans les ruelles sombres mene a un repaire cache.", "Un temoin cle est retrouve mort, mais son journal a survecu.", "Un interrogatoire tendu revele une piste inattendue." },
+        ["Exploration"] = new[] { "Les PJ descendent dans des tunnels anciens eclaires par des champignons phosphorescents.", "Un pont de corde au-dessus d'un gouffre sans fond teste leur courage.", "Des inscriptions naines mettent en garde contre ce qui dort en dessous.", "La foret devient si dense que la lumiere du jour disparait." },
+        ["Combat"] = new[] { "Les PJ defendent une barricade improvisee contre une vague d'assaillants.", "Un duel sur un pont etroit decide du sort de la bataille.", "L'ennemi tend une embuscade dans un defile rocheux.", "Les PJ doivent traverser un champ de bataille sous les tirs." },
+        ["Horreur"] = new[] { "Les murs de la vieille demeure suintent un liquide sombre qui n'est pas de l'eau.", "Les PJ entendent des pas qui suivent exactement les leurs — mais derriere eux, il n'y a personne.", "Un village entier agit normalement, sauf que personne ne projette d'ombre.", "La temperature chute brusquement et les chandelles s'eteignent d'elles-memes." },
+        ["Politique"] = new[] { "Les PJ assistent a un debat houleux au conseil municipal.", "Un diner diplomatique cache des negociations secretes.", "Les PJ doivent escorter un dignitaire a travers un territoire hostile.", "Un vote crucial approche et chaque faction tente de rallier les PJ." },
+    };
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> AdvChallenges = new()
+    {
+        ["Intrigue"] = new[] { "Dechiffrer un code secret", "Convaincre un temoin recalcitrant", "S'infiltrer dans un lieu surveille", "Demeler le vrai du faux parmi des temoignages contradictoires" },
+        ["Exploration"] = new[] { "Traverser un terrain dangereux", "Resoudre une enigme ancienne", "Survivre dans un environnement hostile", "Trouver un passage cache" },
+        ["Combat"] = new[] { "Vaincre un ennemi superieur en nombre", "Proteger des civils pendant la bataille", "Capturer l'ennemi vivant", "Combattre dans un terrain desavantageux" },
+        ["Horreur"] = new[] { "Garder son sang-froid face a l'horreur", "Trouver la source de la malediction", "Resister a la corruption", "Sauver une ame tourmentee" },
+        ["Politique"] = new[] { "Negocier un compromis entre factions hostiles", "Demasquer un traitre au sein du conseil", "Obtenir des preuves sans enfreindre la loi", "Rallier des allies reluctants" },
+    };
+
+    private static readonly IReadOnlyList<string> AdvTwists = [
+        "L'allie le plus fiable des PJ travaille en secret pour l'ennemi.",
+        "La veritable menace n'est pas celle qu'on croyait — ce n'est qu'un ecran de fumee.",
+        "L'ennemi possede un otage que les PJ ne peuvent pas sacrifier.",
+        "Un ancien allie revient, transforme par le Chaos, et offre son aide.",
+        "La solution evidente est un piege — l'ennemi l'a prevue depuis le debut.",
+        "Les PJ decouvrent qu'ils ont ete manipules depuis le premier acte.",
+        "L'artefact convoite est en realite une prison pour un demon.",
+        "Le mort que tous pleurent n'est pas vraiment mort.",
+        "Les autorites locales sont corrompues et couvrent la menace.",
+        "Un tremblement de terre / une tempete de magie change la donne.",
+    ];
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> AdvClimaxes = new()
+    {
+        ["Intrigue"] = new[] { "Les PJ confrontent le maitre-espion lors d'un bal masque, ou chaque invite pourrait etre un complice.", "La verite eclate devant le tribunal — mais le coupable a un dernier atout.", "Une course-poursuite a travers les toits de la cite pour rattraper le traitre en fuite." },
+        ["Exploration"] = new[] { "Le temple s'effondre alors que les PJ tentent de recuperer l'artefact.", "Le gardien antique s'eveille et leur pose une ultime epreuve.", "Les PJ atteignent le coeur des ruines et doivent choisir : le tresor ou la sortie." },
+        ["Combat"] = new[] { "L'assaut final contre la forteresse ennemie, sous une pluie de fleches.", "Un duel a mort avec le champion ennemi devant les deux armees.", "Les PJ tiennent une position jusqu'a l'arrivee des renforts, chaque minute comptant." },
+        ["Horreur"] = new[] { "Le rituel atteint son apogee : les PJ doivent le briser avant qu'il ne soit trop tard.", "La creature se revele dans sa forme veritable — et elle est bien pire que prevu.", "Les PJ sont pieges dans un cauchemar vivant et doivent trouver la faille." },
+        ["Politique"] = new[] { "Le vote final au conseil — chaque voix compte et les PJ detiennent la clef.", "Le couronnement est interrompu par une accusation publique qui change tout.", "Les PJ doivent choisir : la justice ou la stabilite de la province." },
+    };
+
+    private static readonly IReadOnlyList<string> AdvResolutions = [
+        "Victoire complete : la menace est eliminee et les PJ sont celebres comme des heros.",
+        "Victoire amere : la menace est vaincue mais le prix est lourd.",
+        "Compromis : les PJ negocient une paix fragile qui pourrait ne pas durer.",
+        "Fuite en avant : la menace immediate est repoussee mais une plus grande se profile.",
+        "Sacrifice : un PNJ allie se sacrifie pour assurer la victoire.",
+        "Justice rendue : le coupable est traduit devant les autorites.",
+        "Revelation : la verite eclate et change la perception de tous.",
+        "Alliance inattendue : d'anciens ennemis s'unissent contre une menace commune.",
+    ];
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> AdvRewards = new()
+    {
+        ["Faible"] = new[] { "50 pistoles d'argent", "Une arme de qualite", "Un contact utile dans la guilde", "Un cheval de selle", "La gratitude d'un aubergiste (gite et couvert a vie)", "25 XP bonus" },
+        ["Moyen"] = new[] { "2 couronnes d'or", "Un objet magique mineur", "Un titre de propriete", "Une lettre de recommandation d'un noble", "Une faveur d'un pretre influent", "50 XP bonus" },
+        ["Eleve"] = new[] { "10 couronnes d'or", "Un artefact puissant", "Un titre de chevalerie ou de noblesse mineure", "Un manoir ou une auberge", "L'allegiance d'un groupe de suivants", "75 XP bonus" },
+    };
+
+    private static readonly IReadOnlyList<string> AdvVillainTitles = ["le Comte", "le Seigneur", "le Magister", "la Baronne", "le Doktor", "le Capitaine", "la Comtesse", "le Maitre", "le Prophete", "la Pretresse"];
+
+    private static readonly Dictionary<string, IReadOnlyList<string>> AdvCampaignArcs = new()
+    {
+        ["Intrigue"] = new[] { "Un reseau d'espions du Chaos infiltre les plus hautes spheres du pouvoir imperial.", "Une societe secrete manipule l'histoire de l'Empire depuis des siecles.", "Un complot vise a assassiner le Comte Electeur et plonger la province dans la guerre civile." },
+        ["Exploration"] = new[] { "Une prophetie naine annonce la redecouverte d'une forteresse perdue qui pourrait changer l'equilibre des pouvoirs.", "Un artefact ancien, brise en fragments, doit etre reassemble avant qu'il ne tombe en de mauvaises mains.", "Les vestiges d'une civilisation pre-humaine emergent, attirant explorateurs, pillards et forces sombres." },
+        ["Combat"] = new[] { "Une Waaagh! sans precedent menace de submerger les provinces du nord.", "Les forces du Chaos rassemblent une armee dans les Friches pour une invasion a grande echelle.", "Une guerre civile couve entre deux pretendants au trone d'une province clef." },
+        ["Horreur"] = new[] { "Un Seigneur Vampire ancien s'eveille et etend lentement son empire de la non-mort.", "La Malepierre contamine les nappes phreatiques de plusieurs villes, creant vagues de mutations et de folie.", "Un demon majeur tente de percer le voile entre les mondes, et chaque rituel dejoue le rapproche du succes." },
+        ["Politique"] = new[] { "L'Empereur est mourant et la succession menace de dechirer l'Empire.", "Une alliance avec les Elfes est en peril, et la guerre entre les deux peuples semble inevitable.", "Les guildes marchandes tentent de renverser l'ordre feodal et d'instaurer une republique." },
+    };
+
+    private static readonly IReadOnlyList<string> AdvCampaignTitles = ["Chroniques du Vieux Monde", "Les Ombres de l'Empire", "La Longue Nuit", "Les Flammes de la Guerre", "Le Crepuscule des Dieux"];
+    private static readonly IReadOnlyList<string> AdvCampaignLinks = [
+        "Les PJ decouvrent un indice reliant cette aventure a un plan plus vaste.",
+        "Un PNJ recurrent reapparait avec de nouvelles informations.",
+        "Les consequences de l'aventure precedente se font sentir ici.",
+        "L'antagoniste principal agit dans l'ombre, tirant les ficelles.",
+        "Un allie de la premiere aventure a besoin d'aide a son tour.",
+        "Les PJ trouvent un fragment de l'artefact central de la campagne.",
+    ];
+
+    // ──── Cartographe data ────
+
+    private static readonly MapRegion[] MapRegions =
+    [
+        new("Reikland", "province", "Empire", ["urbain", "fleuve", "politique"], ["Contrebande le long du Reik", "Corruption politique a Altdorf", "Disparitions mysterieuses dans les bas-quartiers d'Ubersreik"], 65.5, -31.0),
+        new("Middenland", "province", "Empire", ["montagne", "foret", "culte Ulric"], ["Rites interdits dans les forets du Nord", "Rivalite entre cultes a Middenheim", "Loups mutants aux abords de la ville"], 69.5, -30.0),
+        new("Talabecland", "province", "Empire", ["foret dense", "isolement", "bureaucratie"], ["Creatures sylvestres corrompues par le Chaos", "Conspiration bureaucratique a Talabheim"], 67.5, -16.0),
+        new("Nordland", "province", "Empire", ["cotier", "commerce", "piraterie"], ["Contrebande maritime", "Attaques de pirates norses sur la cote"], 73.5, -24.0),
+        new("Ostland", "province", "Empire", ["frontiere nord", "invasions chaos", "militaire"], ["Incursions de Maraudeurs du Chaos", "Village isole coupe du monde apres une tempete"], 70.5, -10.0),
+        new("Hochland", "province", "Empire", ["chasse", "rural", "artisanat armes"], ["Chasse a une bete legendaire", "Trafic d'armes de precision Hochland"], 70.0, -18.0),
+        new("Stirland", "province", "Empire", ["marais", "pauvrete", "banditisme"], ["Bandits de grand chemin dans les marais", "Epidemie mysterieuse dans un village recule"], 62.5, -10.0),
+        new("Sylvanie", "province", "Empire", ["morts-vivants", "malediction", "horreur"], ["Village terrorise par des morts-vivants", "Enquete sur une lignee de Comtes Vampires", "Rituel necromantique a stopper"], 63.0, 0.5),
+        new("Averland", "province", "Empire", ["agricole", "noblesse ambitieuse", "elections"], ["Intrigue politique autour de la succession electorale", "Sabotage de recoltes"], 59.5, -16.0),
+        new("Wissenland", "province", "Empire", ["ingenierie", "artillerie", "colleges magie"], ["Vol de plans d'artillerie a Nuln", "Experience magique ayant mal tourne dans un college"], 60.0, -26.0),
+        new("Montagnes du Bout du Monde", "chaine montagneuse", "Frontiere Est", ["nains", "orcs gobelins", "mines"], ["Escorte de caravane naine attaquee par des Orcs", "Exploration d'une hold naine oubliee"], 55.0, 5.0),
+        new("Bretonnie", "royaume", null, ["chevalerie", "feodalisme", "Dame du Lac"], ["Quete chevaleresque pour un noble breton", "Tension entre paysans et seigneurs locaux", "Creature malefique rodant pres d'une chapelle isolee"], 63.0, -58.0),
+        new("Tilee", "cite-etats", null, ["commerce", "intrigue", "mercenaires", "renaissance"], ["Guerre de factions marchandes", "Complot d'assassinat entre cites rivales", "Chasse au tresor pirate pres de Sartosa"], 38.0, -55.0),
+        new("Estalie", "royaumes", null, ["religion Myrmidia", "commerce maritime", "duels"], ["Duel d'honneur a regler", "Corsaires estaliens en maraude"], 52.0, -90.0),
+        new("Kislev", "royaume", null, ["steppe", "hiver rigoureux", "invasions chaos", "chamanisme"], ["Defense d'un avant-poste contre le Chaos", "Rumeurs de sorcellerie dans la toundra", "Caravane bloquee par une tempete de neige"], 73.0, 5.0),
+        new("Marienburg", "cite-etat", null, ["commerce", "guildes", "corruption", "port majeur"], ["Guerre des guildes marchandes", "Contrebande via le port franc", "Enquete sur une disparition dans les docks"], 69.7, -44.6),
+        new("Athel Loren", "foret magique", "Bretonnie", ["elfes sylvains", "magie sauvage", "danger mortel"], ["Intrusion accidentelle dans la foret interdite", "Pacte a negocier avec les Elfes Sylvains"], 60.0, -45.0),
+        new("Terres Arides", "region sauvage", null, ["orcs gobelins", "banditisme", "ruines anciennes"], ["Traversee dangereuse d'un col infeste d'Orcs", "Exploration de ruines pre-humaines"], 40.0, -10.0),
+        new("Norsca", "terres barbares", null, ["chaos", "raids maritimes", "tribus guerrieres"], ["Raid norse sur un village cotier", "Culte du Chaos infiltre pres d'un port"], 78.0, -15.0),
+        new("Terres du Chaos", "region corrompue", null, ["chaos extreme", "mutation", "hostile mortel"], ["Expedition suicidaire vers le Nord", "Artefact corrompu ramene par erreur d'une expedition"], 82.0, 10.0),
+    ];
+
+    private static readonly MapCity[] MapCities =
+    [
+        new("Aarnau", "Ville", "4 000 hab.", "Wastelands", 74.134, -40.418),
+        new("Agbeiten", "Bourg", "350 hab.", "Empire, Averland", 57.586, -17.557),
+        new("Ahlenhof", "Bourg", "Pop. inconnue", "Empire, Middenland", 67.968, -23.238),
+        new("Akendorf", "Bourg", "884 hab.", "Principautes frontalieres", 54.122, -3.836),
+        new("Al-Haikk", "Cité", "Pop. inconnue", "Arabie", 7.934, -105.913),
+        new("Aldium", "Ville", "Pop. inconnue", "Principautes frontalieres", 50.493, -21.056),
+        new("Almshoven", "Village", "Pop. inconnue", "Wastelands", 71.461, -46.899),
+        new("Altdorf", "Cité", "15 000 hab.", "Empire, Reikland", 66.628, -31.701),
+        new("Aquitanie", "Ville", "Pop. inconnue", "Bretonnie, Aquitanie", 59.338, -59.688),
+        new("Auerswald", "Bourg", "2 500 hab.", "Empire, Reikland", 63.598, -30.880),
+        new("Averheim", "Ville", "9 400 hab.", "Empire, Averland", 60.916, -17.290),
+        new("Bakersdorf", "Village", "Pop. inconnue", "Empire, Talabecland", 67.355, -24.227),
+        new("Barak Varr", "Cité", "30 000 hab.", "Principautes frontalieres", 42.391, -13.578),
+        new("Bechafen", "Ville", "7 600 hab.", "Empire, Ostermark", 68.880, 0.666),
+        new("Beeckerhoven", "Bourg", "408 hab.", "Empire, Nordland", 72.793, -24.027),
+        new("Bek", "Bourg", "750 hab.", "Empire, Talabecland", 68.817, -10.890),
+        new("Bergsburg", "Ville", "3 774 hab.", "Empire, Hochland", 71.000, -21.957),
+        new("Bilbali", "Cité", "9 000 hab.", "Estalie", 57.504, -92.297),
+        new("Bissendorf", "Village", "94 hab.", "Empire, Ostermark", 65.849, -5.801),
+        new("Blutroch", "Village", "Pop. inconnue", "Empire, Reikland", 65.708, -33.011),
+        new("Bogenhafen", "Ville", "4 500 hab.", "Empire, Reikland", 65.327, -35.594),
+        new("Bolgasgrad", "Bourg", "Pop. inconnue", "Kislev", 73.916, 6.222),
+        new("Bordeleaux", "Cité", "Pop. inconnue", "Bretonnie, Bordeleaux", 61.256, -64.745),
+        new("Boven", "Village", "98 hab.", "Empire, Hochland", 69.884, -8.069),
+        new("Brionne", "Cité", "11 000 hab.", "Bretonnie, Brionne", 57.245, -66.233),
+        new("Broekwater", "Village", "84 hab.", "Wastelands", 70.985, -45.762),
+        new("Bylorhof", "Ville", "Pop. inconnue", "Empire, Sylvanie", 61.655, -4.263),
+        new("Carroburg", "Cité", "8 000 hab.", "Empire, Middenland", 66.946, -36.069),
+        new("Chateau d'Artenois", "Forteresse", "Pop. inconnue", "Bretonnie, Artenois", 69.221, -65.507),
+        new("Chateau d'Epee", "Forteresse", "Pop. inconnue", "Bretonnie, Aquitanie", 59.906, -62.171),
+        new("Chateau de Bastogne", "Forteresse", "Pop. inconnue", "Bretonnie, Bastogne", 64.543, -55.684),
+        new("Chateau de Desfleuves", "Forteresse", "Pop. inconnue", "Bretonnie, Gisoreux", 67.673, -51.532),
+        new("Chateau de Drakenhof", "Forteresse", "Pop. inconnue", "Empire, Sylvanie", 62.077, 1.551),
+        new("Chateau de Gasconnie", "Forteresse", "Pop. inconnue", "Bretonnie, Gasconnie", 54.768, -58.103),
+        new("Chateau de Gransette", "Forteresse", "Pop. inconnue", "Bretonnie, Brionne", 57.781, -62.528),
+        new("Chateau de Grasgar", "Forteresse", "250 hab.", "Bretonnie, Anguille", 70.205, -66.992),
+        new("Chateau de Sanglac", "Forteresse", "Pop. inconnue", "Bretonnie, Parravon", 63.437, -35.457),
+        new("Chateau de Tancred", "Forteresse", "Pop. inconnue", "Bretonnie, Couronne", 71.022, -48.354),
+        new("Chateau Drachenfels", "Forteresse", "1 hab.", "Empire, Reikland", 64.369, -35.909),
+        new("Chateau Grauenburg", "Forteresse", "200 hab.", "Empire, Reikland", 65.632, -35.292),
+        new("Chateau Rachard", "Forteresse", "Pop. inconnue", "Bretonnie, Moussillon", 65.480, -65.544),
+        new("Chateau Reiksguard", "Forteresse", "300 hab.", "Empire, Reikland", 65.786, -29.636),
+        new("Chateau Tempelhof", "Forteresse", "Pop. inconnue", "Empire, Sylvanie", 63.418, -2.437),
+        new("Chernozavtra", "Ville", "Pop. inconnue", "Kislev", 72.523, 45.532),
+        new("Colmfahre", "Bourg", "280 hab.", "Empire, Averland", 59.788, -24.056),
+        new("Couronne", "Cité", "Pop. inconnue", "Bretonnie, Couronne", 71.249, -61.438),
+        new("Delberz", "Bourg", "2 000 hab.", "Empire, Reikland", 69.652, -27.103),
+        new("Diesdorf", "Bourg", "150 hab.", "Empire, Reikland", 64.505, -28.186),
+        new("Dietershafen", "Ville", "3 000 hab.", "Empire, Nordland", 74.164, -27.240),
+        new("Dirnaich", "Village", "41 hab.", "Empire, Wissenland", 61.975, -27.817),
+        new("Dotternbach", "Village", "95 hab.", "Empire, Wissenland", 60.415, -27.789),
+        new("Drakenhof", "Bourg", "250 hab.", "Empire, Sylvanie", 62.251, 0.721),
+        new("Dunkelberg", "Bourg", "3 000 hab.", "Empire, Reikland", 62.043, -29.379),
+        new("Eicheschatten", "Ville", "3 375 hab.", "Empire, Mootland", 61.357, -9.814),
+        new("Eilhart", "Bourg", "Pop. inconnue", "Empire, Reikland", 65.954, -39.420),
+        new("Eisental", "Bourg", "Pop. inconnue", "Empire, Ostermark", 65.574, 7.448),
+        new("Erengrad", "Cité", "Pop. inconnue", "Kislev", 73.925, -8.834),
+        new("Erlach", "Bourg", "818 hab.", "Wastelands", 67.716, -44.727),
+        new("Eschen", "Ville", "Pop. inconnue", "Empire, Sylvanie", 63.846, 2.086),
+        new("Esk", "Village", "57 hab.", "Empire, Hochland", 71.055, -19.223),
+        new("Essel", "Ville", "Pop. inconnue", "Empire, Reikland", 66.805, -39.671),
+        new("Essen", "Village", "88 hab.", "Empire, Sylvanie", 64.914, 0.677),
+        new("Fauligmere", "Bourg", "200 hab.", "Empire, Middenland", 70.159, -42.984),
+        new("Fort Bergbres", "Forteresse", "225 hab.", "Wastelands", 67.895, -48.782),
+        new("Fort de Garban", "Forteresse", "Pop. inconnue", "Bretonnie, Montfort", 67.207, -46.526),
+        new("Fort de Sang", "Forteresse", "Pop. inconnue", "Empire, Montagnes Grises", 61.794, -32.317),
+        new("Fort Schippel", "Forteresse", "25 hab.", "Empire, Hochland", 69.830, -18.296),
+        new("Fort Solace", "Bourg", "310 hab.", "Wastelands", 72.269, -44.425),
+        new("Fort Solstice", "Forteresse", "Pop. inconnue", "Bretonnie, Gasconnie", 53.113, -47.588),
+        new("Fortenhaf", "Village", "96 hab.", "Empire, Ostermark", 69.271, 6.331),
+        new("Frederheim", "Village", "75 hab.", "Empire, Reikland", 67.493, -32.121),
+        new("Frugelhofen", "Village", "30 hab.", "Bretonnie, Parravon", 62.021, -34.560),
+        new("Gablitz", "Village", "74 hab.", "Empire, Stirland", 63.719, -10.529),
+        new("Gerslev", "Ville", "Pop. inconnue", "Kislev", 71.395, 12.261),
+        new("Gipfel", "Village", "91 hab.", "Empire, Mootland", 60.293, -8.526),
+        new("Gisoreux", "Cité", "18 000 hab.", "Bretonnie, Gisoreux", 66.899, -55.499),
+        new("Gladisch", "Village", "Pop. inconnue", "Empire, Reikland", 63.369, -30.954),
+        new("Gootten", "Bourg", "Pop. inconnue", "Empire, Middenland", 67.183, -34.080),
+        new("Grenzstadt", "Ville", "2 520 hab.", "Empire, Averland", 56.847, -11.975),
+        new("Grimminhagen", "Village", "76 hab.", "Empire, Middenland", 70.316, -23.749),
+        new("Grimpengratz", "Village", "78 hab.", "Wastelands", 69.012, -45.747),
+        new("Grissenwald", "Bourg", "1 500 hab.", "Empire, Wissenland", 62.391, -27.291),
+        new("Grubentreich", "Village", "88 hab.", "Empire, Middenland", 71.208, -27.332),
+        new("Grunburg", "Bourg", "1 200 hab.", "Empire, Reikland", 64.940, -29.806),
+        new("Grunewald Lodge", "Forteresse", "Pop. inconnue", "Empire, Reikland", 64.107, -32.358),
+        new("Gruyden", "Village", "95 hab.", "Empire, Hochland", 68.843, -19.341),
+        new("Halsdorph", "Bourg", "133 hab.", "Wastelands", 68.798, -46.664),
+        new("Heedenhof", "Ville", "2 500 hab.", "Empire, Hochland", 69.746, -20.327),
+        new("Heideck", "Bourg", "420 hab.", "Empire, Averland", 59.379, -16.806),
+        new("Helfurt", "Village", "Pop. inconnue", "Empire, Sylvanie", 64.325, -1.442),
+        new("Helmgart", "Ville", "2 200 hab.", "Empire, Reikland", 65.132, -39.501),
+        new("Hendorf", "Bourg", "0 hab.", "Empire, Wissenland", 61.391, -28.770),
+        new("Hergig", "Ville", "500 hab.", "Empire, Hochland", 69.179, -15.706),
+        new("Hermsdorf", "Bourg", "350 hab.", "Empire, Talabecland", 64.950, -16.867),
+        new("Hinrikness", "Bourg", "554 hab.", "Principautes frontalieres", 41.256, -25.195),
+        new("Hochsleben", "Bourg", "375 hab.", "Empire, Averland", 56.960, -14.429),
+        new("Holthusen", "Bourg", "Pop. inconnue", "Empire, Reikland", 66.541, -39.798),
+        new("Kadar Helgad", "Forteresse", "Pop. inconnue", "Royaumes nains", 50.680, -25.004),
+        new("Kadar-Gravning", "Forteresse", "Pop. inconnue", "Royaumes nains", 51.173, -26.723),
+        new("Kalkaat", "Bourg", "625 hab.", "Wastelands", 68.911, -44.170),
+        new("Kammendun", "Village", "28 hab.", "Empire, Middenland", 71.323, -29.280),
+        new("Karak Angazhar", "Forteresse", "Pop. inconnue", "Royaumes nains", 55.013, -12.625),
+        new("Karak Azgal", "Cité", "Pop. inconnue", "Royaumes nains", 27.852, 2.074),
+        new("Karak Azgaraz", "Forteresse", "Pop. inconnue", "Royaumes nains", 62.654, -33.268),
+        new("Karak Azul", "Cité", "35 000 hab.", "Royaumes nains", 31.263, 4.349),
+        new("Karak Drazh", "Cité", "Pop. inconnue", "Royaumes nains", 37.659, 2.820),
+        new("Karak Hirn", "Forteresse", "15 000 hab.", "Empire, Montagnes Noires", 51.377, -21.352),
+        new("Karak Huit Pics", "Cité", "3 000 hab.", "Royaumes nains", 35.559, 3.703),
+        new("Karak Izor", "Cité", "20 000 hab.", "Royaumes nains", 49.923, -33.575),
+        new("Karak Kadrin", "Cité", "35 000 hab.", "Royaumes nains", 64.063, 9.903),
+        new("Karak Norn", "Cité", "5 000 hab.", "Royaumes nains", 56.868, -30.152),
+        new("Karak Ungor", "Cité", "Pop. inconnue", "Royaumes nains", 69.167, 19.403),
+        new("Karak Varn", "Cité", "Pop. inconnue", "Royaumes nains", 58.563, -1.054),
+        new("Karak Vlag", "Cité", "Pop. inconnue", "Royaumes nains", 74.570, 34.497),
+        new("Karaz-a-Karak", "Cité", "90 000 hab.", "Royaumes nains", 51.560, 5.174),
+        new("Kemperbad", "Cité", "3 750 hab.", "Empire, Reikland", 64.369, -26.977),
+        new("Khypris", "Cité", "8 500 hab.", "Principautes frontalieres", 45.447, -23.422),
+        new("Kislev", "Cité", "Pop. inconnue", "Kislev", 71.329, 6.872),
+        new("Kleindorf", "Village", "74 hab.", "Empire, Reikland", 64.935, -30.735),
+        new("Klessen", "Bourg", "422 hab.", "Wastelands", 69.305, -46.112),
+        new("Konigstein", "Bourg", "Pop. inconnue", "Empire, Sylvanie", 62.978, -5.803),
+        new("Kraka Dorden", "Cité", "8 000 hab.", "Royaumes nains", 81.038, 6.471),
+        new("Kraka Drak", "Cité", "15 000 hab.", "Royaumes nains", 80.310, 12.618),
+        new("Kraka Ornsmotek", "Cité", "5 000 hab.", "Royaumes nains", 81.807, -12.090),
+        new("Kraka Ravnsvake", "Cité", "5 000 hab.", "Royaumes nains", 78.781, 4.118),
+        new("Krasicyno", "Village", "Pop. inconnue", "Kislev", 74.491, 6.425),
+        new("Kreutzhofen", "Bourg", "560 hab.", "Empire, Wissenland", 51.828, -29.228),
+        new("Kroppenleben", "Village", "85 hab.", "Empire, Wissenland", 53.534, -21.286),
+        new("Krudenwald", "Bourg", "144 hab.", "Empire, Hochland", 71.026, -23.070),
+        new("Krugenheim", "Ville", "4 500 hab.", "Empire, Talabecland", 65.878, -8.035),
+        new("Kurtwallen", "Village", "37 hab.", "Empire, Nordland", 73.416, -24.463),
+        new("L'Anguille", "Cité", "Pop. inconnue", "Bretonnie, Anguille", 71.410, -68.420),
+        new("La Maisontaal", "Village", "68 hab.", "Bretonnie, Parravon", 62.022, -36.373),
+        new("Larret", "Ville", "Pop. inconnue", "Bretonnie, Artenois", 68.141, -68.331),
+        new("Lehmburg", "Village", "92 hab.", "Wastelands", 69.486, -45.177),
+        new("Leicheberg", "Bourg", "380 hab.", "Empire, Stirland", 62.710, -3.502),
+        new("Leichlinberg", "Village", "72 hab.", "Empire, Middenland", 71.012, -28.231),
+        new("Leydenhoven", "Bourg", "510 hab.", "Wastelands", 69.495, -41.747),
+        new("Lieske", "Village", "97 hab.", "Empire, Talabecland", 65.734, -16.604),
+        new("Loningbruck", "Bourg", "855 hab.", "Empire, Averland", 58.488, -19.749),
+        new("Luccini", "Cité", "Pop. inconnue", "Tilee", 28.795, -61.144),
+        new("Lyonesse", "Cité", "Pop. inconnue", "Bretonnie, Lyonesse", 69.891, -79.266),
+        new("Magritta", "Cité", "12 000 hab.", "Estalie", 47.288, -87.687),
+        new("Marburg", "Bourg", "98 hab.", "Empire, Stirland", 64.866, -11.456),
+        new("Marienburg", "Cité", "13 500 hab.", "Wastelands", 69.658, -44.597),
+        new("Matorca", "Ville", "3 314 hab.", "Principautes frontalieres", 42.382, -23.717),
+        new("Meissen", "Bourg", "700 hab.", "Empire, Wissenland", 57.948, -24.780),
+        new("Mentreda", "Bourg", "980 hab.", "Principautes frontalieres", 46.536, -25.355),
+        new("Middenheim", "Cité", "13 224 hab.", "Empire, Middenland", 71.810, -25.755),
+        new("Milkavala", "Bourg", "Pop. inconnue", "Kislev", 73.092, -8.326),
+        new("Miragliano", "Cité", "Pop. inconnue", "Tilee", 48.334, -55.862),
+        new("Montfort", "Ville", "Pop. inconnue", "Bretonnie, Montfort", 64.183, -46.813),
+        new("Morgheim", "Ville", "Pop. inconnue", "Terre des morts", 23.786, -12.839),
+        new("Mortensholm", "Ville", "8 142 hab.", "Principautes frontalieres", 49.526, -24.481),
+        new("Moussillon", "Cité", "Pop. inconnue", "Bretonnie, Moussillon", 64.085, -65.051),
+        new("Nachthafen", "Ville", "Pop. inconnue", "Empire, Sylvanie", 61.492, 1.077),
+        new("Nuln", "Cité", "12 000 hab.", "Empire, Reikland", 61.883, -26.340),
+        new("Obelheim", "Bourg", "Pop. inconnue", "Empire, Talabecland", 66.650, -15.814),
+        new("Ossino", "Village", "Pop. inconnue", "Empire, Talabecland", 65.093, -13.427),
+        new("Parravon", "Cité", "7 700 hab.", "Bretonnie, Parravon", 62.165, -41.144),
+        new("Pavona", "Cité", "Pop. inconnue", "Tilee", 37.624, -49.127),
+        new("Pfeifeldorf", "Bourg", "Pop. inconnue", "Empire, Middenland", 68.413, -40.346),
+        new("Pfeildorf", "Ville", "6 800 hab.", "Empire, Wissenland", 59.872, -25.346),
+        new("Pfunzig", "Ville", "Pop. inconnue", "Empire, Averland", 59.356, -8.947),
+        new("Praag", "Cité", "Pop. inconnue", "Kislev", 74.973, 11.595),
+        new("Priestlicheim", "Village", "42 hab.", "Empire, Talabecland", 67.444, -26.338),
+        new("Prieze", "Bourg", "Pop. inconnue", "Empire, Reikland", 66.104, -30.534),
+        new("Pritzstock", "Village", "48 hab.", "Empire, Middenland", 71.240, -28.004),
+        new("Quenelles", "Cité", "Pop. inconnue", "Bretonnie, Quenelles", 54.780, -44.919),
+        new("Regakhof", "Ville", "Pop. inconnue", "Empire, Sylvanie", 63.788, 2.975),
+        new("Regensdorf", "Village", "75 hab.", "Empire, Ostland", 70.075, -10.261),
+        new("Remas", "Cité", "Pop. inconnue", "Tilee", 40.065, -55.994),
+        new("Resov", "Bourg", "Pop. inconnue", "Kislev", 71.133, 14.093),
+        new("Rottfurt", "Village", "98 hab.", "Empire, Reikland", 64.380, -30.960),
+        new("Salkalten", "Ville", "2 400 hab.", "Empire, Ostland", 73.941, -14.968),
+        new("Salzenmund", "Cité", "5 122 hab.", "Empire, Nordland", 72.994, -25.001),
+        new("Sartosa", "Cité", "3 000 hab.", "Tilee", 21.747, -67.125),
+        new("Sauerapfel", "Bourg", "484 hab.", "Empire, Mootland", 61.332, -13.630),
+        new("Schoppendorf", "Bourg", "2 500 hab.", "Empire, Middenland", 67.698, -26.574),
+        new("Schramleben", "Bourg", "675 hab.", "Empire, Stirland", 58.447, -8.031),
+        new("Schuten", "Village", "78 hab.", "Empire, Nordland", 73.523, -19.393),
+        new("Siegfriedhof", "Bourg", "320 hab.", "Empire, Stirland", 64.232, -5.257),
+        new("Sigmaringen", "Bourg", "875 hab.", "Empire, Stirland", 57.976, -7.686),
+        new("Steingart", "Village", "82 hab.", "Empire, Wissenland", 56.218, -17.169),
+        new("Stimmigen", "Bourg", "1 750 hab.", "Empire, Reikland", 62.966, -30.903),
+        new("Streissen", "Ville", "5 500 hab.", "Empire, Averland", 61.223, -19.317),
+        new("Stromdorf", "Bourg", "700 hab.", "Empire, Reikland", 63.354, -31.433),
+        new("Talabheim", "Cité", "Pop. inconnue", "Empire, Talabecland", 68.434, -16.052),
+        new("Talagaad", "Bourg", "450 hab.", "Empire, Talabecland", 68.530, -17.350),
+        new("Tempelhof", "Village", "83 hab.", "Empire, Sylvanie", 63.334, -1.025),
+        new("Tobaro", "Cité", "Pop. inconnue", "Tilee", 46.125, -68.623),
+        new("Trantio", "Cité", "Pop. inconnue", "Tilee", 43.374, -50.033),
+        new("Ubersreik", "Ville", "3 500 hab.", "Empire, Reikland", 63.540, -33.095),
+        new("Unterbaum", "Village", "83 hab.", "Empire, Reikland", 64.816, -24.548),
+        new("Untergard", "Bourg", "75 hab.", "Empire, Middenland", 69.389, -23.506),
+        new("Verezzo", "Cité", "Pop. inconnue", "Tilee", 32.186, -52.407),
+        new("Volganof", "Bourg", "775 hab.", "Empire, Ostland", 70.683, -7.227),
+        new("Volksgrad", "Ville", "Pop. inconnue", "Kislev", 75.890, 15.241),
+        new("Waldenhof", "Ville", "4 200 hab.", "Empire, Sylvanie", 64.429, 3.704),
+        new("Weissbruck", "Ville", "272 hab.", "Empire, Reikland", 66.112, -33.958),
+        new("Wissenburg", "Ville", "9 000 hab.", "Empire, Wissenland", 61.066, -26.125),
+        new("Wittgendorf", "Village", "93 hab.", "Empire, Reikland", 63.555, -26.774),
+        new("Wolfenburg", "Ville", "1 100 hab.", "Empire, Ostland", 70.631, -11.282),
+        new("Wulfheim", "Bourg", "150 hab.", "Empire, Middenland", 71.324, -37.453),
+        new("Wuppertal", "Ville", "1 100 hab.", "Empire, Averland", 59.163, -21.397),
+        new("Wurtbad", "Ville", "8 800 hab.", "Empire, Stirland", 64.552, -17.001),
+        new("Wurzen", "Bourg", "1 450 hab.", "Empire, Ostland", 69.510, -8.624),
+        new("Zaragoz", "Ville", "8 500 hab.", "Estalie", 49.278, -77.332),
+        new("Zharr Naggrund", "Forteresse", "Pop. inconnue", "Terres sombres", 67.751, 68.981),
+        new("Zhufbar", "Cité", "12 000 hab.", "Royaumes nains", 60.239, 3.424),
+        new("Zipf", "Bourg", "300 hab.", "Empire, Stirland", 64.179, -9.338),
+    ];
 }

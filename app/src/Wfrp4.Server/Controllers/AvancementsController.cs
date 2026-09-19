@@ -51,10 +51,30 @@ public class AvancementsController : ControllerBase
                     await _personnageService.AvancerCompetence(id, request.CompetenceId.Value, request.NombrePoints),
                 TypeXP.Talent when request.TalentId.HasValue =>
                     await _personnageService.AvancerTalent(id, request.TalentId.Value, request.NombrePoints),
+                TypeXP.Carriere when request.NiveauCarriereId.HasValue =>
+                    await _personnageService.AvancerCarriere(id, request.NiveauCarriereId.Value),
                 _ => throw new InvalidOperationException("Type d'avance non supporté."),
             };
 
             return Ok(new { CoutXP = cout });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { Error = ex.Message });
+        }
+    }
+
+    [HttpPost("carrieres/retour")]
+    [ServiceFilter(typeof(PersonnageOwnerFilter))]
+    public async Task<IActionResult> AnnulerDernierPassageCarriere(int id)
+    {
+        if (!await IsOwnerOrAdmin(id))
+            return Forbid();
+
+        try
+        {
+            var remboursement = await _personnageService.AnnulerDernierPassageCarriere(id);
+            return Ok(new { RemboursementXP = remboursement });
         }
         catch (InvalidOperationException ex)
         {
