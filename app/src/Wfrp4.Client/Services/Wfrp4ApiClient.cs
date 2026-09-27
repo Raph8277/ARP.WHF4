@@ -33,6 +33,14 @@ public class Wfrp4ApiClient
         return await response.Content.ReadFromJsonAsync<PersonnageDetailDto>();
     }
 
+    public async Task<BourseDto> ModifierBourseAsync(int id, ModifierBourseRequest request)
+    {
+        using var response = await _http.PostAsJsonAsync($"api/personnages/{id}/bourse", request);
+        await EnsureSuccessAsync(response);
+        return await response.Content.ReadFromJsonAsync<BourseDto>()
+            ?? throw new InvalidOperationException("La réponse de la bourse est vide.");
+    }
+
     public async Task<PersonnageSummaryDto?> CreerPersonnageAsync(CreatePersonnageRequest request)
     {
         var response = await _http.PostAsJsonAsync("api/personnages", request);

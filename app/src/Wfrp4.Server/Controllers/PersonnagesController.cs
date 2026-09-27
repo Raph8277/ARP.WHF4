@@ -388,6 +388,31 @@ public class PersonnagesController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("{id}/bourse")]
+    [ServiceFilter(typeof(PersonnageOwnerFilter))]
+    public async Task<ActionResult<BourseDto>> ModifierBourse(int id, ModifierBourseRequest request)
+    {
+        var personnage = await _db.Personnages.FirstOrDefaultAsync(p => p.Id == id);
+        if (personnage == null) return NotFound();
+        if (!IsOwnerOrAdmin(personnage.KeycloakId)) return Forbid();
+        if (request.Monnaie is not ("C" or "P" or "S") || request.Delta is < -1000000 or > 1000000)
+            return BadRequest(new { Error = "Monnaie ou montant invalide." });
+        var actuel = request.Monnaie switch {
+            "C" => personnage.CouronnesOr, "P" => personnage.PistolesArgent, _ => personnage.SousCuivre,
+        };
+        var montant = Math.Max(0L, (long)actuel + request.Delta);
+        if (montant > int.MaxValue) return BadRequest(new { Error = "La bourse dépasse la limite autorisée." });
+        switch (request.Monnaie)
+        {
+            case "C": personnage.CouronnesOr = (int)montant; break;
+            case "P": personnage.PistolesArgent = (int)montant; break;
+            case "S": personnage.SousCuivre = (int)montant; break;
+        }
+        personnage.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return new BourseDto(personnage.CouronnesOr, personnage.PistolesArgent, personnage.SousCuivre);
+    }
+
     [HttpPut("{id}")]
     [ServiceFilter(typeof(PersonnageOwnerFilter))]
     public async Task<ActionResult<PersonnageDetailDto>> MettreAJourPersonnage(int id, UpdatePersonnageRequest request)
@@ -509,6 +534,10 @@ public class PersonnagesController : ControllerBase
     [ServiceFilter(typeof(PersonnageOwnerFilter))]
     public async Task<IActionResult> SupprimerPossession(int id, int possessionId)
     {
+        var personnage = await _db.Personnages.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+        if (personnage == null) return NotFound();
+        if (!IsOwnerOrAdmin(personnage.KeycloakId)) return Forbid();
+
         var possession = await _db.PersonnagePossessions
             .FirstOrDefaultAsync(p => p.Id == possessionId && p.PersonnageId == id);
 

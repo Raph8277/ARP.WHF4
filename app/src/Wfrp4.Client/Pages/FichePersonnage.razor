@@ -1381,28 +1381,7 @@ else
         _talentsReference = await talentsTask ?? [];
         if (_personnage != null)
         {
-            _edition = new UpdatePersonnageRequest
-            {
-                Nom = _personnage.Nom,
-                Genre = _personnage.Genre,
-                Motivation = _personnage.Motivation,
-                TitreBaseReferenceId = _personnage.TitreBaseReferenceId,
-                TitreQualificatifReferenceId = _personnage.TitreQualificatifReferenceId,
-                Age = _personnage.Age,
-                CouleurYeux = _personnage.CouleurYeux,
-                CouleurCheveux = _personnage.CouleurCheveux,
-                TailleCm = _personnage.TailleCm,
-                EstActif = _personnage.EstActif,
-                CouronnesOr = _personnage.CouronnesOr,
-                PistolesArgent = _personnage.PistolesArgent,
-                SousCuivre = _personnage.SousCuivre,
-                AmbitionCourtTerme = _personnage.AmbitionCourtTerme,
-                AmbitionLongTerme = _personnage.AmbitionLongTerme,
-                GroupeNom = _personnage.GroupeNom,
-                GroupeMembres = _personnage.GroupeMembres,
-                Psychologie = _personnage.Psychologie,
-                CorruptionMutations = _personnage.CorruptionMutations,
-            };
+            ReinitialiserEdition();
             _pointsCaracteristiques.Clear();
             _pointsCompetences.Clear();
             _foisTalents.Clear();
@@ -1479,7 +1458,38 @@ else
         }
     }
 
-    private void BasculerEdition() => _editionActive = !_editionActive;
+    private void ReinitialiserEdition()
+    {
+        if (_personnage == null) return;
+        _edition = new UpdatePersonnageRequest
+        {
+            Nom = _personnage.Nom,
+            Genre = _personnage.Genre,
+            Motivation = _personnage.Motivation,
+            TitreBaseReferenceId = _personnage.TitreBaseReferenceId,
+            TitreQualificatifReferenceId = _personnage.TitreQualificatifReferenceId,
+            Age = _personnage.Age,
+            CouleurYeux = _personnage.CouleurYeux,
+            CouleurCheveux = _personnage.CouleurCheveux,
+            TailleCm = _personnage.TailleCm,
+            EstActif = _personnage.EstActif,
+            CouronnesOr = _personnage.CouronnesOr,
+            PistolesArgent = _personnage.PistolesArgent,
+            SousCuivre = _personnage.SousCuivre,
+            AmbitionCourtTerme = _personnage.AmbitionCourtTerme,
+            AmbitionLongTerme = _personnage.AmbitionLongTerme,
+            GroupeNom = _personnage.GroupeNom,
+            GroupeMembres = _personnage.GroupeMembres,
+            Psychologie = _personnage.Psychologie,
+            CorruptionMutations = _personnage.CorruptionMutations,
+        };
+    }
+
+    private void BasculerEdition()
+    {
+        ReinitialiserEdition();
+        _editionActive = !_editionActive;
+    }
 
     private void OuvrirFichePdf() => Navigation.NavigateTo($"/personnage/{Id}/fiche-pdf");
 
@@ -2044,27 +2054,18 @@ else
     {
         if (_personnage == null) return;
 
-        _edition.CouronnesOr = _personnage.CouronnesOr;
-        _edition.PistolesArgent = _personnage.PistolesArgent;
-        _edition.SousCuivre = _personnage.SousCuivre;
-
-        switch (monnaie)
-        {
-            case 'C': _edition.CouronnesOr = Math.Max(0, _edition.CouronnesOr + delta); break;
-            case 'P': _edition.PistolesArgent = Math.Max(0, _edition.PistolesArgent + delta); break;
-            case 'S': _edition.SousCuivre = Math.Max(0, _edition.SousCuivre + delta); break;
-        }
-
         try
         {
-            _personnage = await Api.MettreAJourPersonnageAsync(Id, _edition);
+            var bourse = await Api.ModifierBourseAsync(Id, new ModifierBourseRequest { Monnaie = monnaie.ToString(), Delta = delta });
+            _personnage.CouronnesOr = _edition.CouronnesOr = bourse.CouronnesOr;
+            _personnage.PistolesArgent = _edition.PistolesArgent = bourse.PistolesArgent;
+            _personnage.SousCuivre = _edition.SousCuivre = bourse.SousCuivre;
             var label = delta > 0 ? "ajouté" : "retiré";
             Snackbar.Add($"Bourse mise à jour ({label} {Math.Abs(delta)}).", Severity.Success);
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
-            await Recharger();
         }
     }
 

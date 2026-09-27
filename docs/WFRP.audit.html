@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Audit de l’application WFRP : produit, architecture, qualité, sécurité et recommandations. Rapport du 19 septembre 2026.">
+  <title>WFRP — Audit de l’application</title>
+  <style>
+    :root { --paper:#f6f4ed; --surface:#fffdf8; --ink:#292823; --muted:#716e64; --line:#dedbd0; --accent:#a74f36; --accent-soft:#f0e4da; --serif:Georgia,'Times New Roman',serif; --sans:'Segoe UI',Arial,sans-serif; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; scroll-padding-top:34px; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.75 var(--sans); -webkit-font-smoothing:antialiased; }
+    a { color:var(--accent); text-decoration-thickness:1px; text-underline-offset:3px; }
+    a:hover { color:#743321; }
+    ::selection { background:#ead0ba; color:#28241f; }
+    :focus-visible { outline:2px solid var(--accent); outline-offset:4px; border-radius:3px; }
+    .reading-progress { position:fixed; z-index:20; inset:0 auto auto 0; height:3px; width:0; background:var(--accent); transition:width .12s linear; }
+    .skip { position:fixed; z-index:30; left:16px; top:-70px; padding:10px 18px; color:var(--ink); background:var(--surface); border:1px solid var(--line); }
+    .skip:focus { top:12px; }
+    .shell { max-width:1440px; margin:0 auto; padding:0 64px; }
+    .masthead { display:flex; align-items:center; justify-content:space-between; gap:24px; min-height:99px; border-bottom:1px solid var(--line); }
+    .brand { display:flex; align-items:center; gap:14px; font-size:13px; line-height:1.4; letter-spacing:.04em; }
+    .brand-symbol { width:32px; height:32px; color:var(--accent); flex:none; }
+    .brand strong { display:block; font-size:15px; letter-spacing:.13em; }
+    .brand span { color:var(--muted); font-size:12px; letter-spacing:0; }
+    .toolbar { display:flex; align-items:center; gap:18px; }
+    .source-link { font-size:12px; color:var(--muted); text-decoration:none; }
+    .source-link:hover { color:var(--accent); }
+    .print-button { display:flex; align-items:center; gap:8px; border:1px solid #d4d0c5; border-radius:6px; background:transparent; color:var(--ink); font:500 12px var(--sans); padding:10px 14px; cursor:pointer; }
+    .print-button:hover { background:var(--surface); border-color:var(--accent); }
+    .print-button svg { width:15px; height:15px; }
+    .hero { padding:66px 0 55px; max-width:1040px; }
+    .eyebrow { display:flex; align-items:center; gap:11px; color:var(--accent); font-size:11px; line-height:1.5; font-weight:600; letter-spacing:.17em; text-transform:uppercase; }
+    .eyebrow:before { content:''; display:block; width:27px; height:1px; background:var(--accent); }
+    h1 { font:400 clamp(40px,4.8vw,67px)/1.08 var(--serif); letter-spacing:-.045em; margin:25px 0 29px; max-width:1000px; text-wrap:balance; }
+    .hero-meta { display:flex; align-items:center; flex-wrap:wrap; gap:10px 23px; color:var(--muted); font-size:12px; }
+    .hero-meta span + span { position:relative; }
+    .hero-meta span + span:before { content:'·'; position:absolute; left:-14px; }
+    .hero-meta code { padding:0; background:none; color:inherit; font-size:11px; }
+    .report-layout { display:grid; grid-template-columns:216px minmax(0,1fr); gap:56px; border-top:1px solid var(--line); padding-top:36px; align-items:start; }
+    .sidebar { position:sticky; top:30px; padding-bottom:24px; }
+    .sidebar-label { margin:0 0 18px; color:var(--muted); font-size:10px; letter-spacing:.16em; font-weight:600; text-transform:uppercase; }
+    .toc { margin:0; padding:0; list-style:none; max-height:calc(100vh - 170px); overflow:auto; scrollbar-width:thin; scrollbar-color:#d5cfc3 transparent; }
+    .toc li + li { margin-top:3px; }
+    .toc a { display:flex; align-items:baseline; gap:11px; padding:8px 10px 8px 0; color:#726e63; font-size:12px; line-height:1.55; text-decoration:none; transition:color .15s; border-right:2px solid transparent; }
+    .toc a:hover, .toc a[aria-current="location"] { color:var(--accent); }
+    .toc a[aria-current="location"] { border-right-color:var(--accent); font-weight:600; }
+    .toc-number { flex:none; font-size:10px; opacity:.7; font-variant-numeric:tabular-nums; }
+    .sidebar-foot { margin-top:24px; padding-top:18px; border-top:1px solid var(--line); font-size:10px; line-height:1.7; letter-spacing:.02em; color:var(--muted); }
+    .sidebar-foot a { color:inherit; text-decoration:none; }
+    .article { min-width:0; padding:0 0 45px; overflow-wrap:break-word; }
+    .article > :first-child { margin-top:0; }
+    .article p { margin:14px 0 20px; }
+    .article h2 { position:relative; margin:58px 0 21px; padding-top:27px; border-top:1px solid var(--line); font:400 32px/1.25 var(--serif); letter-spacing:-.025em; text-wrap:balance; }
+    .article h2:first-child { margin-top:0; padding-top:0; border-top:0; }
+    .article h3 { margin:34px 0 14px; font:500 22px/1.35 var(--serif); letter-spacing:-.015em; text-wrap:balance; }
+    .article h4, .article h5, .article h6 { margin:28px 0 12px; font-size:16px; line-height:1.45; }
+    .heading-link { margin-left:9px; font-family:var(--sans); font-size:.6em; color:#9d9485; opacity:0; text-decoration:none; }
+    h2:hover .heading-link, h3:hover .heading-link, h4:hover .heading-link, .heading-link:focus { opacity:1; }
+    .article strong { font-weight:600; color:#302b24; }
+    .article ul, .article ol { padding-left:24px; margin:16px 0 23px; }
+    .article li { padding-left:3px; margin:7px 0; }
+    .article li::marker { color:var(--accent); }
+    .article li p { margin:5px 0; }
+    .article li ul, .article li ol { margin:6px 0 12px; }
+    .article blockquote { margin:27px 0; padding:17px 23px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:0 7px 7px 0; color:#5b483a; }
+    .article blockquote p { margin:5px 0; }
+    .article hr { border:0; height:1px; background:var(--line); margin:40px 0; }
+    .article code { background:#ebe8dd; border-radius:4px; padding:2px 5px; color:#6f442f; font:12px/1.7 Consolas,'Cascadia Code',monospace; overflow-wrap:anywhere; }
+    .article pre { padding:22px 24px; border:1px solid var(--line); border-radius:8px; background:#eeeae0; overflow-x:auto; margin:23px 0; font-size:12px; line-height:1.75; }
+    .article pre code { padding:0; background:transparent; color:#473d30; white-space:pre; overflow-wrap:normal; }
+    .table-scroll { margin:25px 0 30px; overflow-x:auto; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
+    .article table { width:100%; border-collapse:collapse; font-size:12px; line-height:1.65; }
+    .article thead { background:#eeeade; }
+    .article th { color:#534a3d; font-weight:600; text-align:left; padding:13px 15px; border-bottom:1px solid #d5cdbd; vertical-align:top; }
+    .article td { padding:13px 15px; vertical-align:top; border-bottom:1px solid #e8e3d7; min-width:110px; }
+    .article tbody tr:last-child td { border-bottom:0; }
+    .article tbody tr:nth-child(even) { background:#f7f4eb; }
+    .article tbody tr:hover { background:#f2eddf; }
+    .article td code { font-size:10px; }
+    .priority { display:inline-block; border-radius:4px; padding:1px 7px; font-size:10px; font-weight:700; letter-spacing:.02em; }
+    .priority-p0 { color:#842e2e; background:#f5dddd; }
+    .priority-p1 { color:#8e3927; background:#f5e3d8; }
+    .priority-p2 { color:#806125; background:#f2eacd; }
+    .priority-p3 { color:#536758; background:#e8ede1; }
+    .article img { max-width:100%; height:auto; }
+    .footer { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:23px 0 31px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; }
+    .footer a { color:inherit; text-decoration:none; }
+    .footer a:hover { color:var(--accent); }
+    @media (min-width:1500px) { .article { font-size:17px; } }
+    @media (max-width:1100px) { .shell { padding:0 36px; } .report-layout { grid-template-columns:185px minmax(0,1fr); gap:35px; } .hero { padding-top:54px; } }
+    @media (max-width:800px) {
+      .shell { padding:0 24px; } .masthead { min-height:82px; } .hero { padding:43px 0 35px; } .eyebrow { letter-spacing:.1em; font-size:10px; } h1 { font-size:43px; margin:22px 0 24px; }
+      .report-layout { display:block; padding-top:22px; } .sidebar { position:static; padding:0 0 23px; margin-bottom:30px; border-bottom:1px solid var(--line); }
+      .sidebar-label { margin-bottom:11px; } .toc { display:grid; grid-template-columns:1fr 1fr; max-height:none; gap:3px 22px; } .toc li + li { margin:0; } .toc a { padding:5px 0; font-size:11px; border-right:0; } .sidebar-foot { display:none; }
+      .article h2 { margin-top:44px; font-size:29px; } .article h3 { font-size:22px; } .article { font-size:15px; } .article th, .article td { padding:11px 12px; } .article table { min-width:620px; } .heading-link { opacity:.5; }
+    }
+    @media (max-width:450px) { .shell { padding:0 19px; } .toolbar { gap:10px; } .source-link { font-size:11px; } .print-button { padding:9px; font-size:0; gap:0; } .print-button svg { width:17px; height:17px; } .brand { gap:9px; } .brand-symbol { width:27px; height:27px; } .brand strong { font-size:13px; } .brand span { font-size:10px; } h1 { font-size:38px; } .hero-meta { font-size:11px; gap:8px 20px; } .toc { column-gap:15px; } .toc a { gap:7px; } .footer { align-items:flex-start; font-size:10px; } }
+    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *, *:before, *:after { transition:none !important; } }
+    @page { size:A4; margin:18mm 17mm 20mm; }
+    @media print {
+      html { scroll-behavior:auto; } body { background:#fff; color:#222; font-size:10pt; line-height:1.5; } .shell { max-width:none; padding:0; } .reading-progress, .skip, .toolbar, .sidebar, .heading-link, .footer a { display:none !important; }
+      .masthead { min-height:auto; padding:0 0 13px; } .brand-symbol { width:23px; height:23px; } .brand strong { font-size:11px; } .brand span { font-size:9px; } .hero { padding:27px 0 25px; max-width:none; } .eyebrow { font-size:8px; } h1 { font-size:32pt; margin:15px 0; max-width:none; }
+      .hero-meta { font-size:9px; } .report-layout { display:block; padding-top:22px; } .article { font-size:10pt; padding-bottom:15px; } .article h2 { font-size:20pt; margin-top:30px; padding-top:20px; break-after:avoid; } .article h3 { font-size:15pt; margin-top:24px; break-after:avoid; } .article h4 { break-after:avoid; }
+      .article p, .article li { orphans:3; widows:3; } .article p { margin:10px 0 14px; } .article a { color:#6b3f30; text-decoration:underline; } .article code { font-size:8pt; background:#f2f0e9; } .article pre { white-space:pre-wrap; overflow:visible; font-size:8pt; padding:12px; } .article pre code { white-space:pre-wrap; overflow-wrap:anywhere; }
+      .table-scroll { overflow:visible; border-radius:0; margin:15px 0 20px; } .article table { width:100%; min-width:0; table-layout:fixed; font-size:7.3pt; line-height:1.4; } .article td, .article th { padding:7px 6px; min-width:0; overflow-wrap:anywhere; } .article td code { font-size:6.9pt; } .article tr { break-inside:avoid; } .article thead { display:table-header-group; } .article blockquote { break-inside:avoid; padding:11px 15px; } .footer { font-size:8px; padding:14px 0; } .priority, .article thead, .article blockquote { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+    }
+  </style>
+</head>
+<body id="top">
+  <a class="skip" href="#report-content">Aller au rapport</a>
+  <div class="reading-progress" aria-hidden="true"></div>
+  <div class="shell">
+    <header class="masthead">
+      <div class="brand">
+        <svg class="brand-symbol" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M18 2v32M2 18h32M6.7 6.7l22.6 22.6M6.7 29.3L29.3 6.7M11.9 3.2l12.2 29.6M3.2 11.9l29.6 12.2M3.2 24.1l29.6-12.2M11.9 32.8L24.1 3.2" stroke="currentColor" stroke-width="2"/></svg>
+        <div><strong>WFRP</strong><span>Rapport d’application</span></div>
+      </div>
+      <div class="toolbar">
+        <a class="source-link" href="WFRP.audit.md" download>Source Markdown ↗</a>
+        <button class="print-button" type="button" aria-label="Imprimer le rapport ou enregistrer en PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 8V3h12v5M6 17H3V8h18v9h-3M6 14h12v7H6z"/><path d="M17 11h1"/></svg>Imprimer</button>
+      </div>
+    </header>
+    <section class="hero" aria-labelledby="report-title">
+      <div class="eyebrow">Audit produit · technique · sécurité</div>
+      <h1 id="report-title">WFRP — Audit de l’application</h1>
+      <div class="hero-meta"><span><time datetime="2026-09-19">19 septembre 2026</time></span><span>Révision <code>2acede2</code></span><span>Rapport intégral</span></div>
+    </section>
+    <div class="report-layout">
+      <aside class="sidebar" aria-label="Sommaire du rapport">
+        <p class="sidebar-label">Dans ce rapport</p>
+        <nav aria-label="Sections de l’audit"><ol class="toc"><li><a href="#1-verdict"><span class="toc-number" aria-hidden="true">01</span><span>Verdict</span></a></li>
+<li><a href="#2-perimetre-et-methode"><span class="toc-number" aria-hidden="true">02</span><span>Périmètre et méthode</span></a></li>
+<li><a href="#3-architecture-et-couverture-produit"><span class="toc-number" aria-hidden="true">03</span><span>Architecture et couverture produit</span></a></li>
+<li><a href="#4-verifications-executees"><span class="toc-number" aria-hidden="true">04</span><span>Vérifications exécutées</span></a></li>
+<li><a href="#5-securite-et-controle-d-acces"><span class="toc-number" aria-hidden="true">05</span><span>Sécurité et contrôle d’accès</span></a></li>
+<li><a href="#6-regles-metier-et-integrite-des-donnees"><span class="toc-number" aria-hidden="true">06</span><span>Règles métier et intégrité des données</span></a></li>
+<li><a href="#7-interface-et-experience-utilisateur"><span class="toc-number" aria-hidden="true">07</span><span>Interface et expérience utilisateur</span></a></li>
+<li><a href="#8-exploitation-qualite-et-maintenance"><span class="toc-number" aria-hidden="true">08</span><span>Exploitation, qualité et maintenance</span></a></li>
+<li><a href="#9-ce-qui-a-change-depuis-l-etat-des-lieux-de-juillet"><span class="toc-number" aria-hidden="true">09</span><span>Ce qui a changé depuis l’état des lieux de juillet</span></a></li>
+<li><a href="#10-plan-de-correction-propose"><span class="toc-number" aria-hidden="true">10</span><span>Plan de correction proposé</span></a></li>
+<li><a href="#11-criteres-de-validation-avant-ouverture-publique"><span class="toc-number" aria-hidden="true">11</span><span>Critères de validation avant ouverture publique</span></a></li>
+<li><a href="#12-reproduire-les-verifications"><span class="toc-number" aria-hidden="true">12</span><span>Reproduire les vérifications</span></a></li></ol></nav>
+        <div class="sidebar-foot">WFRP · Septembre 2026<br><a href="WFRP.audit.md">Consulter le document source</a></div>
+      </aside>
+      <main class="article" id="report-content" tabindex="-1"><blockquote>
+<p><strong>19 septembre 2026 · ARP.WHF4 · Révision <code>2acede2</code></strong><br>Audit du produit, du code, des données, de la sécurité et de la préparation à l’exploitation.</p>
+</blockquote>
+<p><strong>Après l&#39;audit :</strong> les corrections et leurs vérifications sont suivies dans
+<a href="WFRP.fiabilisation.md">WFRP.fiabilisation.md</a>. Le présent rapport conserve les
+constats de la révision auditée.</p>
+<h2 id="1-verdict" tabindex="-1">1. Verdict<a class="heading-link" href="#1-verdict" aria-label="Lien vers 1. Verdict">#</a></h2>
+<p><strong>Un produit riche, qui compile et dont les tests passent, mais dont les garanties d’intégrité et d’autorisation doivent être renforcées avant une ouverture publique.</strong></p>
+<p>Le socle Blazor WebAssembly / ASP.NET Core / PostgreSQL / Keycloak est cohérent. Les parcours dépassent largement la gestion d’une fiche : création guidée, avancements, partages MJ, grimoire, aventures sauvegardées, outils de préparation et exports PDF sont présents dans le code. Les <strong>19 tests existants réussissent</strong> ; la compilation Release de la solution réussit également.</p>
+<p>Cette réussite ne couvre pas les principaux risques identifiés : un partage en lecture peut permettre la suppression d’une possession ; des valeurs de création sont acceptées sans validation suffisante ; des écritures simultanées peuvent désynchroniser les compteurs XP ; un brouillon annulé peut être sauvegardé par une action sur la bourse. La génération PDF accepte aussi un volume de travail non borné.</p>
+<p><strong>Décision recommandée :</strong> conserver un usage de développement ou de démonstration contrôlée, corriger les constats P1, puis valider une préproduction avec les services réels. Le dépôt seul ne permet pas d’attester la disponibilité, la sécurité ou la conformité fonctionnelle d’une instance déployée.</p>
+<div class="table-scroll" role="region" aria-label="Tableau de l’audit, défilement horizontal disponible" tabindex="0"><table>
+<thead>
+<tr>
+<th>Indicateur vérifié</th>
+<th>Résultat</th>
+<th>Interprétation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Compilation Release</td>
+<td>Réussite, code de sortie 0</td>
+<td>Les 7 projets de la solution compilent dans l’environnement disponible</td>
+</tr>
+<tr>
+<td>Tests automatisés</td>
+<td><strong>19 réussis / 19 exécutés</strong></td>
+<td>18 côté serveur et 1 côté infrastructure ; aucun ignoré</td>
+</tr>
+<tr>
+<td>Avertissements lors de la compilation des tests</td>
+<td><strong>64</strong></td>
+<td>62 <code>MUD0002</code>, 2 <code>CS0618</code> ; le build incrémental suivant n’en réémet pas</td>
+</tr>
+<tr>
+<td>Audit NuGet direct et transitif</td>
+<td>Aucun package vulnérable signalé</td>
+<td>Selon la source NuGet consultée ; ne couvre ni images Docker ni logique applicative</td>
+</tr>
+<tr>
+<td>Parcours PostgreSQL + Keycloak</td>
+<td>Non exécutés</td>
+<td>Aucun résultat d’intégration ou de bout en bout revendiqué</td>
+</tr>
+<tr>
+<td>Préparation à une ouverture publique</td>
+<td>Insuffisante en l’état du dépôt</td>
+<td>Autorisations, intégrité, bornes de ressources et configuration à traiter</td>
+</tr>
+</tbody></table>
+</div>
+<p>Les priorités ci-dessous sont qualitatives : <strong>P1</strong> = correction avant élargissement de l’usage ou avant la condition d’exposition indiquée ; <strong>P2</strong> = correction dans les prochaines itérations. Aucun score de sécurité, pourcentage de couverture ou temps de réponse non mesuré n’est présenté.</p>
+<h2 id="2-perimetre-et-methode" tabindex="-1">2. Périmètre et méthode<a class="heading-link" href="#2-perimetre-et-methode" aria-label="Lien vers 2. Périmètre et méthode">#</a></h2>
+<p>L’analyse porte sur le commit <strong><code>2acede2c1665f4e080fbe02cd3e5c2e0660978b2</code></strong>, daté du 19 septembre 2026, et les fichiers de travail de l’application. Le fichier local <code>.claude/settings.local.json</code>, déjà non suivi avant l’audit, n’a pas été modifié. Aucune correction du code produit ni mutation d’une base ou d’un compte n’a été effectuée.</p>
+<p>Ont été examinés : les projets <code>app/src</code>, les deux projets de tests, l’outil Seed, les configurations EF et les migrations, le Dockerfile, le Compose, l’import Keycloak, les documentations de démarrage et la spécification locale. Les supports de présentation IA, les livres et illustrations, ainsi que l’outil WPF <code>mdTools</code>, sont hors analyse fonctionnelle détaillée. <code>mdTools</code> et <code>MudColorTest</code> ne font pas partie de la solution testée.</p>
+<p>La méthode combine lecture des chemins d’exécution, confrontation client/serveur, examen des contrôles et des modèles, compilation, exécution des tests et interrogation des avis NuGet. La politique de support .NET a été vérifiée sur le site officiel Microsoft. Les références de code renvoient aux lignes de la révision auditée.</p>
+<p><strong>Niveau de preuve :</strong> les résultats de compilation et de tests sont exécutés. Les défauts et scénarios d’impact sont principalement établis par lecture du code ; ils ne constituent pas des reproductions HTTP ou navigateur. Les risques de concurrence, de rotation des clés et de montée en charge nécessitent les validations ciblées proposées. Aucune requête de surcharge ou suppression réelle n’a été lancée.</p>
+<p>L’accès initial à la configuration NuGet était refusé dans le contexte restreint ; la vérification a ensuite abouti avec les droits nécessaires. La commande de lecture Docker n’a pas pu accéder au moteur dans ce contexte ; aucun conteneur n’a été démarré. Une restauration NuGet à partir d’un cache vide et une construction de l’image Docker ne sont donc pas validées.</p>
+<h2 id="3-architecture-et-couverture-produit" tabindex="-1">3. Architecture et couverture produit<a class="heading-link" href="#3-architecture-et-couverture-produit" aria-label="Lien vers 3. Architecture et couverture produit">#</a></h2>
+<pre><code class="language-text">Navigateur — Blazor WebAssembly / MudBlazor
+   │  Authentification OIDC, code d’autorisation + PKCE
+   ├──────────────────────────────────────► Keycloak
+   │  API HTTP + JWT
+   ▼
+ASP.NET Core — contrôleurs, autorisations, services métier, PDF
+   │
+   ▼
+EF Core / Npgsql ─────────────────────────► PostgreSQL
+   ▲
+   └── Migrations et seed exécutés au démarrage de l’API
+
+Wfrp4.Shared : DTO et modèles communs au client et au serveur
+</code></pre>
+<div class="table-scroll" role="region" aria-label="Tableau de l’audit, défilement horizontal disponible" tabindex="0"><table>
+<thead>
+<tr>
+<th>Brique</th>
+<th>Responsabilité observée</th>
+<th>Appréciation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Wfrp4.Client</code></td>
+<td>Pages, formulaires, référentiels, thèmes, préparation MJ</td>
+<td>Fonctionnellement dense ; plusieurs composants cumulent trop de responsabilités</td>
+</tr>
+<tr>
+<td><code>Wfrp4.Server</code></td>
+<td>7 contrôleurs, règles métier, accès, inscription, PDF</td>
+<td>Découpage lisible, mais règles et droits appliqués de façon inégale selon les routes</td>
+</tr>
+<tr>
+<td><code>Wfrp4.Infrastructure</code></td>
+<td>Entités, configurations EF, seed et 22 migrations</td>
+<td>Contraintes relationnelles utiles ; dérive du snapshot et données métier à corriger</td>
+</tr>
+<tr>
+<td><code>Wfrp4.Shared</code></td>
+<td>DTO, enums, modèles de mise en page</td>
+<td>Contrats communs pratiques ; plusieurs champs sensibles manquent de bornes</td>
+</tr>
+<tr>
+<td><code>Wfrp4.Seed</code></td>
+<td>Initialisation séparée des données</td>
+<td>Utile pour préparer l’environnement sans servir l’API</td>
+</tr>
+<tr>
+<td>Deux projets de tests</td>
+<td>Coûts XP, création et seed</td>
+<td>Base utile, encore étroite par rapport au produit livré</td>
+</tr>
+</tbody></table>
+</div>
+<p>Inventaire sous <code>app/src</code>, hors <code>bin</code> et <code>obj</code> : <strong>110 fichiers C#</strong>, y compris migrations et fichiers générés de migration, et <strong>31 fichiers Razor</strong>. Ces nombres décrivent la taille du périmètre, pas sa complexité réelle ni sa qualité.</p>
+<div class="table-scroll" role="region" aria-label="Tableau de l’audit, défilement horizontal disponible" tabindex="0"><table>
+<thead>
+<tr>
+<th>Parcours</th>
+<th>Présence dans le code</th>
+<th>Éléments à fiabiliser</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Connexion et inscription</td>
+<td>OIDC, PKCE S256, API d’inscription Keycloak</td>
+<td>Audience, rotation des clés, échecs partiels et débit d’inscription</td>
+</tr>
+<tr>
+<td>Création et fiche personnage</td>
+<td>Wizard, identité, caractéristiques, équipement, bourse</td>
+<td>Invariants serveur, réserves initiales, annulation et isolation des brouillons</td>
+</tr>
+<tr>
+<td>Progression et XP</td>
+<td>Caractéristiques, compétences, talents, carrière, retours, historique</td>
+<td>Solde, provenance des remboursements, concurrence, attributs dérivés</td>
+</tr>
+<tr>
+<td>Partage joueur / MJ</td>
+<td>Lecture, octroi XP, expiration</td>
+<td>Protection de la suppression d’équipement ; matrice de droits à tester</td>
+</tr>
+<tr>
+<td>Référentiels et grimoire</td>
+<td>Espèces, carrières, sorts, créatures, titres</td>
+<td>Complétude des niveaux de carrière et validations exhaustives</td>
+</tr>
+<tr>
+<td>Atelier MJ et aventures</td>
+<td>Générateurs, sauvegarde par utilisateur, exports</td>
+<td>Événements MudBlazor, limites PDF, migrations et reprise sur erreur</td>
+</tr>
+<tr>
+<td>Personnalisation et PDF</td>
+<td>Thèmes, designers, fiche et export MJ</td>
+<td>Permissions visibles, ergonomie, limites de taille et tests de rendu</td>
+</tr>
+</tbody></table>
+</div>
+<p><strong>Points solides à préserver.</strong> Le serveur contrôle la propriété et l’expiration des partages, vérifie explicitement la permission d’octroi XP et cloisonne les aventures par utilisateur. Les JWT conservent la validation de l’émetteur et de la durée de vie. Les clés composites et index uniques limitent plusieurs catégories de doublons. Les chargements de graphes complexes utilisent déjà <code>AsSplitQuery</code>, et de nombreuses lectures utilisent <code>AsNoTracking</code>. Les mutations XP et leurs écritures d’historique sont généralement regroupées dans un même <code>SaveChangesAsync</code> ; cela est utile, même si cela ne résout pas les mises à jour concurrentes.</p>
+<h2 id="4-verifications-executees" tabindex="-1">4. Vérifications exécutées<a class="heading-link" href="#4-verifications-executees" aria-label="Lien vers 4. Vérifications exécutées">#</a></h2>
+<p>Environnement : Windows x64, SDK <strong>.NET 10.0.401</strong>, cible applicative <strong>net9.0</strong>, runtime .NET / ASP.NET Core <strong>9.0.20</strong> présent. Aucun <code>global.json</code> ne fixe la version de SDK du dépôt.</p>
+<div class="table-scroll" role="region" aria-label="Tableau de l’audit, défilement horizontal disponible" tabindex="0"><table>
+<thead>
+<tr>
+<th>Commande ou contrôle</th>
+<th>Résultat constaté</th>
+<th>Portée et limite</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>dotnet test app/Wfrp4.sln --no-restore --configuration Release</code></td>
+<td>18 tests Server + 1 Infrastructure réussis</td>
+<td>Dépendances déjà restaurées ; EF InMemory pour les données</td>
+</tr>
+<tr>
+<td><code>dotnet build app/Wfrp4.sln --no-restore --configuration Release</code></td>
+<td>7 projets compilés ; 0 erreur</td>
+<td>Build incrémental, sans reconstruction d’une image de déploiement</td>
+</tr>
+<tr>
+<td><code>dotnet list app/Wfrp4.sln package --vulnerable --include-transitive --no-restore --config tmp/WFRP.audit.nuget.config</code></td>
+<td>Aucun package vulnérable signalé pour les 7 projets</td>
+<td>Configuration temporaire utilisant <code>https://api.nuget.org/v3/index.json</code></td>
+</tr>
+<tr>
+<td>Recherche des workflows versionnés</td>
+<td>Aucun fichier dans <code>.github/workflows</code></td>
+<td>Une CI externe peut exister ; elle n’est pas visible dans ce dépôt</td>
+</tr>
+<tr>
+<td>Comparaison modèle EF / snapshot</td>
+<td>L’entité aventure manque au snapshot</td>
+<td>Contrôle statique ; migrations non appliquées sur PostgreSQL pendant l’audit</td>
+</tr>
+</tbody></table>
+</div>
+<p>Les tests sont répartis entre <strong>13 cas de <code>PersonnageServiceCreationTests</code></strong>, <strong>5 cas de coûts XP</strong> et <strong>1 cas de seed</strong>. Ils couvrent notamment les choix gratuits à la création, certains remboursements et un retour de carrière. Ils ne couvrent pas la matrice d’accès HTTP, les transactions PostgreSQL concurrentes, la rotation Keycloak, la reprise d’inscription, les parcours navigateur ou les limites de génération PDF.</p>
+<p>Le succès du build incrémental ne fait pas disparaître les avertissements de la première compilation : <strong>62 attributs MudBlazor non reconnus</strong> et <strong>2 usages de <code>StatutSocial</code> obsolète</strong> ont été émis pendant les tests. Certains avertissements concernent des événements de chargement ; ils ont donc un impact potentiel sur le comportement, au-delà de la présentation.</p>
+<h2 id="5-securite-et-controle-d-acces" tabindex="-1">5. Sécurité et contrôle d’accès<a class="heading-link" href="#5-securite-et-controle-d-acces" aria-label="Lien vers 5. Sécurité et contrôle d’accès">#</a></h2>
+<h3 id="s01-p1-un-partage-en-lecture-permet-une-suppression-d-equipement" tabindex="-1">S01 · P1 — Un partage en lecture permet une suppression d’équipement<a class="heading-link" href="#s01-p1-un-partage-en-lecture-permet-une-suppression-d-equipement" aria-label="Lien vers S01 · P1 — Un partage en lecture permet une suppression d’équipement">#</a></h3>
+<p><strong>Constat.</strong> Le filtre autorise un MJ disposant d’un partage actif, quelle que soit sa permission. La route de suppression d’une possession applique ce filtre mais n’ajoute pas le contrôle propriétaire/admin utilisé sur les suppressions de sorts et de parchemins.</p>
+<p><strong>Impact et scénario.</strong> Un compte possédant les rôles joueur et MJ, avec un partage Lecture ou XP actif, peut demander la suppression d’une possession du personnage partagé. L’identifiant est accessible dans la fiche. Le contrôle d’appartenance de la possession au personnage est présent ; c’est le droit d’écriture sur ce personnage qui manque.</p>
+<p><strong>Correction attendue.</strong> Exiger propriétaire/admin sur cette route, puis centraliser les politiques lecture, modification et octroi XP. Le test d’acceptation doit vérifier un refus pour un MJ lecteur et un MJ XP, tout en conservant leur accès en lecture.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Server/Filters/PersonnageOwnerFilter.cs#L62">PersonnageOwnerFilter.cs, L62–74</a>, <a href="../app/src/Wfrp4.Server/Controllers/PersonnagesController.cs#L508">PersonnagesController.cs, L508–518</a>.</p>
+<h3 id="s02-p1-la-generation-pdf-accepte-un-travail-non-borne" tabindex="-1">S02 · P1 — La génération PDF accepte un travail non borné<a class="heading-link" href="#s02-p1-la-generation-pdf-accepte-un-travail-non-borne" aria-label="Lien vers S02 · P1 — La génération PDF accepte un travail non borné">#</a></h3>
+<p><strong>Constat.</strong> Le DTO expose <code>NotesLineCount</code> sans borne ; la génération itère jusqu’à cette valeur et accumule les tracés du document en mémoire. La route <code>POST /api/mj/pdf</code> est accessible à tout utilisateur authentifié. Le jeton d’annulation n’est pas vérifié dans cette boucle.</p>
+<p><strong>Impact.</strong> Une petite requête peut provoquer un coût CPU et mémoire disproportionné. L’indisponibilité effective n’a pas été mesurée et aucun payload de surcharge n’a été exécuté.</p>
+<p><strong>Correction attendue.</strong> Refuser les valeurs de mise en page hors plage, plafonner sections, lignes, pages et taille totale, contrôler l’annulation et limiter la concurrence de génération. Les valeurs extrêmes doivent recevoir une erreur rapide avant construction du document.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Shared/DTOs/MjPdfExportDto.cs#L35">MjPdfExportDto.cs, L35–38</a>, <a href="../app/src/Wfrp4.Server/Services/MjPdfExportService.cs#L211">MjPdfExportService.cs, L211–219</a>, <a href="../app/src/Wfrp4.Server/Controllers/MjController.cs#L10">MjController.cs, L10–19</a>.</p>
+<h3 id="s03-p2-l-audience-des-jwt-n-est-pas-verifiee" tabindex="-1">S03 · P2 — L’audience des JWT n’est pas vérifiée<a class="heading-link" href="#s03-p2-l-audience-des-jwt-n-est-pas-verifiee" aria-label="Lien vers S03 · P2 — L’audience des JWT n’est pas vérifiée">#</a></h3>
+<p><strong>Constat.</strong> Une audience est configurée, mais <code>ValidateAudience = false</code>. La signature, l’émetteur et l’expiration restent contrôlés.</p>
+<p><strong>Impact.</strong> Un jeton valide du même realm, destiné à un autre client et portant les rôles requis, peut être accepté. Le risque dépend notamment de la présence d’autres applications dans ce realm ; ce n’est pas une acceptation de jetons arbitraires.</p>
+<p><strong>Correction attendue.</strong> Activer la validation, configurer l’audience côté Keycloak et tester un jeton du bon émetteur avec une audience incorrecte.</p>
+<p>Preuve : <a href="../app/src/Wfrp4.Server/Program.cs#L58">Program.cs, L25–26 et L58–64</a>.</p>
+<h3 id="s04-p2-les-cles-de-signature-sont-chargees-une-seule-fois" tabindex="-1">S04 · P2 — Les clés de signature sont chargées une seule fois<a class="heading-link" href="#s04-p2-les-cles-de-signature-sont-chargees-une-seule-fois" aria-label="Lien vers S04 · P2 — Les clés de signature sont chargées une seule fois">#</a></h3>
+<p><strong>Constat.</strong> Le démarrage télécharge les JWKS puis affecte une configuration OIDC statique à <code>options.Configuration</code>.</p>
+<p><strong>Risque.</strong> Une rotation des clés Keycloak peut entraîner le refus des nouveaux jetons jusqu’au redémarrage de l’API. Ce scénario n’a pas été exécuté.</p>
+<p><strong>Correction attendue.</strong> Utiliser le rafraîchissement des métadonnées et clés OIDC avec le backchannel requis, puis faire un test de rotation sans redémarrer le serveur.</p>
+<p>Preuve : <a href="../app/src/Wfrp4.Server/Program.cs#L35">Program.cs, L35–37 et L178–190</a>.</p>
+<h3 id="s05-p2-l-inscription-manque-de-reprise-et-de-protection-contre-l-abus" tabindex="-1">S05 · P2 — L’inscription manque de reprise et de protection contre l’abus<a class="heading-link" href="#s05-p2-l-inscription-manque-de-reprise-et-de-protection-contre-l-abus" aria-label="Lien vers S05 · P2 — L’inscription manque de reprise et de protection contre l’abus">#</a></h3>
+<p><strong>Constat.</strong> L’inscription publique enchaîne création du compte, mot de passe et attribution du rôle sans compensation. Un échec après création laisse un compte partiel ; une nouvelle tentative rencontre un conflit. Aucune limitation applicative du débit n’est configurée dans <code>Program.cs</code>.</p>
+<p><strong>Impact.</strong> L’utilisateur peut rester bloqué après une erreur partielle. Si l’endpoint est public sans protection équivalente en amont, l’automatisation des inscriptions peut aussi charger Keycloak et créer des comptes indésirables. La présence d’une protection externe n’est pas vérifiable ici.</p>
+<p><strong>Correction attendue.</strong> Rendre la séquence récupérable ou compensable, transmettre les credentials lors de la création lorsque possible, et prévoir une limitation du débit et une politique d’inscription explicite. Tester l’échec de chaque étape et la reprise.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Server/Services/KeycloakAdminService.cs#L48">KeycloakAdminService.cs, L48–50, L90–93 et L125–142</a>, <a href="../app/src/Wfrp4.Server/Controllers/InscriptionController.cs#L19">InscriptionController.cs, L19–28</a>.</p>
+<h2 id="6-regles-metier-et-integrite-des-donnees" tabindex="-1">6. Règles métier et intégrité des données<a class="heading-link" href="#6-regles-metier-et-integrite-des-donnees" aria-label="Lien vers 6. Règles métier et intégrité des données">#</a></h2>
+<h3 id="d01-p1-la-creation-fait-trop-confiance-aux-valeurs-client" tabindex="-1">D01 · P1 — La création fait trop confiance aux valeurs client<a class="heading-link" href="#d01-p1-la-creation-fait-trop-confiance-aux-valeurs-client" aria-label="Lien vers D01 · P1 — La création fait trop confiance aux valeurs client">#</a></h3>
+<p><strong>Constat.</strong> <code>XpBonus</code> positif devient directement le capital XP, alors que son contrat décrit des valeurs de 0, 25 ou 50. Le service ne valide pas complètement les dix caractéristiques, leurs valeurs, le niveau de carrière initial ni la compatibilité espèce/carrière. Les contrôles existants sur les choix de compétences, talents, titres et sorts ne couvrent pas ces invariants.</p>
+<p><strong>Scénario.</strong> Une requête propriétaire avec <code>XpBonus = 1000000</code> est prise en compte. Des caractéristiques absentes ou aberrantes et un niveau de carrière supérieur peuvent également franchir les validations identifiées. Ce constat concerne l’intégrité du personnage créé, pas un accès à celui d’un tiers.</p>
+<p><strong>Correction attendue.</strong> Valider côté serveur les valeurs autorisées, l’ensemble exact des caractéristiques, le niveau initial et les combinaisons de référentiels. Les bonus liés au tirage doivent être calculés ou vérifiés par une règle serveur. Compléter également l’initialisation de Destin, Fortune, Résilience et Résolution : ces entiers restent à zéro dans la création courante, tandis que le seed les renseigne pour le personnage de démonstration.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Shared/DTOs/CreatePersonnageRequest.cs#L13">CreatePersonnageRequest.cs, L13–20</a>, <a href="../app/src/Wfrp4.Server/Services/PersonnageService.cs#L23">PersonnageService.cs, L23–35, L80–89 et L104–107</a>, <a href="../app/src/Wfrp4.Infrastructure/Entities/Personnage.cs#L24">Personnage.cs, L24–27</a>.</p>
+<h3 id="d02-p1-les-mises-a-jour-concurrentes-peuvent-perdre-des-xp" tabindex="-1">D02 · P1 — Les mises à jour concurrentes peuvent perdre des XP<a class="heading-link" href="#d02-p1-les-mises-a-jour-concurrentes-peuvent-perdre-des-xp" aria-label="Lien vers D02 · P1 — Les mises à jour concurrentes peuvent perdre des XP">#</a></h3>
+<p><strong>Constat.</strong> Les opérations lisent un personnage, modifient des compteurs puis sauvegardent. Aucun jeton de concurrence n’est défini sur le personnage ou les lignes d’avancement. La transaction implicite d’une sauvegarde ne protège pas contre une lecture préalable devenue obsolète.</p>
+<p><strong>Scénario à reproduire sur PostgreSQL.</strong> Deux requêtes lisent <code>XpDepense = 0</code>, puis augmentent respectivement F et E pour 25 XP. Les deux caractéristiques et deux écritures de −25 peuvent être conservées, tandis que la dernière écriture du compteur laisse <code>XpDepense = 25</code>. Deux octrois XP simultanés peuvent perdre un gain de façon analogue.</p>
+<p><strong>Correction attendue.</strong> Ajouter une stratégie de concurrence explicite : version optimiste avec relecture et gestion du conflit, ou opérations atomiques et isolation adaptées. Vérifier que chaque opération appliquée se retrouve exactement une fois dans les compteurs et l’historique.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Server/Services/PersonnageService.cs#L208">PersonnageService.cs, L208–237 et L578–597</a>, <a href="../app/src/Wfrp4.Infrastructure/Data/Configurations/PersonnageConfiguration.cs">PersonnageConfiguration.cs</a>, <a href="../app/src/Wfrp4.Infrastructure/Entities/Personnage.cs">Personnage.cs</a>.</p>
+<h3 id="d03-p2-la-politique-de-depense-xp-varie-selon-le-parcours" tabindex="-1">D03 · P2 — La politique de dépense XP varie selon le parcours<a class="heading-link" href="#d03-p2-la-politique-de-depense-xp-varie-selon-le-parcours" aria-label="Lien vers D03 · P2 — La politique de dépense XP varie selon le parcours">#</a></h3>
+<p><strong>Constat.</strong> Les avances de caractéristique, compétence et talent ne contrôlent pas le solde disponible ; le changement de carrière le contrôle. La fiche principale accepte les ajustements non nuls et affiche un déficit, alors que certains dialogues exigent un solde suffisant. Les restrictions de carrière annoncées pour caractéristiques et compétences ne sont pas uniformément appliquées par ces services.</p>
+<p><strong>Écart de spécification.</strong> La spécification locale prévoit validation du solde et vérification du plan de carrière. Le code semble également proposer une logique d’ajustement libre. Il faut arbitrer cette évolution plutôt que considérer automatiquement tout déficit comme une erreur d’interface.</p>
+<p><strong>Correction attendue.</strong> Définir le comportement attendu, puis l’appliquer au serveur et à toutes les interfaces. Si un mode de correction libre est conservé, lui donner des droits explicites et une trace distincte. En progression réglementée, une dépense supérieure au solde doit être refusée sans mutation.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Server/Services/PersonnageService.cs#L221">PersonnageService.cs, L221–224, L279–287, L353–377 et L478–479</a>, <a href="../app/src/Wfrp4.Client/Pages/FichePersonnage.razor#L1664">FichePersonnage.razor, L1664–1682</a>, <a href="spec-app-personnages.md#L281">spécification, L281 et L707–708</a>.</p>
+<h3 id="d04-p2-les-remboursements-ne-retrouvent-pas-toujours-la-depense-d-origine" tabindex="-1">D04 · P2 — Les remboursements ne retrouvent pas toujours la dépense d’origine<a class="heading-link" href="#d04-p2-les-remboursements-ne-retrouvent-pas-toujours-la-depense-d-origine" aria-label="Lien vers D04 · P2 — Les remboursements ne retrouvent pas toujours la dépense d’origine">#</a></h3>
+<p><strong>Constat.</strong> L’annulation de carrière sélectionne la dernière dépense négative de type carrière, sans la relier à la transition annulée ni exclure une dépense déjà remboursée. Les retraits d’avances ou de talents utilisent quant à eux un plafond global de XP dépensés, sans distinguer correctement toutes les acquisitions gratuites et payantes.</p>
+<p><strong>Scénarios.</strong> Après A→B à 100 XP puis B→C à 200 XP, un retour rembourse 200 ; le suivant sélectionne encore 200 et peut échouer ou trop rembourser. Après des compétences payantes totalisant 75 XP, retirer le talent initial gratuit peut rembourser ces 75 XP tout en conservant les compétences achetées.</p>
+<p><strong>Correction attendue.</strong> Rattacher chaque acquisition à son coût effectivement payé et chaque remboursement à l’écriture d’origine ; empêcher le double remboursement. Ajouter les cas de retours successifs et de gratuité mélangée à des dépenses réelles. Les tests existants ne couvrent qu’un retour simple et un remboursement gratuit sans autre dépense.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Server/Services/PersonnageService.cs#L534">PersonnageService.cs, L534–547, L279–287, L353–377 et L599–600</a>, <a href="../app/tests/Wfrp4.Server.Tests/PersonnageServiceCreationTests.cs#L165">PersonnageServiceCreationTests.cs, L165–197 et L261–286</a>.</p>
+<h3 id="d05-p2-les-blessures-maximales-deviennent-perimees-apres-une-avance" tabindex="-1">D05 · P2 — Les blessures maximales deviennent périmées après une avance<a class="heading-link" href="#d05-p2-les-blessures-maximales-deviennent-perimees-apres-une-avance" aria-label="Lien vers D05 · P2 — Les blessures maximales deviennent périmées après une avance">#</a></h3>
+<p><strong>Constat.</strong> La formule des blessures utilise F, E et FM, mais elle n’est pas rappelée par <code>AvancerCaracteristique</code>. L’API restitue la valeur persistée.</p>
+<p><strong>Scénario.</strong> Passer E de 39 à 40 devrait ajouter 2 selon la formule actuellement implémentée ; les blessures restent inchangées jusqu’à une autre opération déclenchant le recalcul.</p>
+<p><strong>Correction attendue.</strong> Recalculer les attributs dérivés dans la même opération que la progression, ou les calculer à la lecture. Tester le passage et le retour des seuils de dizaines. Ce contrôle porte sur la cohérence interne du code, sans certifier l’ensemble des règles officielles par espèce.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Server/Services/PersonnageService.cs#L187">PersonnageService.cs, L187–199 et L221–237</a>, <a href="../app/src/Wfrp4.Server/Controllers/PersonnagesController.cs#L192">PersonnagesController.cs, L192</a>.</p>
+<h3 id="d06-p2-le-seed-ne-decrit-pas-tous-les-plans-de-progression" tabindex="-1">D06 · P2 — Le seed ne décrit pas tous les plans de progression<a class="heading-link" href="#d06-p2-le-seed-ne-decrit-pas-tous-les-plans-de-progression" aria-label="Lien vers D06 · P2 — Le seed ne décrit pas tous les plans de progression">#</a></h3>
+<p><strong>Constat.</strong> Quatre niveaux sont créés avec intitulé et statut, mais les compétences et talents sont renseignés pour le seul niveau 1. Aucune affectation d’<code>AvancesCarac</code> n’est présente dans le seeder. Les règles de progression interprètent certaines données absentes comme l’absence de prérequis.</p>
+<p><strong>Impact.</strong> Sur une base neuve issue de ce seed, les niveaux supérieurs ne portent pas les nouveaux choix attendus et certains contrôles de progression sont incomplets. Une base enrichie manuellement pourrait différer ; son contenu n’a pas été inspecté.</p>
+<p><strong>Correction attendue.</strong> Compléter les quatre niveaux à partir du référentiel retenu, versionner ces données et tester leur complétude, leurs codes et leurs prérequis. Distinguer explicitement une liste volontairement vide d’une donnée manquante.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Infrastructure/Data/Wfrp4DataSeeder.cs#L163">Wfrp4DataSeeder.cs, L163–169, L385–388 et L466–471</a>, <a href="../app/src/Wfrp4.Server/Services/PersonnageService.cs#L430">PersonnageService.cs, L430–442 et L564–576</a>.</p>
+<h3 id="d07-p2-le-snapshot-ef-ne-reflete-plus-les-aventures" tabindex="-1">D07 · P2 — Le snapshot EF ne reflète plus les aventures<a class="heading-link" href="#d07-p2-le-snapshot-ef-ne-reflete-plus-les-aventures" aria-label="Lien vers D07 · P2 — Le snapshot EF ne reflète plus les aventures">#</a></h3>
+<p><strong>Constat.</strong> Le contexte et la migration SQL ajoutent <code>AventuresSauvegardees</code>, mais cette entité manque au snapshot du modèle. Le démarrage ignore globalement <code>PendingModelChangesWarning</code>.</p>
+<p><strong>Risque.</strong> La prochaine migration générée peut proposer de recréer une table déjà existante ; l’alerte qui permettrait de détecter la dérive est neutralisée. La migration d’aventures elle-même existe : ce constat ne signifie pas que la table est toujours absente.</p>
+<p><strong>Correction attendue.</strong> Réconcilier le snapshot et la migration sans recréer la table, retirer la suppression globale de l’alerte et vérifier les migrations sur base vide et base existante. Exécuter ensuite le contrôle EF des changements de modèle en CI.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Infrastructure/Data/Wfrp4DbContext.cs#L32">Wfrp4DbContext.cs, L32</a>, <a href="../app/src/Wfrp4.Infrastructure/Data/Migrations/20260915120000_AddAventuresSauvegardees.cs#L18">migration aventures, L18–34</a>, <a href="../app/src/Wfrp4.Infrastructure/Data/Migrations/Wfrp4DbContextModelSnapshot.cs">snapshot EF</a>, <a href="../app/src/Wfrp4.Server/Program.cs#L17">Program.cs, L17</a>.</p>
+<h2 id="7-interface-et-experience-utilisateur" tabindex="-1">7. Interface et expérience utilisateur<a class="heading-link" href="#7-interface-et-experience-utilisateur" aria-label="Lien vers 7. Interface et expérience utilisateur">#</a></h2>
+<h3 id="u01-p1-une-modification-annulee-peut-etre-enregistree-avec-la-bourse" tabindex="-1">U01 · P1 — Une modification annulée peut être enregistrée avec la bourse<a class="heading-link" href="#u01-p1-une-modification-annulee-peut-etre-enregistree-avec-la-bourse" aria-label="Lien vers U01 · P1 — Une modification annulée peut être enregistrée avec la bourse">#</a></h3>
+<p><strong>Constat.</strong> Le bouton Annuler masque le formulaire sans réinitialiser <code>_edition</code>. <code>ModifierBourse</code> actualise seulement les champs monétaires de ce même brouillon puis transmet le DTO complet au serveur.</p>
+<p><strong>Scénario déduit.</strong> Modifier le nom ou la motivation, cliquer Annuler, puis ajouter une couronne : le changement annulé est inclus dans la sauvegarde de la bourse. À l’inverse, certaines opérations appellent <code>Recharger</code>, qui recrée le brouillon et peut effacer des modifications non sauvegardées.</p>
+<p><strong>Correction attendue.</strong> Réinitialiser le brouillon à l’annulation et isoler les commandes monétaires du formulaire d’identité. Protéger les modifications en cours lors d’un rechargement. Le scénario Annuler → modification de la bourse doit conserver l’identité initiale.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Client/Pages/FichePersonnage.razor#L1482">FichePersonnage.razor, L559, L598, L1384, L1482 et L2043–2060</a>.</p>
+<h3 id="u02-p2-des-evenements-mudblazor-utilises-pour-charger-des-donnees-ne-sont-pas-reconnus" tabindex="-1">U02 · P2 — Des événements MudBlazor utilisés pour charger des données ne sont pas reconnus<a class="heading-link" href="#u02-p2-des-evenements-mudblazor-utilises-pour-charger-des-donnees-ne-sont-pas-reconnus" aria-label="Lien vers U02 · P2 — Des événements MudBlazor utilisés pour charger des données ne sont pas reconnus">#</a></h3>
+<p><strong>Constat.</strong> Le build signale <code>IsExpandedChanged</code> comme attribut illégal sur <code>MudExpansionPanel</code>. Cet attribut est utilisé pour charger les épisodes et les aventures sauvegardées lors de l’ouverture d’un panneau. Il faut traiter cet avertissement comme un problème de comportement à vérifier, et pas seulement de style.</p>
+<p><strong>Impact attendu.</strong> Le chargement prévu par le callback peut ne pas se produire lors de l’ouverture. Les autres usages de <code>Dense</code>, <code>Title</code> ou <code>IsInitiallyExpanded</code> nécessitent également une revue ciblée ; les 62 avertissements n’impliquent pas 62 défauts fonctionnels distincts.</p>
+<p><strong>Correction attendue.</strong> Aligner les paramètres sur l’API MudBlazor installée, puis tester l’ouverture des aventures et épisodes avec données sauvegardées. Faire disparaître les avertissements de paramètres inconnus sans les masquer.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Client/Pages/MjTools.razor#L724">MjTools.razor, L724 et L755</a>, avertissements <code>MUD0002</code> observés pendant <code>dotnet test</code>, <a href="../app/src/Wfrp4.Client/Wfrp4.Client.csproj#L14">Wfrp4.Client.csproj, L14</a>.</p>
+<h3 id="u03-p2-plusieurs-ecrans-n-ont-pas-de-reprise-explicite-apres-une-erreur-de-chargement" tabindex="-1">U03 · P2 — Plusieurs écrans n’ont pas de reprise explicite après une erreur de chargement<a class="heading-link" href="#u03-p2-plusieurs-ecrans-n-ont-pas-de-reprise-explicite-apres-une-erreur-de-chargement" aria-label="Lien vers U03 · P2 — Plusieurs écrans n’ont pas de reprise explicite après une erreur de chargement">#</a></h3>
+<p><strong>Constat.</strong> Dashboard, fiche, wizard et référentiels réalisent des chargements initiaux sans gestion locale homogène de l’erreur ni action Réessayer. Un échec peut laisser l’état de chargement actif ou remonter au traitement global. Le démarrage visuel impose en outre un minimum de quatre secondes et ne prévoit pas de <code>catch</code> sur <code>Blazor.start()</code>.</p>
+<p><strong>Impact.</strong> Une indisponibilité API ou un échec du bootstrap peut présenter une interface bloquée ou peu explicite. Le délai de quatre secondes est une règle du code, pas une mesure de performance globale.</p>
+<p><strong>Correction attendue.</strong> Prévoir des états chargement, vide, erreur et succès, libérer les indicateurs dans <code>finally</code>, offrir une reprise et rendre le message de démarrage accessible. Afficher immédiatement l’application dès qu’elle est prête.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Client/Pages/Dashboard.razor#L76">Dashboard.razor, L76–88</a>, <a href="../app/src/Wfrp4.Client/Pages/FichePersonnage.razor#L1363">FichePersonnage.razor, L1363–1410</a>, <a href="../app/src/Wfrp4.Client/Pages/CreationWizard.razor#L841">CreationWizard.razor, L841–851</a>, <a href="../app/src/Wfrp4.Client/wwwroot/index.html#L465">index.html, L465–479</a>.</p>
+<h3 id="u04-p2-la-navigation-comporte-des-obstacles-d-accessibilite-identifiables-dans-le-code" tabindex="-1">U04 · P2 — La navigation comporte des obstacles d’accessibilité identifiables dans le code<a class="heading-link" href="#u04-p2-la-navigation-comporte-des-obstacles-d-accessibilite-identifiables-dans-le-code" aria-label="Lien vers U04 · P2 — La navigation comporte des obstacles d’accessibilité identifiables dans le code">#</a></h3>
+<p><strong>Constat.</strong> Des cartes du tableau de bord déclenchent la navigation uniquement avec <code>@onclick</code>, sans lien ou bouton explicite ni gestion clavier dans ce code. Plusieurs commandes à icône ne possèdent pas de nom accessible explicite ; le sélecteur de thème natif ne possède pas de label associé.</p>
+<p><strong>Impact à vérifier au navigateur.</strong> Les parcours au clavier ou au lecteur d’écran risquent d’être incomplets. La présence de MudBlazor ne garantit pas, à elle seule, l’accessibilité des usages personnalisés. Aucun audit WCAG complet, contraste calculé ou test mobile de l’application n’a été effectué.</p>
+<p><strong>Correction attendue.</strong> Utiliser des liens et boutons sémantiques, nommer les commandes et associer les labels. Vérifier Tab, Entrée, Espace, visibilité du focus et lecture des noms sur les parcours essentiels.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Client/Pages/Dashboard.razor#L93">Dashboard.razor, L93–115</a>, <a href="../app/src/Wfrp4.Client/Layout/MainLayout.razor#L10">MainLayout.razor, L10–34</a>.</p>
+<h3 id="u05-p2-le-designer-pdf-propose-une-sauvegarde-interdite-au-joueur" tabindex="-1">U05 · P2 — Le designer PDF propose une sauvegarde interdite au joueur<a class="heading-link" href="#u05-p2-le-designer-pdf-propose-une-sauvegarde-interdite-au-joueur" aria-label="Lien vers U05 · P2 — Le designer PDF propose une sauvegarde interdite au joueur">#</a></h3>
+<p><strong>Constat.</strong> Le menu présente le designer PDF aux utilisateurs connectés ; la page et le bouton Enregistrer ne sont pas réservés aux administrateurs, alors que le PUT serveur l’est.</p>
+<p><strong>Impact.</strong> Un joueur peut passer du temps à éditer une mise en page avant de recevoir un refus 403. Le contrôle serveur est un point positif ; l’incohérence concerne le parcours proposé.</p>
+<p><strong>Correction attendue.</strong> Montrer une consultation ou une prévisualisation clairement identifiée pour les joueurs et réserver la sauvegarde aux utilisateurs autorisés, ou définir une vraie sauvegarde personnelle distincte.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Client/Layout/NavMenu.razor#L17">NavMenu.razor, L17–22</a>, <a href="../app/src/Wfrp4.Client/Pages/PdfDesigner.razor#L41">PdfDesigner.razor, L2 et L41–43</a>, <a href="../app/src/Wfrp4.Server/Controllers/PersonnagesController.cs#L380">PersonnagesController.cs, L380–381</a>.</p>
+<h2 id="8-exploitation-qualite-et-maintenance" tabindex="-1">8. Exploitation, qualité et maintenance<a class="heading-link" href="#8-exploitation-qualite-et-maintenance" aria-label="Lien vers 8. Exploitation, qualité et maintenance">#</a></h2>
+<h3 id="o01-p1-conditionnel-le-compose-livre-est-une-configuration-de-demonstration" tabindex="-1">O01 · P1 conditionnel — Le Compose livré est une configuration de démonstration<a class="heading-link" href="#o01-p1-conditionnel-le-compose-livre-est-une-configuration-de-demonstration" aria-label="Lien vers O01 · P1 conditionnel — Le Compose livré est une configuration de démonstration">#</a></h3>
+<p><strong>Constat.</strong> Keycloak démarre en <code>start-dev</code>, l’application en <code>Development</code>, les services utilisent HTTP, des ports sont publiés sans restriction explicite à la boucle locale, et des comptes et valeurs d’accès d’exemple sont versionnés. Le Dockerfile annonce Production, mais le Compose surcharge ce réglage.</p>
+<p><strong>Condition de risque.</strong> Le blocage concerne une réutilisation de cette configuration telle quelle sur un serveur accessible. Les valeurs de démonstration ne sont pas la preuve d’une fuite de secrets de production ; aucun secret n’est reproduit dans ce rapport.</p>
+<p><strong>Correction attendue.</strong> Fournir un profil de production avec TLS/proxy configuré, secrets injectés, comptes exemples supprimés, administration et PostgreSQL sur réseau privé, utilisateur de conteneur non privilégié, sondes de disponibilité et sauvegarde/restauration documentée. Synchroniser aussi le secret du client de service entre l’import Keycloak et l’application lors de sa rotation.</p>
+<p>Preuves : <a href="../app/docker-compose.yml#L23">docker-compose.yml, L23, L29–41 et L54–64</a>, <a href="../app/Dockerfile">Dockerfile</a>, <a href="../app/keycloak/wfrp4-realm.json#L43">wfrp4-realm.json, L43 et L149–177</a>.</p>
+<h3 id="o02-p2-les-tests-et-l-automatisation-ne-protegent-pas-encore-les-parcours-critiques" tabindex="-1">O02 · P2 — Les tests et l’automatisation ne protègent pas encore les parcours critiques<a class="heading-link" href="#o02-p2-les-tests-et-l-automatisation-ne-protegent-pas-encore-les-parcours-critiques" aria-label="Lien vers O02 · P2 — Les tests et l’automatisation ne protègent pas encore les parcours critiques">#</a></h3>
+<p><strong>Constat.</strong> Les 19 tests couvrent surtout les calculs et la création ; les tests de données utilisent EF InMemory. Aucun workflow GitHub Actions n’est versionné, aucun test d’intégration HTTP ou de parcours navigateur n’est présent dans les projets examinés.</p>
+<p><strong>Impact.</strong> Des régressions d’autorisation, de contraintes PostgreSQL, de migrations et de chargement de composants peuvent coexister avec une suite entièrement verte, comme le montre cet audit.</p>
+<p><strong>Correction attendue.</strong> Automatiser restore, build, tests et audit des dépendances ; ajouter d’abord les tests des défauts de ce rapport, puis une suite d’intégration avec PostgreSQL et une matrice de rôles API. Tester les migrations à partir d’une base vide et d’une version précédente. Fixer le SDK et préciser les étapes de publication reproductibles.</p>
+<p>Preuves : <a href="../app/tests/Wfrp4.Server.Tests/PersonnageServiceCreationTests.cs#L317">tests Server</a>, <a href="../app/tests/Wfrp4.Infrastructure.Tests/UnitTest1.cs#L12">test Infrastructure, L12</a>, inventaire Git de <code>.github/workflows</code>, résultats exécutés au §4.</p>
+<h3 id="o03-p2-le-socle-net-doit-etre-entretenu-et-sa-migration-planifiee" tabindex="-1">O03 · P2 — Le socle .NET doit être entretenu et sa migration planifiée<a class="heading-link" href="#o03-p2-le-socle-net-doit-etre-entretenu-et-sa-migration-planifiee" aria-label="Lien vers O03 · P2 — Le socle .NET doit être entretenu et sa migration planifiée">#</a></h3>
+<p><strong>Constat local.</strong> Les projets applicatifs ciblent .NET 9 ; plusieurs packages Microsoft sont fixés à <code>9.0.14</code>, Npgsql à <code>9.0.4</code>, et les images Docker utilisent les tags <code>9.0</code>.</p>
+<p><strong>État vérifié au 19 septembre 2026.</strong> .NET 9 est encore supporté, en phase de maintenance, jusqu’au <strong>10 novembre 2026</strong>. Le correctif courant indiqué par Microsoft est <strong>9.0.20</strong>. .NET 10 LTS est annoncé supporté jusqu’au <strong>14 novembre 2028</strong>. Il serait inexact de qualifier .NET 9 de déjà hors support à la date de cet audit. Source : <a href="https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core">politique officielle de support .NET</a>.</p>
+<p><strong>Correction attendue.</strong> Vérifier et mettre à jour les correctifs applicables aux packages et images, puis planifier le passage à .NET 10 LTS avant l’échéance. Valider Blazor, EF/Npgsql, authentification et génération PDF après migration. L’absence d’alerte NuGet connue n’atteste pas que tous les composants déployés sont à jour.</p>
+<p>Preuves locales : <a href="../app/src/Wfrp4.Server/Wfrp4.Server.csproj#L10">Wfrp4.Server.csproj, L10–12 et L30</a>, <a href="../app/src/Wfrp4.Infrastructure/Wfrp4.Infrastructure.csproj#L8">Wfrp4.Infrastructure.csproj, L8–14</a>, <a href="../app/Dockerfile">Dockerfile</a>.</p>
+<h3 id="o04-p2-la-concentration-du-code-et-le-demarrage-compliquent-l-exploitation" tabindex="-1">O04 · P2 — La concentration du code et le démarrage compliquent l’exploitation<a class="heading-link" href="#o04-p2-la-concentration-du-code-et-le-demarrage-compliquent-l-exploitation" aria-label="Lien vers O04 · P2 — La concentration du code et le démarrage compliquent l’exploitation">#</a></h3>
+<p><strong>Constat.</strong> <code>MjTools.razor</code> comporte <strong>3 682 lignes</strong>, <code>FichePersonnage.razor</code> <strong>2 118</strong>, <code>CreationWizard.razor</code> <strong>1 243</strong> et le seeder <strong>1 743</strong>. Plusieurs responsabilités et états y sont couplés. L’API applique migrations et seed à chaque démarrage ; elle attend également les clés Keycloak avant de construire le serveur. Aucun endpoint de santé n’est configuré. Le middleware désactive le cache pour toutes les routes hors <code>/api</code>, y compris les ressources de l’application.</p>
+<p><strong>Impact.</strong> Les changements sont plus difficiles à isoler et tester. Le démarrage dépend des services externes et de l’état des données ; la stratégie de migration est peu adaptée à plusieurs instances. L’interdiction globale de cache peut augmenter les transferts au rechargement, sans mesure chiffrée effectuée ici.</p>
+<p><strong>Correction attendue.</strong> Extraire des composants et services selon les fonctions réelles : fiche/identité, bourse, progression, aventures, génération, mise en page. Séparer les migrations de la mise en service en production, ajouter des sondes et des erreurs structurées, puis mesurer le démarrage et adopter une stratégie de cache adaptée aux ressources versionnées.</p>
+<p>Preuves : <a href="../app/src/Wfrp4.Client/Pages/MjTools.razor">MjTools.razor</a>, <a href="../app/src/Wfrp4.Client/Pages/FichePersonnage.razor">FichePersonnage.razor</a>, <a href="../app/src/Wfrp4.Server/Program.cs#L94">Program.cs, L12 et L94–154</a>.</p>
+<h2 id="9-ce-qui-a-change-depuis-l-etat-des-lieux-de-juillet" tabindex="-1">9. Ce qui a changé depuis l’état des lieux de juillet<a class="heading-link" href="#9-ce-qui-a-change-depuis-l-etat-des-lieux-de-juillet" aria-label="Lien vers 9. Ce qui a changé depuis l’état des lieux de juillet">#</a></h2>
+<p>Le document <a href="etat-des-lieux-2026-07.md">état des lieux de juillet 2026</a> reste utile comme historique, mais plusieurs de ses conclusions ne décrivent plus le code actuel.</p>
+<div class="table-scroll" role="region" aria-label="Tableau de l’audit, défilement horizontal disponible" tabindex="0"><table>
+<thead>
+<tr>
+<th>Sujet</th>
+<th>État observé en septembre</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Avancement des talents</td>
+<td>Branché dans le contrôleur, contrairement à l’ancien constat</td>
+</tr>
+<tr>
+<td>Exports PDF</td>
+<td>Fiche personnage, designer et exports MJ présents</td>
+</tr>
+<tr>
+<td>Fonctionnalités</td>
+<td>Inscription, grimoire, titres, bestiaire, aventures et outils MJ ont élargi le produit</td>
+</tr>
+<tr>
+<td>Tests</td>
+<td>19 cas exécutés, contre 3 décrits en juillet</td>
+</tr>
+<tr>
+<td>Audience JWT</td>
+<td>Toujours désactivée ; constat maintenu</td>
+</tr>
+<tr>
+<td>Workflows CI versionnés</td>
+<td>Toujours absents du répertoire attendu</td>
+</tr>
+<tr>
+<td>Hygiène des artefacts</td>
+<td>Les <code>bin/obj</code> de l’application ne sont pas suivis ; des fichiers <code>obj</code> de templates sous <code>.claude</code> restent suivis</td>
+</tr>
+<tr>
+<td>Documentation</td>
+<td>README racine limité au nom du dépôt ; spécification à réaligner avec les nouvelles fonctionnalités et les règles XP</td>
+</tr>
+</tbody></table>
+</div>
+<p>La présence de fichiers ignorés sur un poste ne signifie pas qu’ils sont versionnés. Les recommandations de nettoyage doivent donc s’appuyer sur <code>git ls-files</code>, et ne pas reprendre sans contrôle les chiffres de l’ancien document.</p>
+<h2 id="10-plan-de-correction-propose" tabindex="-1">10. Plan de correction proposé<a class="heading-link" href="#10-plan-de-correction-propose" aria-label="Lien vers 10. Plan de correction proposé">#</a></h2>
+<p>Les tailles ci-dessous sont des ordres de grandeur de travail, sans engagement calendaire : <strong>S</strong> = modification localisée ; <strong>M</strong> = plusieurs couches ou tests d’intégration ; <strong>L</strong> = chantier de données ou d’exploitation. Elles doivent être confirmées après arbitrage métier.</p>
+<div class="table-scroll" role="region" aria-label="Tableau de l’audit, défilement horizontal disponible" tabindex="0"><table>
+<thead>
+<tr>
+<th>Ordre</th>
+<th>Livraison attendue</th>
+<th>Constats</th>
+<th>Taille</th>
+<th>Validation de sortie</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Droits de suppression cohérents et génération PDF bornée</td>
+<td>S01, S02</td>
+<td>S–M</td>
+<td>Refus de toute écriture par partage Lecture ; entrées extrêmes rejetées rapidement</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Création fiable et brouillons réellement annulables</td>
+<td>D01, U01</td>
+<td>M</td>
+<td>Requêtes hors règles refusées ; Annuler puis bourse ne modifie pas l’identité</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Compteurs et remboursements exacts</td>
+<td>D02, D03, D04, D05</td>
+<td>M–L</td>
+<td>Tests simultanés, gratuit/payant, retours successifs et seuils de caractéristiques</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Référentiels et migrations cohérents</td>
+<td>D06, D07</td>
+<td>M–L</td>
+<td>Quatre niveaux complets ; base vide et base existante migrées sans dérive</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Authentification et inscription robustes</td>
+<td>S03, S04, S05</td>
+<td>M</td>
+<td>Mauvaise audience refusée ; rotation transparente ; inscription récupérable</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Parcours compréhensibles et accessibles</td>
+<td>U02, U03, U04, U05</td>
+<td>M</td>
+<td>Données chargées à l’ouverture ; reprise réseau ; clavier ; droits visibles</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Préproduction reproductible</td>
+<td>O01, O02, O03</td>
+<td>M–L</td>
+<td>Profil production, CI, restauration vérifiée, versions entretenues</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Réduction progressive des composants volumineux</td>
+<td>O04</td>
+<td>L, incrémental</td>
+<td>Responsabilités isolées, comportement conservé et mesures avant/après</td>
+</tr>
+</tbody></table>
+</div>
+<p><strong>Répartition suggérée.</strong> Backend/sécurité pour S01–S05 et D01–D05 ; données/métier pour D06–D07 ; frontend pour U01–U05 ; exploitation et qualité pour O01–O04. L’arbitrage sur le mode d’ajustement libre des XP revient au responsable produit et au référent de règles.</p>
+<h2 id="11-criteres-de-validation-avant-ouverture-publique" tabindex="-1">11. Critères de validation avant ouverture publique<a class="heading-link" href="#11-criteres-de-validation-avant-ouverture-publique" aria-label="Lien vers 11. Critères de validation avant ouverture publique">#</a></h2>
+<ul>
+<li>Une matrice API vérifie propriétaire, tiers, MJ Lecture, MJ XP, administrateur et partage expiré pour chaque opération de lecture, écriture, suppression et octroi XP.</li>
+<li>Les valeurs de création invalides sont refusées sans personnage partiellement persisté ; les réserves initiales et les règles de carrière sont explicites.</li>
+<li>Deux opérations concurrentes ne perdent aucun gain ou coût XP ; chaque remboursement correspond à une acquisition réellement payée et non déjà annulée.</li>
+<li>Les blessures et autres attributs dérivés suivent immédiatement les changements qui les affectent.</li>
+<li>Les migrations passent sur PostgreSQL depuis une base vide et une version existante ; le snapshot correspond au modèle.</li>
+<li>L’export PDF refuse les volumes hors limites et respecte l’annulation ; les principales sorties sont vérifiées visuellement.</li>
+<li>Une panne réseau, une erreur d’inscription ou une rotation Keycloak disposent d’un comportement testé et compréhensible.</li>
+<li>Les parcours de connexion, création, progression, partage, aventures et export sont validés au navigateur, au clavier et sur petit écran.</li>
+<li>Une CI rejoue les contrôles ; le profil de production exclut les comptes exemples et comprend une restauration de sauvegarde réellement testée.</li>
+</ul>
+<p>Ces critères forment un seuil de validation proposé. Ils ne décrivent pas des corrections déjà réalisées par cet audit.</p>
+<h2 id="12-reproduire-les-verifications" tabindex="-1">12. Reproduire les vérifications<a class="heading-link" href="#12-reproduire-les-verifications" aria-label="Lien vers 12. Reproduire les vérifications">#</a></h2>
+<p>Depuis la racine du dépôt, avec les SDK et dépendances nécessaires :</p>
+<pre><code class="language-powershell">dotnet test app/Wfrp4.sln --no-restore --configuration Release
+dotnet build app/Wfrp4.sln --no-restore --configuration Release
+dotnet list app/Wfrp4.sln package --vulnerable --include-transitive --no-restore
+git ls-files .github/workflows
+</code></pre>
+<p>Les options <code>--no-restore</code> reproduisent le contrôle effectué avec le cache existant. Pour vérifier un environnement neuf, ajouter une restauration préalable autorisée puis une construction de l’image Docker ; ces deux validations restent à faire. L’audit NuGet exécuté ici utilisait une configuration temporaire limitée à la source officielle NuGet ; elle n’est pas requise dans un environnement disposant déjà de sa configuration normale.</p>
+<p><strong>Livrables :</strong> ce Markdown constitue la source de l’audit ; <a href="WFRP.audit.html">WFRP.audit.html</a> en présente une conversion intégrale, autonome et imprimable. Les constats sont valables pour la révision indiquée et doivent être réévalués après correction.</p>
+</main>
+    </div>
+    <footer class="footer"><span>WFRP · Audit de l’application · 19.09.2026</span><a href="#top">Retour en haut ↑</a></footer>
+  </div>
+  <script>
+    (() => {
+      document.querySelector('.print-button').addEventListener('click', () => window.print());
+      const progress = document.querySelector('.reading-progress');
+      const links = Array.from(document.querySelectorAll('.toc a'));
+      const headings = links.map(link => document.getElementById(link.hash.slice(1))).filter(Boolean);
+      let scheduled = false;
+      const update = () => {
+        scheduled = false;
+        const height = document.documentElement.scrollHeight - window.innerHeight;
+        progress.style.width = (height > 0 ? Math.min(100, Math.max(0, window.scrollY / height * 100)) : 100) + '%';
+        let current = null;
+        for (const heading of headings) { if (heading.getBoundingClientRect().top <= 170) current = heading.id; }
+        links.forEach(link => { if (link.hash === '#' + current) link.setAttribute('aria-current', 'location'); else link.removeAttribute('aria-current'); });
+      };
+      const schedule = () => { if (!scheduled) { scheduled = true; requestAnimationFrame(update); } };
+      window.addEventListener('scroll', schedule, { passive:true });
+      window.addEventListener('resize', schedule, { passive:true });
+      update();
+    })();
+  </script>
+</body>
+</html>

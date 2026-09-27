@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Wfrp4.Server.Services;
 using Wfrp4.Shared.DTOs;
@@ -11,13 +12,23 @@ namespace Wfrp4.Server.Controllers;
 public class MjController : ControllerBase
 {
     [HttpPost("pdf")]
+    [RequestSizeLimit(2 * 1024 * 1024)]
     public async Task<IActionResult> ExportPdf(
         MjPdfExportRequest request,
         [FromServices] MjPdfExportService pdfService,
         CancellationToken ct)
     {
-        var result = await pdfService.GenerateAsync(request, ct);
-        return File(result.Content, "application/pdf", result.FileName);
+        try
+        {
+            var result = await pdfService.GenerateAsync(request, ct);
+            return File(result.Content, "application/pdf", result.FileName);
+        }
+        catch (ValidationException ex) { return BadRequest(new { Error = ex.Message }); }
+        catch (PdfExportBusyException ex)
+        {
+            Response.Headers.RetryAfter = "2";
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { Error = ex.Message });
+        }
     }
 
     [HttpGet("pdf/template")]

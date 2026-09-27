@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 using Wfrp4.Shared.DTOs;
 
@@ -6,6 +7,7 @@ namespace Wfrp4.Server.Services;
 
 public class MjPdfExportService
 {
+    private static readonly SemaphoreSlim ExportSlots = new(2, 2);
     private const double PageWidth = 593.4618;
     private const double PageHeight = 758.0332;
     private const int TemplatePixelWidth = 1237;
@@ -19,18 +21,35 @@ public class MjPdfExportService
 
     public async Task<(byte[] Content, string FileName)> GenerateAsync(MjPdfExportRequest request, CancellationToken ct)
     {
-        var theme = PdfTheme.For(request.Type);
-        var template = await File.ReadAllBytesAsync(TemplatePath(theme.TemplateFileName), ct);
-        var pages = BuildPages(request, theme);
-        var fileName = $"atelier-mj-{Slug(request.Type)}-{Slug(request.Title)}.pdf";
-        return (SimplePdf.Write(pages, template), fileName);
+        ct.ThrowIfCancellationRequested();
+        MjPdfRequestValidator.Validate(request);
+        if (!await ExportSlots.WaitAsync(0, ct)) throw new PdfExportBusyException();
+        try
+        {
+            var theme = PdfTheme.For(request.Type);
+            var template = await File.ReadAllBytesAsync(TemplatePath(theme.TemplateFileName), ct);
+            var pages = BuildPages(request, theme, ct);
+            if (pages.Sum(page => (long)page.Length) > 4 * 1024 * 1024)
+                throw new ValidationException("Le contenu PDF dépasse la taille autorisée.");
+            var fileName = $"atelier-mj-{Slug(request.Type)}-{Slug(request.Title)}.pdf";
+            return (SimplePdf.Write(pages, template, ct), fileName);
+        }
+        finally { ExportSlots.Release(); }
     }
 
-    private List<string> BuildPages(MjPdfExportRequest request, PdfTheme theme)
+    private List<string> BuildPages(MjPdfExportRequest request, PdfTheme theme, CancellationToken ct)
     {
         var slug = Slug(request.Type);
+        if (request.Pnjs.Count > 0 && slug is "pnj" or "groupe-pnj")
+            return BuildTypedPnjPages(request, theme, ct);
+        if (request.Loot is not null && slug == "butin")
+            return BuildLootPages(request, theme, ct);
+        if (request.Adventure is not null && slug == "aventure")
+            return BuildAdventurePages(request, theme, ct);
+        if (request.Campaign is not null && slug == "campagne")
+            return BuildCampaignPages(request, theme, ct);
         if (slug is "groupe-pnj" or "pnj" or "bestiaire")
-            return BuildPnjPages(request, theme);
+            return BuildPnjPages(request, theme, ct);
 
         var pages = new List<string>();
         var canvas = NewPage(request.Title, pages.Count + 1, theme);
@@ -38,12 +57,14 @@ public class MjPdfExportService
 
         foreach (var section in request.Sections)
         {
+            ct.ThrowIfCancellationRequested();
             EnsureSpace(ref canvas, pages, request.Title, theme, ref y, 120);
             canvas.TextPx(110, y, 18, section.Title, 760, "Times-Roman", isBold: true);
             y += 38;
 
             foreach (var line in section.Lines)
             {
+                ct.ThrowIfCancellationRequested();
                 EnsureSpace(ref canvas, pages, request.Title, theme, ref y, 42);
                 canvas.TextPx(120, y, 10, line.Label, 210, "Helvetica", isBold: true);
                 canvas.TextPx(330, y, 10, line.Value, 650, "Helvetica");
@@ -52,6 +73,7 @@ public class MjPdfExportService
 
             foreach (var stat in section.Stats)
             {
+                ct.ThrowIfCancellationRequested();
                 EnsureSpace(ref canvas, pages, request.Title, theme, ref y, 180);
                 canvas.TextPx(120, y, 13, stat.Name, 420, "Times-Roman", isBold: true);
                 canvas.TextPx(540, y, 10, stat.Danger, 140, "Helvetica", isBold: true);
@@ -69,7 +91,342 @@ public class MjPdfExportService
         return pages;
     }
 
-    private List<string> BuildPnjPages(MjPdfExportRequest request, PdfTheme theme)
+    private List<string> BuildTypedPnjPages(MjPdfExportRequest request, PdfTheme theme, CancellationToken ct)
+    {
+        var pages = new List<string>();
+        var canvas = NewSemanticPage(request.Title, "FICHES DE PNJ", pages.Count + 1, theme, out var y);
+        var metrics = PdfMetrics.For(request.Options.Density);
+        foreach (var pnj in request.Pnjs)
+        {
+            ct.ThrowIfCancellationRequested();
+            DrawPnjCard(ref canvas, pages, request.Title, "FICHES DE PNJ", theme, ref y, pnj, request.Options, metrics, ct);
+        }
+        pages.Add(canvas.Content);
+        return pages;
+    }
+
+    private List<string> BuildLootPages(MjPdfExportRequest request, PdfTheme theme, CancellationToken ct)
+    {
+        var loot = request.Loot!;
+        var pages = new List<string>();
+        var canvas = NewSemanticPage(request.Title, "TRÉSOR ET BUTIN", pages.Count + 1, theme, out var y);
+        var metrics = PdfMetrics.For(request.Options.Density);
+        var players = request.Options.Audience == "Players";
+
+        DrawSectionHeader(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "INVENTAIRE", metrics);
+        DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Contexte", loot.Context, metrics, ct);
+        DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Nature", loot.Nature, metrics, ct);
+        DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Danger", loot.Danger, metrics, ct);
+        DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Monnaie", loot.Coins, metrics, ct);
+        DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Valeur estimée", loot.ValueEstimate, metrics, ct);
+        DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "État", loot.Condition, metrics, ct);
+        foreach (var item in loot.Items)
+            DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Objet", $"- {item}", metrics, ct);
+
+        DrawSectionHeader(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "OBJETS REMARQUABLES", metrics);
+        DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Objet utile", loot.UsefulItem, metrics, ct);
+        DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Objet magique", loot.MagicItem, metrics, ct);
+        DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Effet magique", loot.MagicEffect, metrics, ct);
+        if (!players)
+        {
+            DrawSectionHeader(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "RISQUE MAGIQUE", metrics, warning: true);
+            DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Risque", loot.MagicRisk, metrics, ct);
+            DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Propriétaire", loot.Owner, metrics, ct);
+        }
+
+        DrawSectionHeader(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "PISTE NARRATIVE", metrics);
+        DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Indice", loot.Clue, metrics, ct);
+        if (!players)
+            DrawField(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, "Complication", loot.Complication, metrics, ct);
+        if (request.Options.IncludeNotes)
+            DrawNotes(ref canvas, pages, request.Title, "TRÉSOR ET BUTIN", theme, ref y, metrics);
+
+        pages.Add(canvas.Content);
+        return pages;
+    }
+
+    private List<string> BuildAdventurePages(MjPdfExportRequest request, PdfTheme theme, CancellationToken ct)
+    {
+        var pages = new List<string>();
+        var canvas = NewSemanticPage(request.Title, "DOSSIER D'AVENTURE", pages.Count + 1, theme, out var y);
+        DrawAdventure(ref canvas, pages, request.Title, "DOSSIER D'AVENTURE", theme, ref y, request.Adventure!, request.Options, ct);
+        pages.Add(canvas.Content);
+        return pages;
+    }
+
+    private List<string> BuildCampaignPages(MjPdfExportRequest request, PdfTheme theme, CancellationToken ct)
+    {
+        var campaign = request.Campaign!;
+        var pages = new List<string>();
+        var canvas = NewSemanticPage(request.Title, "DOSSIER DE CAMPAGNE", pages.Count + 1, theme, out var y);
+        var metrics = PdfMetrics.For(request.Options.Density);
+        DrawSectionHeader(ref canvas, pages, request.Title, "DOSSIER DE CAMPAGNE", theme, ref y, "FIL ROUGE", metrics);
+        DrawField(ref canvas, pages, request.Title, "DOSSIER DE CAMPAGNE", theme, ref y, "Trame", campaign.ArcSummary, metrics, ct);
+        DrawField(ref canvas, pages, request.Title, "DOSSIER DE CAMPAGNE", theme, ref y, "Antagoniste récurrent", campaign.RecurringVillain, metrics, ct);
+
+        foreach (var (episode, index) in campaign.Episodes.Select((value, index) => (value, index)))
+        {
+            ct.ThrowIfCancellationRequested();
+            pages.Add(canvas.Content);
+            canvas = NewSemanticPage(episode.Title, $"ÉPISODE {index + 1}", pages.Count + 1, theme, out y);
+            DrawAdventure(ref canvas, pages, request.Title, $"ÉPISODE {index + 1}", theme, ref y, episode, request.Options, ct);
+        }
+        if (request.Options.IncludeNotes && !string.IsNullOrWhiteSpace(campaign.Notes))
+        {
+            DrawSectionHeader(ref canvas, pages, request.Title, "DOSSIER DE CAMPAGNE", theme, ref y, "NOTES DE CAMPAGNE", metrics);
+            DrawField(ref canvas, pages, request.Title, "DOSSIER DE CAMPAGNE", theme, ref y, "Notes", campaign.Notes, metrics, ct);
+        }
+        pages.Add(canvas.Content);
+        return pages;
+    }
+
+    private void DrawAdventure(
+        ref PdfCanvas canvas,
+        List<string> pages,
+        string documentTitle,
+        string subtitle,
+        PdfTheme theme,
+        ref int y,
+        MjPdfAdventureDto adventure,
+        MjPdfExportOptions options,
+        CancellationToken ct)
+    {
+        var metrics = PdfMetrics.For(options.Density);
+        var players = options.Audience == "Players";
+        DrawSectionHeader(ref canvas, pages, documentTitle, subtitle, theme, ref y, "VUE D'ENSEMBLE", metrics);
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Thème", adventure.Theme, metrics, ct);
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Région", adventure.Region, metrics, ct);
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Danger", adventure.Danger, metrics, ct);
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Durée", adventure.Duration, metrics, ct);
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Atmosphère", adventure.Atmosphere, metrics, ct);
+        var narrativeSynopsis = players ? adventure.PlayerSynopsis : adventure.NarrativeSynopsis;
+        if (string.IsNullOrWhiteSpace(narrativeSynopsis))
+        {
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Synopsis", adventure.Synopsis, metrics, ct);
+        }
+        else
+        {
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Pitch", adventure.Synopsis, metrics, ct);
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Synopsis", narrativeSynopsis, metrics, ct);
+        }
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Lieu", adventure.Location, metrics, ct);
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Accroche", adventure.Hook, metrics, ct);
+        if (!players)
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Menace", adventure.Threat, metrics, ct);
+        if (!string.IsNullOrWhiteSpace(adventure.CampaignLink))
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Lien de campagne", adventure.CampaignLink, metrics, ct);
+
+        if (adventure.Acts.Count > 0)
+        {
+            DrawSectionHeader(ref canvas, pages, documentTitle, subtitle, theme, ref y, "DÉROULEMENT", metrics);
+            foreach (var (act, index) in adventure.Acts.Select((value, index) => (value, index)))
+            {
+                DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, $"Acte {index + 1} - {act.Title}", act.Description, metrics, ct);
+                DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Lieu", act.Location, metrics, ct);
+                if (!players)
+                    DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Défi", act.Challenge, metrics, ct);
+            }
+        }
+
+        if (adventure.KeyNpcs.Count > 0)
+        {
+            DrawSectionHeader(ref canvas, pages, documentTitle, subtitle, theme, ref y, "PNJ CLÉS", metrics);
+            foreach (var pnj in adventure.KeyNpcs)
+                DrawPnjCard(ref canvas, pages, documentTitle, subtitle, theme, ref y, pnj, options, metrics, ct, compact: true);
+        }
+
+        if (!players)
+        {
+            DrawSectionHeader(ref canvas, pages, documentTitle, subtitle, theme, ref y, "RÉSOLUTION", metrics);
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Retournement", adventure.Twist, metrics, ct);
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Climax", adventure.Climax, metrics, ct);
+            foreach (var resolution in adventure.Resolutions)
+                DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Issue", $"- {resolution}", metrics, ct);
+        }
+        foreach (var reward in adventure.Rewards)
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Récompense", $"- {reward}", metrics, ct);
+        if (options.IncludeNotes)
+            DrawNotes(ref canvas, pages, documentTitle, subtitle, theme, ref y, metrics);
+    }
+
+    private void DrawPnjCard(
+        ref PdfCanvas canvas,
+        List<string> pages,
+        string documentTitle,
+        string subtitle,
+        PdfTheme theme,
+        ref int y,
+        MjPdfPnjDto pnj,
+        MjPdfExportOptions options,
+        PdfMetrics metrics,
+        CancellationToken ct,
+        bool compact = false)
+    {
+        EnsureSemanticSpace(ref canvas, pages, documentTitle, subtitle, theme, ref y, 150);
+        canvas.FillRect(110, y, 1010, metrics.HeaderHeight, 0.22, 0.17, 0.12);
+        canvas.SetTextColor(0.94, 0.89, 0.78);
+        canvas.TextPx(125, y + metrics.HeaderTextOffset, metrics.HeaderFont, pnj.Name, 700, "Times-Roman", isBold: true);
+        canvas.TextPx(940, y + metrics.HeaderTextOffset, metrics.SmallFont, pnj.Danger, 150, "Helvetica", isBold: true);
+        canvas.SetTextColor(0, 0, 0);
+        y += metrics.HeaderHeight + 8;
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Rôle", pnj.Role, metrics, ct);
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Profession", pnj.Profession, metrics, ct);
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Origine", pnj.Origin, metrics, ct);
+        EnsureSemanticSpace(ref canvas, pages, documentTitle, subtitle, theme, ref y, 72);
+        DrawStatsTable(canvas, pnj.Stats, 110, y, 1010);
+        y += 64;
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Arme", pnj.Weapon, metrics, ct);
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Équipement", pnj.Equipment, metrics, ct);
+        DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Sort", pnj.Spell, metrics, ct);
+        if (!compact || options.Density == "Detailed")
+        {
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Apparence", pnj.Appearance, metrics, ct);
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Attitude", pnj.Manner, metrics, ct);
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Motivation", pnj.Motivation, metrics, ct);
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Accroche", pnj.Hook, metrics, ct);
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Profil", pnj.Profile, metrics, ct);
+        }
+        if (options.Audience == "GameMaster")
+            DrawField(ref canvas, pages, documentTitle, subtitle, theme, ref y, "Secret", pnj.Secret, metrics, ct);
+        if (!compact)
+        {
+            EnsureSemanticSpace(ref canvas, pages, documentTitle, subtitle, theme, ref y, 55);
+            DrawWoundsTracker(canvas, pnj.Stats, 110, y, 1);
+            y += 50;
+            if (options.IncludeNotes)
+                DrawNotes(ref canvas, pages, documentTitle, subtitle, theme, ref y, metrics);
+        }
+        y += metrics.BlockGap;
+    }
+
+    private static PdfCanvas NewSemanticPage(string title, string subtitle, int pageNumber, PdfTheme theme, out int y)
+    {
+        var canvas = NewPage(title, pageNumber, theme);
+        canvas.TextPx(110, 215, 10, subtitle, 600, "Helvetica", isBold: true);
+        canvas.TextPx(110, 275, 24, title, 1010, "Times-Roman", isBold: true);
+        canvas.Line(110, 320, 1120, 320, 1.2);
+        y = 350;
+        return canvas;
+    }
+
+    private static void EnsureSemanticSpace(
+        ref PdfCanvas canvas,
+        List<string> pages,
+        string title,
+        string subtitle,
+        PdfTheme theme,
+        ref int y,
+        int needed)
+    {
+        if (y + needed <= 1400)
+            return;
+        if (pages.Count >= MjPdfRequestValidator.MaxPages - 1)
+            throw new ValidationException("L'export dépasse 64 pages.");
+        pages.Add(canvas.Content);
+        canvas = NewSemanticPage(title, subtitle, pages.Count + 1, theme, out y);
+    }
+
+    private static void DrawSectionHeader(
+        ref PdfCanvas canvas,
+        List<string> pages,
+        string title,
+        string subtitle,
+        PdfTheme theme,
+        ref int y,
+        string label,
+        PdfMetrics metrics,
+        bool warning = false)
+    {
+        EnsureSemanticSpace(ref canvas, pages, title, subtitle, theme, ref y, 50);
+        var color = warning ? (r: 0.48, g: 0.12, b: 0.10) : (r: 0.76, g: 0.66, b: 0.43);
+        canvas.FillRect(110, y, 1010, 30, color.r, color.g, color.b);
+        canvas.SetTextColor(warning ? 1 : 0.12, warning ? 0.94 : 0.10, warning ? 0.88 : 0.08);
+        canvas.TextPx(124, y + 20, metrics.LabelFont, label, 950, "Helvetica", isBold: true);
+        canvas.SetTextColor(0, 0, 0);
+        y += 42;
+    }
+
+    private static void DrawField(
+        ref PdfCanvas canvas,
+        List<string> pages,
+        string title,
+        string subtitle,
+        PdfTheme theme,
+        ref int y,
+        string label,
+        string? value,
+        PdfMetrics metrics,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value == "N/A" || value == "Aucun")
+            return;
+        var lines = PdfCanvas.WrapText(value, 760, metrics.BodyFont).ToList();
+        var index = 0;
+        var firstChunk = true;
+        while (index < lines.Count)
+        {
+            ct.ThrowIfCancellationRequested();
+            var lineHeight = metrics.LineHeight;
+            var availableLines = Math.Max(1, (1400 - y - 12) / lineHeight);
+            if (availableLines <= 1 && index < lines.Count - 1)
+            {
+                EnsureSemanticSpace(ref canvas, pages, title, subtitle, theme, ref y, 100);
+                availableLines = Math.Max(1, (1400 - y - 12) / lineHeight);
+            }
+            var take = Math.Min(availableLines, lines.Count - index);
+            canvas.TextPx(120, y + metrics.BodyFont, metrics.LabelFont, firstChunk ? label : $"{label} (suite)", 200, "Helvetica", isBold: true);
+            canvas.TextLinesPx(330, y + metrics.BodyFont, metrics.BodyFont, lines.Skip(index).Take(take), lineHeight, "Helvetica");
+            y += take * lineHeight + metrics.RowGap;
+            index += take;
+            firstChunk = false;
+            if (index < lines.Count)
+                EnsureSemanticSpace(ref canvas, pages, title, subtitle, theme, ref y, 100);
+        }
+    }
+
+    private static void DrawNotes(
+        ref PdfCanvas canvas,
+        List<string> pages,
+        string title,
+        string subtitle,
+        PdfTheme theme,
+        ref int y,
+        PdfMetrics metrics)
+    {
+        var height = metrics.Density == "Compact" ? 90 : 130;
+        EnsureSemanticSpace(ref canvas, pages, title, subtitle, theme, ref y, height + 45);
+        canvas.TextPx(110, y + 12, metrics.LabelFont, "NOTES DE JEU", 400, "Helvetica", isBold: true);
+        y += 24;
+        canvas.Rect(110, y, 1010, height);
+        for (var line = 1; line <= 4; line++)
+            canvas.Line(120, y + line * height / 5, 1110, y + line * height / 5, 0.15);
+        y += height + metrics.BlockGap;
+    }
+
+    private sealed record PdfMetrics(
+        string Density,
+        int BodyFont,
+        int LabelFont,
+        int SmallFont,
+        int HeaderFont,
+        int HeaderHeight,
+        int HeaderTextOffset,
+        int LineHeight,
+        int RowGap,
+        int BlockGap)
+    {
+        public static PdfMetrics For(string density) => density switch
+        {
+            "Compact" => new(density, 8, 8, 7, 11, 28, 18, LineHeightPixels(8), 5, 10),
+            "Detailed" => new(density, 11, 10, 9, 15, 38, 25, LineHeightPixels(11), 9, 20),
+            _ => new("Standard", 10, 9, 8, 13, 34, 22, LineHeightPixels(10), 7, 15)
+        };
+
+        private static int LineHeightPixels(int fontSize) =>
+            (int)Math.Ceiling((fontSize + 2) * TemplatePixelHeight / PageHeight);
+    }
+
+    private List<string> BuildPnjPages(MjPdfExportRequest request, PdfTheme theme, CancellationToken ct)
     {
         var cfg = request.Layout ?? new PnjPdfLayoutConfig();
         var pages = new List<string>();
@@ -81,6 +438,7 @@ public class MjPdfExportService
 
         foreach (var section in request.Sections)
         {
+            ct.ThrowIfCancellationRequested();
             EnsureSpace(ref canvas, pages, request.Title, theme, ref y, 50);
             if (cfg.TitleAlign == "Center")
                 canvas.TextCenteredPx(left + tableW / 2, y, cfg.TitleFontSize, section.Title, "Times-Roman", isBold: true);
@@ -129,6 +487,7 @@ public class MjPdfExportService
             var equipIdx = 0;
             foreach (var stat in section.Stats)
             {
+                ct.ThrowIfCancellationRequested();
                 var memberEquip = equipLines.Skip(equipIdx).Take(3).ToList();
                 equipIdx += 3;
 
@@ -151,6 +510,7 @@ public class MjPdfExportService
 
             foreach (var (stat, count, memberEquip) in grouped)
             {
+                ct.ThrowIfCancellationRequested();
                 EnsureSpace(ref canvas, pages, request.Title, theme, ref y, 200);
 
                 var nameLabel = count > 1 ? $"{stat.Name} (x{count})" : stat.Name;
@@ -216,7 +576,10 @@ public class MjPdfExportService
                 canvas.Rect(left, y, tableW, cfg.NotesHeight);
                 var lineSpacing = cfg.NotesLineCount > 0 ? cfg.NotesHeight / (cfg.NotesLineCount + 1) : 26;
                 for (var i = 1; i <= cfg.NotesLineCount; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
                     canvas.Line(left, y + i * lineSpacing, right, y + i * lineSpacing, 0.15);
+                }
                 y += cfg.NotesHeight + 10;
             }
         }
@@ -312,6 +675,8 @@ public class MjPdfExportService
         if (y + needed <= 1410)
             return;
 
+        if (pages.Count >= MjPdfRequestValidator.MaxPages - 1)
+            throw new ValidationException("L'export dépasse 64 pages.");
         pages.Add(canvas.Content);
         canvas = NewPage(title, pages.Count + 1, theme);
         y = theme.ContentStartY;
@@ -337,7 +702,7 @@ public class MjPdfExportService
         public static PdfTheme For(string type)
         {
             var normalized = Slug(type);
-            return normalized is "pnj" or "groupe-pnj" or "butin" or "bestiaire"
+            return normalized is "pnj" or "groupe-pnj" or "butin" or "bestiaire" or "aventure" or "campagne"
                 ? new PdfTheme("wfrp4-mj-page-background.jpg", LightText: false, DrawHeader: false, ContentStartY: 315)
                 : new PdfTheme("wfrp4-character-sheet-1.jpg", LightText: false, DrawHeader: true, ContentStartY: 250);
         }
@@ -352,7 +717,7 @@ public class MjPdfExportService
 
     private static class SimplePdf
     {
-        public static byte[] Write(IReadOnlyList<string> pages, byte[] template)
+        public static byte[] Write(IReadOnlyList<string> pages, byte[] template, CancellationToken ct)
         {
             using var ms = new MemoryStream();
             var offsets = new List<long> { 0 };
@@ -361,12 +726,13 @@ public class MjPdfExportService
             var pageIds = Enumerable.Range(0, pages.Count).Select(i => 7 + (i * 2)).ToList();
             WriteObject(ms, offsets, 2, $"<< /Type /Pages /Kids [{string.Join(' ', pageIds.Select(id => $"{id} 0 R"))}] /Count {pages.Count} >>");
             WriteImage(ms, offsets, 3, template);
-            WriteObject(ms, offsets, 4, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
-            WriteObject(ms, offsets, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
-            WriteObject(ms, offsets, 6, "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman >>");
+            WriteObject(ms, offsets, 4, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+            WriteObject(ms, offsets, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+            WriteObject(ms, offsets, 6, "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>");
 
             for (var i = 0; i < pages.Count; i++)
             {
+                ct.ThrowIfCancellationRequested();
                 var pageId = 7 + (i * 2);
                 var contentId = pageId + 1;
                 WritePage(ms, offsets, pageId, contentId);
@@ -396,7 +762,7 @@ public class MjPdfExportService
 
         private static void WriteStream(Stream stream, List<long> offsets, int id, string content)
         {
-            var bytes = Encoding.ASCII.GetBytes(content);
+            var bytes = Encoding.Latin1.GetBytes(content);
             offsets.Add(stream.Position);
             WriteAscii(stream, $"{id} 0 obj\n<< /Length {bytes.Length} >>\nstream\n");
             stream.Write(bytes);
@@ -436,18 +802,28 @@ public class MjPdfExportService
         {
             var lineHeight = Math.Max(size + 3, 10);
             var lineY = ToPdfY(y);
-            foreach (var line in Wrap(PdfText.ToAscii(text), Math.Max(1, maxWidth / Math.Max(4, size / 2))).Take(5))
+            foreach (var line in WrapText(text, maxWidth, size).Take(5))
             {
                 Text(PxX(x), lineY, size, line, FontResource(font, isBold));
                 lineY -= lineHeight;
             }
         }
 
+        public void TextLinesPx(int x, int y, int size, IEnumerable<string> lines, int lineHeight, string font = "Helvetica", bool isBold = false)
+        {
+            var lineY = ToPdfY(y);
+            foreach (var line in lines)
+            {
+                Text(PxX(x), lineY, size, line, FontResource(font, isBold));
+                lineY -= lineHeight * PageHeight / TemplatePixelHeight;
+            }
+        }
+
         public void TextCenteredPx(int x, int y, int size, string text, string font = "Helvetica", bool isBold = false)
         {
-            var ascii = PdfText.ToAscii(text);
-            var estimatedWidth = ascii.Length * size * 0.45;
-            Text(PxX(x) - estimatedWidth / 2, ToPdfY(y), size, ascii, FontResource(font, isBold));
+            var winAnsi = PdfText.ToWinAnsi(text);
+            var estimatedWidth = winAnsi.Length * size * 0.45;
+            Text(PxX(x) - estimatedWidth / 2, ToPdfY(y), size, winAnsi, FontResource(font, isBold));
         }
 
         public void SetTextColor(double r, double g, double b)
@@ -502,6 +878,28 @@ public class MjPdfExportService
         private static double PxX(int x) => x * PageWidth / TemplatePixelWidth;
         private static double ToPdfY(int y) => PageHeight - (y * PageHeight / TemplatePixelHeight);
 
+        public static IEnumerable<string> WrapText(string? text, int maxWidth, int fontSize)
+        {
+            var width = Math.Max(1, maxWidth / Math.Max(4, fontSize));
+            var paragraphs = (text ?? string.Empty)
+                .Trim()
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace('\r', '\n')
+                .Split('\n');
+
+            foreach (var paragraph in paragraphs)
+            {
+                if (string.IsNullOrWhiteSpace(paragraph))
+                {
+                    yield return string.Empty;
+                    continue;
+                }
+
+                foreach (var line in Wrap(PdfText.ToWinAnsi(paragraph), width))
+                    yield return line;
+            }
+        }
+
         private static IEnumerable<string> Wrap(string? text, int width)
         {
             text = string.IsNullOrWhiteSpace(text) || text == "N/A" ? string.Empty : text.Trim();
@@ -523,7 +921,25 @@ public class MjPdfExportService
     private static class PdfText
     {
         public static string Escape(string value) =>
-            ToAscii(value).Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+            ToWinAnsi(value).Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+
+        public static string ToWinAnsi(string value)
+        {
+            var builder = new StringBuilder(value.Length);
+            foreach (var c in value.Normalize(NormalizationForm.FormC))
+            {
+                builder.Append(c switch
+                {
+                    '—' or '–' or '‑' => '-',
+                    '‘' or '’' => '\'',
+                    '“' or '”' => '"',
+                    '•' => '-',
+                    >= ' ' and <= '\u00ff' => c,
+                    _ => '?'
+                });
+            }
+            return builder.ToString();
+        }
 
         public static string ToAscii(string value)
         {

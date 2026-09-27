@@ -1,0 +1,43 @@
+{
+  "description": "WFRP : contexte, vérification de diff et preuve de validation en fin de tour.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/scripts/harness/hook.cjs\"",
+            "timeout": 15,
+            "statusMessage": "Contexte WFRP"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/scripts/harness/hook.cjs\"",
+            "timeout": 15,
+            "statusMessage": "Vérification du diff WFRP"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/scripts/harness/hook.cjs\"",
+            "timeout": 20,
+            "statusMessage": "Vérification de la preuve WFRP"
+          }
+        ]
+      }
+    ]
+  }
+}

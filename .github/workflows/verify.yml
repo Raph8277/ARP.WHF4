@@ -1,0 +1,27 @@
+name: Application verification
+on:
+  push:
+    paths: ['app/**', 'scripts/harness/**', '.agents/**', '.codex/**', 'AGENTS.md', '.github/workflows/verify.yml']
+  pull_request:
+    paths: ['app/**', 'scripts/harness/**', '.agents/**', '.codex/**', 'AGENTS.md', '.github/workflows/verify.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: dotnet restore app/Wfrp4.sln
+      - run: node scripts/harness/verify.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification
+          path: tmp/verification/

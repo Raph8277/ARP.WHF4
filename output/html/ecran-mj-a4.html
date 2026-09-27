@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>Écran du MJ – WFRP4</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
+@page{size:A4 portrait;margin:0}
+:root{--ink:#2a2118;--blood:#8a1c1c;--gold:#b08d3c;--parch:#f4ecd8;--parch2:#eadfc2;--line:#cdbb8e}
+*{box-sizing:border-box;margin:0}
+body{font:9.6pt/1.3 'Crimson Pro',Georgia,serif;color:var(--ink);background:#777}
+.page{width:210mm;height:297mm;position:relative;overflow:hidden;page-break-after:always;break-after:page;
+ background:radial-gradient(ellipse at 50% 40%,#f8f1df,var(--parch) 60%,var(--parch2));padding:13mm 14mm 14mm}
+.page{isolation:isolate;--art:none;--tint:rgba(138,28,28,.10);--sigil:.09}
+.page::before{content:"";position:absolute;inset:5mm;border:1.2pt solid var(--gold);outline:.5pt solid var(--blood);outline-offset:-3mm;pointer-events:none}
+/* Couche d'ambiance : coins ornés, filigrane, teinte de page, grain de papier */
+.page::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+ background:
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cg fill='none' stroke='%23b08d3c' stroke-width='1.6'%3E%3Cpath d='M4 56V16Q4 4 16 4H56'/%3E%3Cpath d='M10 56V22Q10 10 22 10H56' stroke='%238a1c1c' stroke-width='.7'/%3E%3Ccircle cx='4' cy='4' r='3' fill='%238a1c1c' stroke='none'/%3E%3C/g%3E%3C/svg%3E") 3mm 3mm/16mm 16mm no-repeat,
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cg transform='translate(60 0) scale(-1 1)' fill='none' stroke='%23b08d3c' stroke-width='1.6'%3E%3Cpath d='M4 56V16Q4 4 16 4H56'/%3E%3Cpath d='M10 56V22Q10 10 22 10H56' stroke='%238a1c1c' stroke-width='.7'/%3E%3Ccircle cx='4' cy='4' r='3' fill='%238a1c1c' stroke='none'/%3E%3C/g%3E%3C/svg%3E") right 3mm top 3mm/16mm 16mm no-repeat,
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cg transform='translate(0 60) scale(1 -1)' fill='none' stroke='%23b08d3c' stroke-width='1.6'%3E%3Cpath d='M4 56V16Q4 4 16 4H56'/%3E%3Cpath d='M10 56V22Q10 10 22 10H56' stroke='%238a1c1c' stroke-width='.7'/%3E%3Ccircle cx='4' cy='4' r='3' fill='%238a1c1c' stroke='none'/%3E%3C/g%3E%3C/svg%3E") left 3mm bottom 3mm/16mm 16mm no-repeat,
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cg transform='translate(60 60) scale(-1 -1)' fill='none' stroke='%23b08d3c' stroke-width='1.6'%3E%3Cpath d='M4 56V16Q4 4 16 4H56'/%3E%3Cpath d='M10 56V22Q10 10 22 10H56' stroke='%238a1c1c' stroke-width='.7'/%3E%3Ccircle cx='4' cy='4' r='3' fill='%238a1c1c' stroke='none'/%3E%3C/g%3E%3C/svg%3E") right 3mm bottom 3mm/16mm 16mm no-repeat,
+  var(--art) center 78%/120mm auto no-repeat,
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='none' stroke='%232a2118' stroke-opacity='.11' stroke-width='1.2'%3E%3Ccircle cx='100' cy='100' r='92'/%3E%3Ccircle cx='100' cy='100' r='84' stroke-dasharray='2 5'/%3E%3Ccircle cx='100' cy='100' r='40'/%3E%3Cpath d='M100 8V192M8 100H192M35 35L165 165M165 35L35 165'/%3E%3Cpath d='M100 30L112 88 170 100 112 112 100 170 88 112 30 100 88 88Z' fill='%232a2118' fill-opacity='.05'/%3E%3C/g%3E%3C/svg%3E") center 80%/95mm no-repeat,
+  radial-gradient(ellipse at 50% 105%,var(--tint),transparent 55%),
+  radial-gradient(ellipse at 0 0,rgba(90,60,20,.16),transparent 30%),
+  radial-gradient(ellipse at 100% 100%,rgba(90,60,20,.20),transparent 35%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .25 0 0 0 0 .1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23p)' opacity='.35'/%3E%3C/svg%3E");
+ opacity:1}
+.p2{--tint:rgba(138,28,28,.16)}
+.p3{--tint:rgba(70,100,40,.17)}
+.p4{--tint:rgba(70,50,120,.14)}
+/* Emplacement gravure : renseigner --art:url(gravure.png) sur une page (niveaux de gris, ~10 % d'opacité conseillé) */
+header::after{content:"";position:absolute;left:50%;bottom:-4pt;width:9pt;height:9pt;background:var(--blood);transform:translateX(-50%) rotate(45deg);outline:1.5pt solid var(--parch)}
+.folio{position:absolute;bottom:6mm;right:14mm;font:600 8pt Cinzel,serif;color:var(--blood)}
+.brand{position:absolute;bottom:6mm;left:14mm;font:600 7pt Cinzel,serif;letter-spacing:.15em;color:#7a6a48}
+header{position:relative;display:flex;align-items:center;gap:4mm;border-bottom:2pt solid var(--blood);padding-bottom:2mm;margin-bottom:1.5mm}
+header .n{font:800 26pt Cinzel,serif;color:var(--blood);line-height:1}
+header h1{font:800 16pt Cinzel,serif;letter-spacing:.06em;text-transform:uppercase}
+.lead{font-style:italic;color:#5a4a33;margin:0 0 3mm;font-size:10pt}
+h2{font:800 9.5pt Cinzel,serif;text-transform:uppercase;letter-spacing:.08em;color:var(--blood);margin:3mm 0 1.3mm;display:flex;align-items:center;gap:2mm}
+h2::after{content:"";flex:1;height:1pt;background:linear-gradient(90deg,var(--gold),transparent)}
+table{width:100%;border-collapse:collapse;font-size:9pt}
+th{background:var(--ink);color:var(--parch);font:600 7.5pt Cinzel,serif;letter-spacing:.06em;text-transform:uppercase;padding:1mm 1.6mm;text-align:left}
+td{padding:.9mm 1.6mm;border-bottom:.5pt solid var(--line);vertical-align:top}
+tr:nth-child(even) td{background:rgba(176,141,60,.10)}
+td:first-child{font-weight:600}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.box{border:1pt solid var(--gold);background:rgba(255,255,255,.35);padding:2mm 3mm;border-radius:1.5mm}
+.box.red{border-color:var(--blood);background:rgba(138,28,28,.06)}
+.box h3{font:800 8.5pt Cinzel,serif;color:var(--blood);text-transform:uppercase;margin-bottom:1mm}
+ul{padding-left:4mm}li{margin:.4mm 0}
+.dif{display:grid;grid-template-columns:repeat(7,1fr);gap:1.2mm;text-align:center;margin:1mm 0}
+.dif div{border:1pt solid var(--ink);border-radius:1.2mm;padding:1mm 0;font-size:8pt;background:#fff8}
+.dif b{display:block;font:800 13pt Cinzel,serif}
+.pos b{color:#2c6b2f}.neg b{color:var(--blood)}
+.loc{display:grid;grid-template-columns:repeat(6,1fr);gap:1.2mm;text-align:center}
+.loc div{background:var(--ink);color:var(--parch);border-radius:1.2mm;padding:1mm}
+.loc b{display:block;font:600 8pt Cinzel,serif;color:#e6c66b}
+.tag{display:inline-block;background:var(--blood);color:#fff;font:600 7pt Cinzel,serif;padding:0 1.5mm;border-radius:1mm}
+.small{font-size:8.4pt;color:#5a4a33}
+@media screen{.page{margin:8mm auto}}
+</style></head><body>
+
+<section class="page">
+<header><span class="n">I</span><h1>Résoudre les jets</h1></header>
+<p class="lead">Fixez l'intention, annoncez l'enjeu et ne lancez les dés que si l'issue est incertaine.</p>
+<h2>Procédure en six étapes</h2>
+<div class="cols"><table><tr><th>#</th><th>Étape</th></tr>
+<tr><td>1</td><td>Décrire l'intention et l'approche.</td></tr>
+<tr><td>2</td><td>Choisir la Compétence, sinon la Caractéristique.</td></tr>
+<tr><td>3</td><td>Appliquer la Difficulté au score testé.</td></tr></table>
+<table><tr><th>#</th><th>Étape</th></tr>
+<tr><td>4</td><td>Lancer 1d100 : résultat ≤ score modifié = réussite.</td></tr>
+<tr><td>5</td><td>Si la qualité compte, calculer les SL.</td></tr>
+<tr><td>6</td><td>Appliquer l'effet, décrire la nouvelle situation.</td></tr></table></div>
+<h2>Difficulté et seuil</h2>
+<div class="dif">
+<div class="pos"><b>+60</b>Très facile</div><div class="pos"><b>+40</b>Facile</div><div class="pos"><b>+20</b>Moyen</div>
+<div><b>+0</b>Stimulant</div><div class="neg"><b>−10</b>Difficile</div><div class="neg"><b>−20</b>Dur</div><div class="neg"><b>−30</b>Très dur</div></div>
+<p class="small">Seuil final = score de Compétence ou de Caractéristique + modificateur.</p>
+<div class="cols">
+<div><h2>Lire le d100</h2><table><tr><th>Résultat</th><th>Effet</th></tr>
+<tr><td>01 – 05</td><td>Réussite automatique ; test dramatique : au moins +1 SL.</td></tr>
+<tr><td>96 – 00</td><td>Échec automatique ; test dramatique : au plus −1 SL.</td></tr>
+<tr><td>Double réussi</td><td>Critique en combat (hors combat si règle optionnelle).</td></tr>
+<tr><td>Double raté</td><td>Maladresse en combat (idem).</td></tr>
+<tr><td>00</td><td>Se lit 100.</td></tr></table></div>
+<div><h2>Niveaux de réussite</h2><p class="small" style="margin-bottom:1mm">SL = dizaine du score modifié − dizaine du jet. Test opposé : comparez les SL finaux.</p>
+<table><tr><th>SL</th><th>Lecture</th></tr>
+<tr><td>+6 ou +</td><td>Exceptionnel : effet maximal, ouverture nette</td></tr>
+<tr><td>+4 à +5</td><td>Impressionnant : réussite forte</td></tr>
+<tr><td>+2 à +3</td><td>Réussi : objectif clairement atteint</td></tr>
+<tr><td>+0 à +1</td><td>Marginal : atteint avec coût</td></tr></table></div></div>
+<table style="margin-top:1.5mm"><tr><th>SL</th><th>Lecture</th><th>Conséquence suggérée</th></tr>
+<tr><td>−0 à −1</td><td>Échec marginal</td><td>Pas d'effet, situation encore ouverte.</td></tr>
+<tr><td>−2 à −3</td><td>Échec</td><td>Objectif manqué et pression accrue.</td></tr>
+<tr><td>−4 à −5</td><td>Échec sévère</td><td>Conséquence supplémentaire appropriée.</td></tr>
+<tr><td>−6 ou −</td><td>Désastre</td><td>Revers majeur cohérent avec l'enjeu.</td></tr></table>
+<h2>Choisir le type de test</h2>
+<table><tr><th>Type</th><th>Quand</th><th>Résolution</th></tr>
+<tr><td>Simple</td><td>Seul le oui ou non compte.</td><td>Comparer le d100 au seuil.</td></tr>
+<tr><td>Dramatique</td><td>La qualité ou l'enjeu compte.</td><td>Comparer puis calculer les SL.</td></tr>
+<tr><td>Opposé</td><td>Deux parties s'affrontent.</td><td>Plus grand SL ; égalité : meilleur score testé.</td></tr>
+<tr><td>Prolongé</td><td>Temps et efforts successifs.</td><td>Additionner les SL jusqu'au seuil fixé.</td></tr>
+<tr><td>Assisté</td><td>Une aide concrète est possible.</td><td>Meilleur score +10 par assistant, limité par le Bonus.</td></tr></table>
+<div class="box red" style="margin-top:3mm"><h3>À retenir</h3>Un test opposé peut être remporté même si les deux résultats sont des échecs : les SL départagent toujours.</div>
+<span class="brand">WFRP4 · ÉCRAN DU MJ · REIKLAND</span><span class="folio">1 / 4</span></section>
+
+<section class="page p2">
+<header><span class="n">II</span><h1>Conduire le combat</h1></header>
+<p class="lead">Annoncez l'ordre, suivez l'Avantage et résolvez chaque attaque dans le même ordre.</p>
+<h2>Déroulement du round</h2>
+<table><tr><th style="width:24mm">Étape</th><th>Procédure</th></tr>
+<tr><td>1 · Surprise</td><td>Le MJ détermine qui est Surpris, généralement au premier round.</td></tr>
+<tr><td>2 · Début</td><td>Résoudre les effets de début de round.</td></tr>
+<tr><td>3 · Tours</td><td>Initiative décroissante ; égalité : Agilité, puis test opposé d'Agilité.</td></tr>
+<tr><td>4 · Fin</td><td>Résoudre Saignement, Enflammé, Empoisonné et autres effets de fin de round.</td></tr>
+<tr><td>5 · Suite</td><td>Nouveau round jusqu'à fuite, reddition, objectif atteint ou défaite.</td></tr></table>
+<p class="small">À son tour, un personnage dispose d'un Mouvement et d'une Action, dans l'ordre de son choix.</p>
+<h2>Résoudre une attaque</h2>
+<table><tr><th style="width:22mm">Étape</th><th>Mêlée</th><th>Distance</th></tr>
+<tr><td>Toucher</td><td>Test opposé de Mêlée contre la défense choisie.</td><td>Test simple d'À Distance (portée, couvert, taille, mouvement).</td></tr>
+<tr><td>Localiser</td><td colspan="2">Inverser le jet de l'attaquant.</td></tr>
+<tr><td>Dégâts</td><td>BF + valeur d'arme + SL final.</td><td>Valeur d'arme + SL.</td></tr>
+<tr><td>Blessures</td><td colspan="2">Dégâts − BE − PA de la localisation ; minimum 1 si l'attaque touche.</td></tr></table>
+<h2>Localisation de la touche</h2>
+<div class="loc"><div><b>01–09</b>Tête</div><div><b>10–24</b>Bras G</div><div><b>25–44</b>Bras D</div><div><b>45–79</b>Corps</div><div><b>80–89</b>Jambe D</div><div><b>90–00</b>Jambe G</div></div>
+<div class="cols"><div><h2>Mouvement et engagement</h2><table><tr><th>Situation</th><th>Règle</th></tr>
+<tr><td>Marche</td><td>2 × M mètres.</td></tr><tr><td>Course / Charge</td><td>4 × M mètres.</td></tr>
+<tr><td>Désengagement</td><td>Commencer non Engagé, parcourir ≥ M m sans dépasser la Course, attaquer, +1 Avantage.</td></tr>
+<tr><td>Fuite</td><td>Test opposé Esquive ou Mêlée ; l'adversaire gagne +1 Avantage et une attaque gratuite à +20.</td></tr></table></div>
+<div><h2>Avantage <span class="tag">+10 / pt</span></h2>
+<div class="box"><h3>Gagner</h3><ul><li>Remporter un test opposé en combat : +1</li><li>Réussir une attaque à distance : +1</li><li>Charger : +1 · Exploiter le terrain : souvent +1</li><li>Vaincre un adversaire important : +1 (parfois +2)</li></ul></div>
+<div class="box red" style="margin-top:1.5mm"><h3>Perdre</h3>Test opposé perdu, Blessures perdues, Condition subie ou fin du combat : tout perdre. Aucun gain du round : −1.</div></div></div>
+<h2>Modificateurs fréquents</h2>
+<div class="cols"><table><tr><th>Situation</th><th>Mod.</th></tr>
+<tr><td>Viser (Action précédente)</td><td>+20</td></tr><tr><td>Cible À Terre</td><td>+20</td></tr><tr><td>Flanc ou dos</td><td>+20</td></tr>
+<tr><td>Surnombre 2 contre 1 / 3 contre 1</td><td>+20 / +40</td></tr><tr><td>Tir courte portée</td><td>+20</td></tr></table>
+<table><tr><th>Situation</th><th>Mod.</th></tr>
+<tr><td>Tir longue portée</td><td>−10</td></tr><tr><td>Tirer et se déplacer</td><td>−10</td></tr><tr><td>Attaquer depuis À Terre</td><td>−20 / −30 tir</td></tr>
+<tr><td>Point précis · Obscurité</td><td>−20</td></tr><tr><td>Main secondaire non maîtrisée</td><td>−20</td></tr></table></div>
+<div class="box red" style="margin-top:2.5mm"><h3>Critiques et maladresses</h3><ul>
+<li><b>Double réussi :</b> l'attaque inflige aussi une Blessure Critique.</li>
+<li><b>Double raté :</b> table Oups. Un combattant peut gagner l'opposition et subir sa Maladresse.</li>
+<li><b>Exactement 0 B :</b> À Terre. <b>Sous 0 B :</b> rester à 0, À Terre, plus une Blessure Critique.</li></ul></div>
+<span class="brand">WFRP4 · ÉCRAN DU MJ · REIKLAND</span><span class="folio">2 / 4</span></section>
+
+<section class="page p3">
+<header><span class="n">III</span><h1>Blessures, conditions, ressources</h1></header>
+<p class="lead">Appliquez d'abord les Blessures, puis les Conditions et enfin les effets de fin de round.</p>
+<div class="box"><h3>Blessures et récupération</h3><ul>
+<li>Blessures subies = Dégâts − BE − PA de la localisation ; minimum 1 si l'attaque touche.</li>
+<li>À 0 B : À Terre ; sous 0 : aussi une Blessure Critique. Les Critiques suivent leur propre durée.</li>
+<li>Pour se relever à 0 B, récupérer d'abord au moins 1 B.</li></ul></div>
+<h2>Conditions</h2>
+<table><tr><th style="width:22mm">Condition</th><th>Effet principal</th><th style="width:52mm">Retrait habituel</th></tr>
+<tr><td>Enflammé</td><td>Fin du round : 1d10 dégâts (BE et PA du lieu le moins protégé) ; +1 par exemplaire.</td><td>Athlétisme ; chaque SL en retire une de plus.</td></tr>
+<tr><td>Saignement</td><td>Fin du round : −1 B sans réduction. À 0 B : Inconscient, risque de mort.</td><td>Soins ; puis Fatigué.</td></tr>
+<tr><td>Aveuglé</td><td>−10 aux tests de vue ; attaquants en mêlée +10.</td><td>Fin du round.</td></tr>
+<tr><td>Brisé</td><td>Action et Mouvement pour fuir ou se cacher ; −10 aux autres tests.</td><td>Calme hors engagement. Puis Fatigué.</td></tr>
+<tr><td>Assourdi</td><td>−10 à l'audition ; +10 aux attaques de flanc ou de dos.</td><td>Fin du round.</td></tr>
+<tr><td>Entravé</td><td>Immobile ; −10 aux actions impliquant du mouvement.</td><td>Force opposée.</td></tr>
+<tr><td>Fatigué</td><td>−10 à tous les tests.</td><td>Repos ou effet indiqué.</td></tr>
+<tr><td>Empoisonné</td><td>Fin du round : −1 B sans réduction ; −10 à tous les tests.</td><td>Résistance ou Soins. Puis Fatigué.</td></tr>
+<tr><td>À Terre</td><td>Ramper à demi-vitesse ; −20 mouvement ; mêlée contre soi +20.</td><td>Mouvement pour se lever (≥ 1 B).</td></tr>
+<tr><td>Étourdi</td><td>Aucune action ; attaques rapprochées automatiques et Critiques.</td><td>Résistance +0 en fin de round.</td></tr>
+<tr><td>Surpris</td><td>Pas d'Action, demi-Mouvement, −10 ; l'attaquant en mêlée gagne +1 Avantage.</td><td>Après la 1re attaque ou fin du round.</td></tr>
+<tr><td>Inconscient</td><td>Pas d'Action ni Mouvement ; pas de défense opposée.</td><td>Supprimer la cause ; À Terre et Fatigué.</td></tr></table>
+<p class="small" style="margin-top:1mm">Les exemplaires d'une même Condition s'additionnent, sauf À Terre, Surpris et Inconscient. Pour des pénalités différentes, appliquer la plus forte.</p>
+<h2>Destin · Fortune · Persévérance · Résolution</h2>
+<table><tr><th style="width:24mm">Ressource</th><th style="width:22mm">Nature</th><th>Effets essentiels</th></tr>
+<tr><td>Fortune</td><td>Temporaire</td><td>Relancer un test échoué ; +1 SL après le jet ; choisir quand agir dans le round.</td></tr>
+<tr><td>Destin</td><td>Permanent</td><td>Éviter la mort : hors de la rencontre mais vivant, ou incident fatal évité.</td></tr>
+<tr><td>Résolution</td><td>Temporaire</td><td>Immunité psychologique jusqu'au prochain tour ; ignorer les modificateurs des Critiques ; supprimer une Condition.</td></tr>
+<tr><td>Persévérance</td><td>Permanent</td><td>Refuser une mutation ; choisir le résultat d'un test ; réussir avec ≥ +1 SL.</td></tr></table>
+<div class="box red" style="margin-top:3mm"><h3>Peur, Terreur, Corruption</h3><ul>
+<li><b>Peur X :</b> test prolongé de Calme jusqu'à X SL ; −1 SL contre la source tant qu'elle n'est pas maîtrisée.</li>
+<li><b>Terreur X :</b> test immédiat de Calme ; échec : X + SL négatifs Conditions Brisé, puis traiter comme Peur.</li>
+<li><b>Corruption :</b> au-delà de BE + BFM Points, test de Résistance ; un échec peut provoquer une mutation.</li></ul></div>
+<span class="brand">WFRP4 · ÉCRAN DU MJ · REIKLAND</span><span class="folio">3 / 4</span></section>
+
+<section class="page p4">
+<header><span class="n">IV</span><h1>Magie, soins et scènes</h1></header>
+<p class="lead">Avant le jet, rendez visibles le seuil, l'effet attendu et la conséquence principale d'un échec.</p>
+<h2>Magie, prières et soins</h2>
+<table><tr><th style="width:28mm">Procédure</th><th>Résolution</th></tr>
+<tr><td>Incantation</td><td>Test de Langue Magick ; réussite si SL ≥ CN. Simple échec : rien. Maladresse : Erreur Mineure.</td></tr>
+<tr><td>Incantation critique</td><td>Double réussi : effet critique prévu, avec normalement une Erreur Mineure.</td></tr>
+<tr><td>Canalisation</td><td>Test prolongé jusqu'au CN. Round suivant : sort à CN 0. Maladresse : Erreur Majeure.</td></tr>
+<tr><td>Dissipation</td><td>Langue Magick opposée si la cible est visible et à portée de BFM mètres. Une tentative par tour.</td></tr>
+<tr><td>Prière</td><td>Test demandé par la bénédiction ou le miracle ; appliquer SL, CN et règles de Péché.</td></tr>
+<tr><td>Soins</td><td>Appliquer l'effet. Pour Saignement ou Empoisonné, chaque SL retire une Condition de plus.</td></tr></table>
+<div class="cols" style="margin-top:3mm">
+<div class="box"><h3>Avant chaque jet</h3><ul><li><b>Intention :</b> ce que le personnage cherche à obtenir.</li><li><b>Compétence :</b> la bonne Caractéristique ou Compétence.</li><li><b>Difficulté :</b> le score final après bonus et pénalités.</li><li><b>Type :</b> simple, dramatique, opposé, prolongé.</li><li><b>Enjeu :</b> ce qui change en cas de réussite ou d'échec.</li></ul></div>
+<div class="box"><h3>Après chaque jet</h3><ul><li>Annoncer réussite ou échec, puis les SL si la qualité compte.</li><li>Vérifier doubles, Avantage, Conditions, ressources.</li><li>Appliquer dégâts ou effet, mettre la fiche à jour.</li><li>Décrire une conséquence concrète qui donne au joueur suivant une situation claire.</li></ul></div></div>
+<h2>Arbitrage rapide par les SL</h2>
+<table><tr><th style="width:32mm">Résultat</th><th>Cadre d'arbitrage</th></tr>
+<tr><td>Réussite forte</td><td>Effet complet ; convertir les SL excédentaires en rapidité, information, qualité ou position.</td></tr>
+<tr><td>Réussite marginale</td><td>Objectif principal accordé ; un coût cohérent seulement si l'enjeu annoncé le justifie.</td></tr>
+<tr><td>Échec marginal</td><td>Ne pas bloquer la scène : voie plus lente, coût, danger ou information incomplète.</td></tr>
+<tr><td>Échec sévère</td><td>Conséquence annoncée ; aggraver la position sans retirer arbitrairement les choix du groupe.</td></tr></table>
+<div class="cols"><div><h2>Rappels de calcul</h2><table><tr><th>Valeur</th><th>Calcul</th></tr>
+<tr><td>BF / BE</td><td>Dizaine de la caractéristique</td></tr><tr><td>SL</td><td>Dizaine score − dizaine d100</td></tr>
+<tr><td>Dégâts mêlée</td><td>BF + arme + SL</td></tr><tr><td>Dégâts distance</td><td>Arme + SL</td></tr>
+<tr><td>Blessures</td><td>Dégâts − BE − PA (min. 1)</td></tr><tr><td>Marche / Course</td><td>M×2 / M×4 m</td></tr><tr><td>Seuil Corruption</td><td>BE + BFM</td></tr></table></div>
+<div><h2>Priorités de règle</h2><div class="box red"><ul>
+<li>Un Talent, une Qualité, un sort, un miracle ou une Critique qui le dit explicitement remplace la règle générale.</li>
+<li>Les résumés ne remplacent jamais le texte complet quand un détail devient décisif.</li>
+<li>Dans le doute : décider, noter, vérifier le Livre de base après la scène.</li></ul></div></div></div>
+<p class="small" style="margin-top:3mm;text-align:center"><i>Sources : WFRP4 Livre de base ; Guide de référence rapide ; Aide de table pour le Reikland.</i></p>
+<span class="brand">WFRP4 · ÉCRAN DU MJ · REIKLAND</span><span class="folio">4 / 4</span></section>
+</body></html>

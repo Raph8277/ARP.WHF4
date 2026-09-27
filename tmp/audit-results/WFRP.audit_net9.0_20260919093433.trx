@@ -1,0 +1,136 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="d1af23d2-8598-4eba-8a42-fd8b21e65100" name="rapha@DESKTOP-HELIOS 2026-09-19 09:34:32" runUser="DESKTOP-HELIOS\CodexSandboxOffline" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-19T09:34:32.4768423+02:00" queuing="2026-09-19T09:34:32.4768427+02:00" start="2026-09-19T09:34:29.3517039+02:00" finish="2026-09-19T09:34:33.6461321+02:00" />
+  <TestSettings name="default" id="b64a46b5-759c-48b2-ae76-2975271b0a03">
+    <Deployment runDeploymentRoot="rapha_DESKTOP-HELIOS_2026-09-19_09_34_32" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="c754a8e5-17a3-47be-a574-30662b3526e1" testId="03d4cb6b-0024-a94c-5115-43a1cd0039d4" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_accepte_les_listes_de_carriere_separees_par_des_virgules" computerName="DESKTOP-HELIOS" duration="00:00:00.0043843" startTime="2026-09-19T09:34:33.5513824+02:00" endTime="2026-09-19T09:34:33.5513826+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c754a8e5-17a3-47be-a574-30662b3526e1" />
+    <UnitTestResult executionId="2eb6740d-8614-4374-8cc4-245d61c4afef" testId="c5acfd3f-0a0d-63c8-d539-132d2aae989c" testName="Wfrp4.Server.Tests.UnitTest1.CalculerCoutCaracteristique_respecte_les_paliers" computerName="DESKTOP-HELIOS" duration="00:00:00.4320492" startTime="2026-09-19T09:34:31.9288797+02:00" endTime="2026-09-19T09:34:31.9288989+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2eb6740d-8614-4374-8cc4-245d61c4afef" />
+    <UnitTestResult executionId="2951fc55-5b73-4a08-a51e-4276ba0445c6" testId="466bc10b-0164-e357-8486-3d11ed601d9d" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.AvancerCarriere_refuse_si_les_competences_sont_insuffisantes" computerName="DESKTOP-HELIOS" duration="00:00:00.0045281" startTime="2026-09-19T09:34:33.5860406+02:00" endTime="2026-09-19T09:34:33.5860407+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2951fc55-5b73-4a08-a51e-4276ba0445c6" />
+    <UnitTestResult executionId="e3e1dfff-b414-4e31-8e6f-736a3eae9eb2" testId="72a877b6-597c-1865-4643-d0f0ead96773" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_avec_magie_mineure_exige_le_bonus_fm_en_sorts" computerName="DESKTOP-HELIOS" duration="00:00:01.7267675" startTime="2026-09-19T09:34:33.2212634+02:00" endTime="2026-09-19T09:34:33.2212637+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e3e1dfff-b414-4e31-8e6f-736a3eae9eb2" />
+    <UnitTestResult executionId="e2e21273-c43d-4316-8bc0-026f99fb4a74" testId="89b477b0-cb3e-753b-46c2-f1e629daa9f2" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_valorise_les_competences_de_base_absentes_a_5" computerName="DESKTOP-HELIOS" duration="00:00:00.0041297" startTime="2026-09-19T09:34:33.5695284+02:00" endTime="2026-09-19T09:34:33.5695285+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e2e21273-c43d-4316-8bc0-026f99fb4a74" />
+    <UnitTestResult executionId="ed08f6ab-5e61-4f82-b8f7-a3dbaaa6b853" testId="0e5d6732-44c5-786f-885e-1cc3eed4a788" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.AvancerCarriere_consomme_100_xp_et_active_le_niveau_suivant" computerName="DESKTOP-HELIOS" duration="00:00:00.0089864" startTime="2026-09-19T09:34:33.5468977+02:00" endTime="2026-09-19T09:34:33.5468979+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ed08f6ab-5e61-4f82-b8f7-a3dbaaa6b853" />
+    <UnitTestResult executionId="3f376a1d-73d9-4214-99cd-4d747c2219c4" testId="bd040e7c-72e3-d141-fa71-dee0c3aaa1d3" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.ChangerCarriere_dans_la_meme_classe_coute_100_xp_si_niveau_complete" computerName="DESKTOP-HELIOS" duration="00:00:00.0068008" startTime="2026-09-19T09:34:33.5764545+02:00" endTime="2026-09-19T09:34:33.5764546+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3f376a1d-73d9-4214-99cd-4d747c2219c4" />
+    <UnitTestResult executionId="a6ada0c9-31be-47d9-a6d3-7024e3d93e07" testId="c22b5774-b9ab-bf89-a98c-03c443c1624f" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.AvancerCompetence_de_base_absente_demarre_a_5_sans_cout_de_socle" computerName="DESKTOP-HELIOS" duration="00:00:00.0305071" startTime="2026-09-19T09:34:33.5188830+02:00" endTime="2026-09-19T09:34:33.5188833+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a6ada0c9-31be-47d9-a6d3-7024e3d93e07" />
+    <UnitTestResult executionId="21f5f3bd-50ee-4937-9448-c45b3b5e4b9f" testId="12e9db46-567b-b917-4039-edac6f7799c8" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_refuse_un_total_d_avances_different_de_40" computerName="DESKTOP-HELIOS" duration="00:00:00.0034892" startTime="2026-09-19T09:34:33.5378106+02:00" endTime="2026-09-19T09:34:33.5378107+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="21f5f3bd-50ee-4937-9448-c45b3b5e4b9f" />
+    <UnitTestResult executionId="ba31e408-304d-4856-be5e-e0f94ad36dcf" testId="793672fb-75f7-72b7-fa01-6d75820e7103" testName="Wfrp4.Server.Tests.UnitTest1.CalculerCoutCompetence_respecte_les_paliers" computerName="DESKTOP-HELIOS" duration="00:00:00.0001852" startTime="2026-09-19T09:34:31.9318512+02:00" endTime="2026-09-19T09:34:31.9318512+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ba31e408-304d-4856-be5e-e0f94ad36dcf" />
+    <UnitTestResult executionId="59fd2980-10b7-47a8-ac8f-214447ab18c4" testId="586e8134-2b51-c4a0-6a9a-44219441d8d0" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_refuse_plusieurs_talents_de_carriere" computerName="DESKTOP-HELIOS" duration="00:00:00.0025828" startTime="2026-09-19T09:34:33.5540477+02:00" endTime="2026-09-19T09:34:33.5540479+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="59fd2980-10b7-47a8-ac8f-214447ab18c4" />
+    <UnitTestResult executionId="6683b950-b7d6-4699-ad5e-c9400e7bc317" testId="077be2a2-790b-ab96-06ba-1b9701fbb13e" testName="Wfrp4.Server.Tests.UnitTest1.CalculerCoutCompetenceTotal_rembourse_les_avances_retires" computerName="DESKTOP-HELIOS" duration="00:00:00.0001729" startTime="2026-09-19T09:34:31.9319470+02:00" endTime="2026-09-19T09:34:31.9319470+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6683b950-b7d6-4699-ad5e-c9400e7bc317" />
+    <UnitTestResult executionId="0339a2dc-197e-485b-9a97-c44fcc08b6bd" testId="e9813fdc-1106-3a20-f182-ffdd08204ba6" testName="Wfrp4.Server.Tests.UnitTest1.CalculerCoutCaracteristiqueTotal_rembourse_les_avances_retires" computerName="DESKTOP-HELIOS" duration="00:00:00.0001788" startTime="2026-09-19T09:34:31.9314696+02:00" endTime="2026-09-19T09:34:31.9314697+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0339a2dc-197e-485b-9a97-c44fcc08b6bd" />
+    <UnitTestResult executionId="b4442550-e896-4744-9fe0-2b3b5b192dc5" testId="920a4a1c-5f71-ff99-ada1-6f53468db79e" testName="Wfrp4.Server.Tests.UnitTest1.CalculerCoutTalentTotal_rembourse_les_occurrences_retires" computerName="DESKTOP-HELIOS" duration="00:00:00.0001605" startTime="2026-09-19T09:34:31.9317684+02:00" endTime="2026-09-19T09:34:31.9317684+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b4442550-e896-4744-9fe0-2b3b5b192dc5" />
+    <UnitTestResult executionId="a36ad8ab-9361-4259-a1fe-cc1e24d322e8" testId="db07e60e-19e9-84bf-acf0-b116ca2612e2" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_ne_facture_pas_les_avances_et_talent_gratuits" computerName="DESKTOP-HELIOS" duration="00:00:00.0048395" startTime="2026-09-19T09:34:33.5814118+02:00" endTime="2026-09-19T09:34:33.5814124+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a36ad8ab-9361-4259-a1fe-cc1e24d322e8" />
+    <UnitTestResult executionId="6dd09051-2804-4eaa-8c05-be3997a53133" testId="060421e6-6dc9-bf41-8da8-e12d4f63b257" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_avec_magie_mineure_refuse_un_nombre_de_sorts_incorrect" computerName="DESKTOP-HELIOS" duration="00:00:00.0111208" startTime="2026-09-19T09:34:33.5652922+02:00" endTime="2026-09-19T09:34:33.5652926+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6dd09051-2804-4eaa-8c05-be3997a53133" />
+    <UnitTestResult executionId="c4ab0dec-cd7a-42f7-bdb0-a9505d53d010" testId="aa3d4040-5831-a9f7-f21c-bda90e0ede4a" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.ReduireCompetence_gratuite_ne_rend_pas_d_xp_inexistant" computerName="DESKTOP-HELIOS" duration="00:00:00.0152433" startTime="2026-09-19T09:34:33.5342271+02:00" endTime="2026-09-19T09:34:33.5342274+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c4ab0dec-cd7a-42f7-bdb0-a9505d53d010" />
+    <UnitTestResult executionId="8a818a38-c7dc-4655-af34-5bcef8708617" testId="370d0341-2c67-b136-5419-2c9d03938258" testName="Wfrp4.Server.Tests.PersonnageServiceCreationTests.AnnulerDernierPassageCarriere_reactive_le_niveau_precedent_et_rembourse_100_xp" computerName="DESKTOP-HELIOS" duration="00:00:00.2668990" startTime="2026-09-19T09:34:33.4882969+02:00" endTime="2026-09-19T09:34:33.4882972+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8a818a38-c7dc-4655-af34-5bcef8708617" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_refuse_un_total_d_avances_different_de_40" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="12e9db46-567b-b917-4039-edac6f7799c8">
+      <Execution id="21f5f3bd-50ee-4937-9448-c45b3b5e4b9f" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="CreerPersonnage_refuse_un_total_d_avances_different_de_40" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_refuse_plusieurs_talents_de_carriere" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="586e8134-2b51-c4a0-6a9a-44219441d8d0">
+      <Execution id="59fd2980-10b7-47a8-ac8f-214447ab18c4" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="CreerPersonnage_refuse_plusieurs_talents_de_carriere" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.ReduireCompetence_gratuite_ne_rend_pas_d_xp_inexistant" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="aa3d4040-5831-a9f7-f21c-bda90e0ede4a">
+      <Execution id="c4ab0dec-cd7a-42f7-bdb0-a9505d53d010" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="ReduireCompetence_gratuite_ne_rend_pas_d_xp_inexistant" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.UnitTest1.CalculerCoutCaracteristiqueTotal_rembourse_les_avances_retires" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="e9813fdc-1106-3a20-f182-ffdd08204ba6">
+      <Execution id="0339a2dc-197e-485b-9a97-c44fcc08b6bd" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.UnitTest1" name="CalculerCoutCaracteristiqueTotal_rembourse_les_avances_retires" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_accepte_les_listes_de_carriere_separees_par_des_virgules" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="03d4cb6b-0024-a94c-5115-43a1cd0039d4">
+      <Execution id="c754a8e5-17a3-47be-a574-30662b3526e1" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="CreerPersonnage_accepte_les_listes_de_carriere_separees_par_des_virgules" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_avec_magie_mineure_exige_le_bonus_fm_en_sorts" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="72a877b6-597c-1865-4643-d0f0ead96773">
+      <Execution id="e3e1dfff-b414-4e31-8e6f-736a3eae9eb2" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="CreerPersonnage_avec_magie_mineure_exige_le_bonus_fm_en_sorts" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.AvancerCarriere_refuse_si_les_competences_sont_insuffisantes" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="466bc10b-0164-e357-8486-3d11ed601d9d">
+      <Execution id="2951fc55-5b73-4a08-a51e-4276ba0445c6" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="AvancerCarriere_refuse_si_les_competences_sont_insuffisantes" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.ChangerCarriere_dans_la_meme_classe_coute_100_xp_si_niveau_complete" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="bd040e7c-72e3-d141-fa71-dee0c3aaa1d3">
+      <Execution id="3f376a1d-73d9-4214-99cd-4d747c2219c4" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="ChangerCarriere_dans_la_meme_classe_coute_100_xp_si_niveau_complete" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.UnitTest1.CalculerCoutCompetence_respecte_les_paliers" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="793672fb-75f7-72b7-fa01-6d75820e7103">
+      <Execution id="ba31e408-304d-4856-be5e-e0f94ad36dcf" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.UnitTest1" name="CalculerCoutCompetence_respecte_les_paliers" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.UnitTest1.CalculerCoutCaracteristique_respecte_les_paliers" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="c5acfd3f-0a0d-63c8-d539-132d2aae989c">
+      <Execution id="2eb6740d-8614-4374-8cc4-245d61c4afef" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.UnitTest1" name="CalculerCoutCaracteristique_respecte_les_paliers" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.AnnulerDernierPassageCarriere_reactive_le_niveau_precedent_et_rembourse_100_xp" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="370d0341-2c67-b136-5419-2c9d03938258">
+      <Execution id="8a818a38-c7dc-4655-af34-5bcef8708617" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="AnnulerDernierPassageCarriere_reactive_le_niveau_precedent_et_rembourse_100_xp" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.UnitTest1.CalculerCoutTalentTotal_rembourse_les_occurrences_retires" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="920a4a1c-5f71-ff99-ada1-6f53468db79e">
+      <Execution id="b4442550-e896-4744-9fe0-2b3b5b192dc5" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.UnitTest1" name="CalculerCoutTalentTotal_rembourse_les_occurrences_retires" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.AvancerCompetence_de_base_absente_demarre_a_5_sans_cout_de_socle" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="c22b5774-b9ab-bf89-a98c-03c443c1624f">
+      <Execution id="a6ada0c9-31be-47d9-a6d3-7024e3d93e07" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="AvancerCompetence_de_base_absente_demarre_a_5_sans_cout_de_socle" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_avec_magie_mineure_refuse_un_nombre_de_sorts_incorrect" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="060421e6-6dc9-bf41-8da8-e12d4f63b257">
+      <Execution id="6dd09051-2804-4eaa-8c05-be3997a53133" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="CreerPersonnage_avec_magie_mineure_refuse_un_nombre_de_sorts_incorrect" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.AvancerCarriere_consomme_100_xp_et_active_le_niveau_suivant" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="0e5d6732-44c5-786f-885e-1cc3eed4a788">
+      <Execution id="ed08f6ab-5e61-4f82-b8f7-a3dbaaa6b853" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="AvancerCarriere_consomme_100_xp_et_active_le_niveau_suivant" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.UnitTest1.CalculerCoutCompetenceTotal_rembourse_les_avances_retires" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="077be2a2-790b-ab96-06ba-1b9701fbb13e">
+      <Execution id="6683b950-b7d6-4699-ad5e-c9400e7bc317" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.UnitTest1" name="CalculerCoutCompetenceTotal_rembourse_les_avances_retires" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_ne_facture_pas_les_avances_et_talent_gratuits" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="db07e60e-19e9-84bf-acf0-b116ca2612e2">
+      <Execution id="a36ad8ab-9361-4259-a1fe-cc1e24d322e8" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="CreerPersonnage_ne_facture_pas_les_avances_et_talent_gratuits" />
+    </UnitTest>
+    <UnitTest name="Wfrp4.Server.Tests.PersonnageServiceCreationTests.CreerPersonnage_valorise_les_competences_de_base_absentes_a_5" storage="g:\repos\arp.whf4\app\tests\wfrp4.server.tests\bin\release\net9.0\wfrp4.server.tests.dll" id="89b477b0-cb3e-753b-46c2-f1e629daa9f2">
+      <Execution id="e2e21273-c43d-4316-8bc0-026f99fb4a74" />
+      <TestMethod codeBase="G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Wfrp4.Server.Tests.PersonnageServiceCreationTests" name="CreerPersonnage_valorise_les_competences_de_base_absentes_a_5" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="03d4cb6b-0024-a94c-5115-43a1cd0039d4" executionId="c754a8e5-17a3-47be-a574-30662b3526e1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c5acfd3f-0a0d-63c8-d539-132d2aae989c" executionId="2eb6740d-8614-4374-8cc4-245d61c4afef" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="466bc10b-0164-e357-8486-3d11ed601d9d" executionId="2951fc55-5b73-4a08-a51e-4276ba0445c6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="72a877b6-597c-1865-4643-d0f0ead96773" executionId="e3e1dfff-b414-4e31-8e6f-736a3eae9eb2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="89b477b0-cb3e-753b-46c2-f1e629daa9f2" executionId="e2e21273-c43d-4316-8bc0-026f99fb4a74" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0e5d6732-44c5-786f-885e-1cc3eed4a788" executionId="ed08f6ab-5e61-4f82-b8f7-a3dbaaa6b853" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bd040e7c-72e3-d141-fa71-dee0c3aaa1d3" executionId="3f376a1d-73d9-4214-99cd-4d747c2219c4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c22b5774-b9ab-bf89-a98c-03c443c1624f" executionId="a6ada0c9-31be-47d9-a6d3-7024e3d93e07" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="12e9db46-567b-b917-4039-edac6f7799c8" executionId="21f5f3bd-50ee-4937-9448-c45b3b5e4b9f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="793672fb-75f7-72b7-fa01-6d75820e7103" executionId="ba31e408-304d-4856-be5e-e0f94ad36dcf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="586e8134-2b51-c4a0-6a9a-44219441d8d0" executionId="59fd2980-10b7-47a8-ac8f-214447ab18c4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="077be2a2-790b-ab96-06ba-1b9701fbb13e" executionId="6683b950-b7d6-4699-ad5e-c9400e7bc317" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e9813fdc-1106-3a20-f182-ffdd08204ba6" executionId="0339a2dc-197e-485b-9a97-c44fcc08b6bd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="920a4a1c-5f71-ff99-ada1-6f53468db79e" executionId="b4442550-e896-4744-9fe0-2b3b5b192dc5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="db07e60e-19e9-84bf-acf0-b116ca2612e2" executionId="a36ad8ab-9361-4259-a1fe-cc1e24d322e8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="060421e6-6dc9-bf41-8da8-e12d4f63b257" executionId="6dd09051-2804-4eaa-8c05-be3997a53133" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="aa3d4040-5831-a9f7-f21c-bda90e0ede4a" executionId="c4ab0dec-cd7a-42f7-bdb0-a9505d53d010" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="370d0341-2c67-b136-5419-2c9d03938258" executionId="8a818a38-c7dc-4655-af34-5bcef8708617" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Les résultats ne figurent pas dans une liste" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Tous les résultats chargés" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="18" executed="18" passed="18" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.20)&#xD;
+[xUnit.net 00:00:00.47]   Discovering: Wfrp4.Server.Tests&#xD;
+[xUnit.net 00:00:00.49]   Discovered:  Wfrp4.Server.Tests&#xD;
+[xUnit.net 00:00:00.50]   Starting:    Wfrp4.Server.Tests&#xD;
+[xUnit.net 00:00:02.62]   Finished:    Wfrp4.Server.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>
