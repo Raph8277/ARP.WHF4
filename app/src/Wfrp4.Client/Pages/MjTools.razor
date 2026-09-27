@@ -1,6 +1,8 @@
 @page "/mj"
 @attribute [Authorize]
 @using System.Text.Json
+@using Wfrp4.Shared.Adventures
+@using Wfrp4.Shared.Maps
 @inject Wfrp4ApiClient Api
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
@@ -14,7 +16,7 @@
             <MudText Class="old-world-kicker">Ecran du MJ</MudText>
             <MudText Typo="Typo.h2" Class="old-world-hero__title">Atelier MJ</MudText>
             <MudText Class="old-world-hero__text">
-                Bestiaire, PNJ rapides, groupes d'adversaires et butin pret a poser sur la table.
+                Bestiaire, PNJ rapides, aventures, butin et plans tactiques prêts à poser sur la table.
             </MudText>
         </div>
         <div class="d-flex flex-wrap gap-2">
@@ -29,6 +31,28 @@
         </div>
     </div>
 </section>
+
+<MudPaper Class="old-world-panel pa-3 mb-4" Elevation="0">
+    <div class="d-flex flex-wrap align-center justify-space-between gap-3">
+        <div>
+            <MudText Class="old-world-kicker">Studio d'impression</MudText>
+            <MudText Typo="Typo.body2">Ces options s'appliquent aux éditions PNJ, trésor et aventure.</MudText>
+        </div>
+        <div class="d-flex flex-wrap align-center gap-3">
+            <MudSelect T="string" @bind-Value="_pdfAudience" Label="Édition" Dense="true" Style="min-width:160px">
+                <MudSelectItem Value="@("GameMaster")">Maître de jeu</MudSelectItem>
+                <MudSelectItem Value="@("Players")">Joueurs</MudSelectItem>
+            </MudSelect>
+            <MudSelect T="string" @bind-Value="_pdfDensity" Label="Densité" Dense="true" Style="min-width:140px">
+                <MudSelectItem Value="@("Compact")">Compacte</MudSelectItem>
+                <MudSelectItem Value="@("Standard")">Standard</MudSelectItem>
+                <MudSelectItem Value="@("Detailed")">Détaillée</MudSelectItem>
+            </MudSelect>
+            <MudCheckBox T="bool" @bind-Value="_pdfIncludeNotes" Label="Notes imprimables" />
+            <MudCheckBox T="bool" @bind-Value="_pdfOpenPreview" Label="Ouvrir l'aperçu" />
+        </div>
+    </div>
+</MudPaper>
 
 <MudPaper Class="old-world-panel pa-4">
 <MudTabs @ref="_mjTabs" Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="old-world-tabs" ActivePanelIndex="@_activeTabIndex" ActivePanelIndexChanged="OnTabChanged">
@@ -721,7 +745,7 @@
                         @foreach (var (episode, idx) in _campagne.Episodes.Select((e, i) => (e, i)))
                         {
                             <MudExpansionPanel Text="@($"Episode {idx + 1} — {episode.Title}")"
-                                               IsExpandedChanged="@((bool expanded) => OnEpisodePanelToggle(expanded, idx + 1))">
+                                               ExpandedChanged="@((bool expanded) => OnEpisodePanelToggle(expanded, idx + 1))">
                                 <div class="pa-2">
                                     <div class="d-flex flex-wrap gap-2 mb-2">
                                         <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small">@episode.Theme</MudChip>
@@ -752,7 +776,7 @@
 
             <MudExpansionPanels Class="mt-4">
                 <MudExpansionPanel Text="Mes sauvegardes" Icon="@Icons.Material.Filled.FolderOpen"
-                                   IsExpandedChanged="@((bool expanded) => { if (expanded && _aventuresSauvegardees is null) _ = ChargerAventuresSauvegardees(); })">
+                                   ExpandedChanged="@(async (bool expanded) => { if (expanded && _aventuresSauvegardees is null) await ChargerAventuresSauvegardees(); })">
                     @if (_aventuresSauvegardeesChargement)
                     {
                         <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="ma-4" />
@@ -892,7 +916,7 @@
 
                 <div style="flex:1;min-width:280px;max-height:700px;overflow-y:auto">
                     <MudExpansionPanels MultiExpansion="true" Dense="true">
-                        <MudExpansionPanel Text="@($"Provinces ({MapRegions.Length})")" IsInitiallyExpanded="false" Style="font-family:var(--wfrp4-font-heading)">
+                        <MudExpansionPanel Text="@($"Provinces ({MapRegions.Length})")" Expanded="false" Style="font-family:var(--wfrp4-font-heading)">
                             @foreach (var region in MapRegions)
                             {
                                 var isRegSel = _mapSelectedRegion == region;
@@ -928,7 +952,7 @@
                             }
                         </MudExpansionPanel>
 
-                        <MudExpansionPanel Text="@($"Villes ({cityList.Count})")" IsInitiallyExpanded="true" Style="font-family:var(--wfrp4-font-heading)">
+                        <MudExpansionPanel Text="@($"Villes ({cityList.Count})")" Expanded="true" Style="font-family:var(--wfrp4-font-heading)">
                             @foreach (var city in cityList)
                             {
                                 var isSelected = _mapSelectedCity == city;
@@ -951,6 +975,9 @@
             </div>
         </div>
     </MudTabPanel>
+    <MudTabPanel Text="Plans" Icon="@Icons.Material.Filled.GridOn">
+        <RandomDungeonMapEditor Settlements="SettlementMapOptions" />
+    </MudTabPanel>
 </MudTabs>
 </MudPaper>
 
@@ -964,12 +991,16 @@
                     </MudText>
                     <MudSimpleTable Dense="true" Bordered="true" Class="old-world-table mb-3">
                         <tbody>
-                            <tr><td style="width:140px"><strong>Synopsis</strong></td><td>@adv.Synopsis</td></tr>
+                            <tr><td style="width:140px"><strong>Pitch</strong></td><td>@adv.Synopsis</td></tr>
                             <tr><td><strong>Accroche</strong></td><td>@adv.Hook</td></tr>
                             <tr><td><strong>Menace</strong></td><td>@adv.Threat</td></tr>
                             <tr><td><strong>Duree</strong></td><td>@adv.Duration</td></tr>
                         </tbody>
                     </MudSimpleTable>
+                    <MudPaper Class="pa-3 mb-3" Elevation="0" Style="background:var(--mud-palette-background-grey)">
+                        <MudText Typo="Typo.h6" Class="mb-2" Style="font-family:var(--wfrp4-font-heading)">Synopsis développé</MudText>
+                        <MudText Typo="Typo.body1" Style="white-space:pre-line;line-height:1.75">@NarrativeSynopsisFor(adv)</MudText>
+                    </MudPaper>
                 </div>
                 <div style="flex:0 0 320px;min-width:280px">
                     <MudPaper Elevation="2" Style="border-radius:8px;overflow:hidden">
@@ -1150,6 +1181,10 @@
     private GeneratedGroup? _group;
     private GeneratedLoot? _loot;
     private bool _pdfExportEnCours;
+    private string _pdfAudience = "GameMaster";
+    private string _pdfDensity = "Standard";
+    private bool _pdfIncludeNotes = true;
+    private bool _pdfOpenPreview = true;
     private string _advTheme = "Aleatoire";
     private string _advRegion = "Aleatoire";
     private string _advThreat = "Aleatoire";
@@ -1279,6 +1314,8 @@
         {
             Type = "pnj",
             Title = _pnj.Name,
+            Options = CurrentPdfOptions(),
+            Pnjs = [ToPdfPnj(_pnj)],
             Sections =
             [
                 new()
@@ -1315,6 +1352,8 @@
         {
             Type = "groupe-pnj",
             Title = _group.Name,
+            Options = CurrentPdfOptions(),
+            Pnjs = _group.Members.Select(ToPdfPnj).ToList(),
             Sections =
             [
                 new()
@@ -1349,6 +1388,24 @@
         {
             Type = "butin",
             Title = "Butin et indices",
+            Options = CurrentPdfOptions(),
+            Loot = new MjPdfLootDto
+            {
+                Context = _loot.Context,
+                Nature = _loot.Nature,
+                Danger = _loot.Danger,
+                Coins = _loot.Coins,
+                Items = _loot.Items.ToList(),
+                UsefulItem = _loot.UsefulItem,
+                MagicItem = _loot.MagicItem,
+                MagicEffect = _loot.MagicEffect,
+                MagicRisk = _loot.MagicRisk,
+                ValueEstimate = _loot.ValueEstimate,
+                Owner = _loot.Owner,
+                Condition = _loot.Condition,
+                Clue = _loot.Clue,
+                Complication = _loot.Complication
+            },
             Sections =
             [
                 new()
@@ -1383,8 +1440,12 @@
         {
             var content = await Api.ExporterMjPdfAsync(request);
             var fileName = $"atelier-mj-{Slug(request.Type)}-{Slug(request.Title)}.pdf";
-            await JS.InvokeVoidAsync("saveWfrp4File", fileName, "application/pdf", Convert.ToBase64String(content));
-            Snackbar.Add("PDF MJ genere.", Severity.Success);
+            var base64 = Convert.ToBase64String(content);
+            if (_pdfOpenPreview)
+                await JS.InvokeVoidAsync("openWfrp4Pdf", "application/pdf", base64);
+            else
+                await JS.InvokeVoidAsync("saveWfrp4File", fileName, "application/pdf", base64);
+            Snackbar.Add(_pdfOpenPreview ? "Aperçu PDF généré." : "PDF MJ généré.", Severity.Success);
         }
         catch (Exception ex)
         {
@@ -1416,6 +1477,45 @@
         Fel = stats.Fel,
         Wounds = stats.Wounds,
         Move = stats.Move
+    };
+
+    private MjPdfExportOptions CurrentPdfOptions() => new()
+    {
+        Audience = _pdfAudience,
+        Density = _pdfDensity,
+        IncludeNotes = _pdfIncludeNotes
+    };
+
+    private static MjPdfPnjDto ToPdfPnj(GeneratedNpc pnj) => new()
+    {
+        Name = pnj.Name,
+        Role = pnj.Role,
+        Profession = pnj.Profession,
+        Origin = pnj.Origin,
+        Danger = pnj.Danger,
+        Appearance = pnj.Appearance,
+        Manner = pnj.Manner,
+        Motivation = pnj.Motivation,
+        Secret = pnj.Secret,
+        Hook = pnj.Hook,
+        Profile = pnj.Profile,
+        Weapon = pnj.Weapon,
+        Equipment = pnj.Equipment,
+        Spell = pnj.Spell,
+        Stats = Stats(pnj.Name, pnj.Role, pnj.Origin, pnj.Danger, pnj.Stats)
+    };
+
+    private static MjPdfPnjDto ToPdfPnj(GeneratedGroupMember pnj) => new()
+    {
+        Name = pnj.Name,
+        Role = pnj.Role,
+        Origin = pnj.Origin,
+        Danger = pnj.Danger,
+        Manner = pnj.Manner,
+        Weapon = pnj.Weapon,
+        Equipment = pnj.Equipment,
+        Spell = pnj.Spell,
+        Stats = Stats(pnj.Name, pnj.Role, pnj.Origin, pnj.Danger, pnj.Stats)
     };
 
     private void ToutGenerer()
@@ -2901,20 +3001,41 @@
                 Stats: stats);
         }).ToList();
 
+        var threatDetail = Pick(AdvThreatDetails[threat]);
+        var threatSummary = $"{threat} — {threatDetail}";
+        var hook = Pick(AdvHooks[theme]);
+        var twist = Pick(AdvTwists);
+        var climax = Pick(AdvClimaxes[theme]);
+        var atmosphere = Pick(AdvAtmospheres[theme]);
+        var baseSynopsis = AdventureNarrativeComposer.ComposePitch(theme, location);
+        var narrative = AdventureNarrativeComposer.Compose(new AdventureNarrativeInput(
+            BaseSynopsis: baseSynopsis,
+            Region: region,
+            Location: location,
+            Atmosphere: atmosphere,
+            Hook: hook,
+            Threat: threatSummary,
+            Twist: twist,
+            Climax: climax,
+            Danger: danger,
+            Duration: duration,
+            Acts: acts.Select(act => new AdventureNarrativeAct(act.Title, act.Description, act.CityName)).ToList(),
+            CampaignLink: campaignLink));
+
         return new GeneratedAdventure(
             Title: $"{titlePrefix} {titleSuffix}",
             Theme: theme,
             Region: region,
             Danger: danger,
             Duration: duration,
-            Synopsis: Pick(AdvSynopsis[theme]),
+            Synopsis: baseSynopsis,
             Location: location,
-            Hook: Pick(AdvHooks[theme]),
-            Threat: $"{threat} — {Pick(AdvThreatDetails[threat])}",
+            Hook: hook,
+            Threat: threatSummary,
             KeyNpcs: npcs,
             Acts: acts,
-            Twist: Pick(AdvTwists),
-            Climax: Pick(AdvClimaxes[theme]),
+            Twist: twist,
+            Climax: climax,
             Resolutions: PickMany(AdvResolutions, 3),
             Rewards: PickMany(AdvRewards[danger], 2),
             CityName: cityName,
@@ -2922,8 +3043,12 @@
             CityLng: cityLng,
             RegionDescription: regionDesc,
             NearbyCities: nearby,
-            Atmosphere: Pick(AdvAtmospheres[theme]),
-            CampaignLink: campaignLink);
+            Atmosphere: atmosphere,
+            CampaignLink: campaignLink)
+        {
+            NarrativeSynopsis = narrative.GameMasterSynopsis,
+            PlayerSynopsis = narrative.PlayerSynopsis
+        };
     }
 
     private AdventureNpc GenererUnNpc(string danger, string theme, string role)
@@ -2976,7 +3101,14 @@
                 new() { Title = "Actes", Lines = _aventure.Acts.Select((a, i) => Line($"Acte {i + 1} — {a.Title}", $"{a.Description} [Defi : {a.Challenge}]")).ToList() },
                 new() { Title = "Resolution", Lines = [Line("Retournement", _aventure.Twist), Line("Climax", _aventure.Climax), .. _aventure.Resolutions.Select(r => Line("Resolution", r)), .. _aventure.Rewards.Select(r => Line("Recompense", r))] }
             };
-            await ExporterMjPdf(new MjPdfExportRequest { Type = "aventure", Title = _aventure.Title, Sections = sections });
+            await ExporterMjPdf(new MjPdfExportRequest
+            {
+                Type = "aventure",
+                Title = _aventure.Title,
+                Options = CurrentPdfOptions(),
+                Adventure = ToPdfAdventure(_aventure),
+                Sections = sections
+            });
         }
         else if (_campagne is not null)
         {
@@ -3002,9 +3134,67 @@
                     ]
                 });
             }
-            await ExporterMjPdf(new MjPdfExportRequest { Type = "campagne", Title = _campagne.Title, Sections = sections });
+            await ExporterMjPdf(new MjPdfExportRequest
+            {
+                Type = "campagne",
+                Title = _campagne.Title,
+                Options = CurrentPdfOptions(),
+                Campaign = new MjPdfCampaignDto
+                {
+                    ArcSummary = _campagne.ArcSummary,
+                    RecurringVillain = _campagne.RecurringVillain,
+                    Notes = _campagne.Notes ?? string.Empty,
+                    Episodes = _campagne.Episodes.Select(ToPdfAdventure).ToList()
+                },
+                Sections = sections
+            });
         }
     }
+
+    private static MjPdfAdventureDto ToPdfAdventure(GeneratedAdventure adventure) => new()
+    {
+        Title = adventure.Title,
+        Theme = adventure.Theme,
+        Region = adventure.Region,
+        Danger = adventure.Danger,
+        Duration = adventure.Duration,
+        Synopsis = adventure.Synopsis,
+        NarrativeSynopsis = adventure.NarrativeSynopsis,
+        PlayerSynopsis = adventure.PlayerSynopsis,
+        Location = adventure.Location,
+        Hook = adventure.Hook,
+        Threat = adventure.Threat,
+        Atmosphere = adventure.Atmosphere,
+        Twist = adventure.Twist,
+        Climax = adventure.Climax,
+        CampaignLink = adventure.CampaignLink,
+        KeyNpcs = adventure.KeyNpcs.Select(npc => ToPdfPnj(npc, adventure.Danger)).ToList(),
+        Acts = adventure.Acts.Select(act => new MjPdfAdventureActDto
+        {
+            Title = act.Title,
+            Description = act.Description,
+            Challenge = act.Challenge,
+            Location = act.CityName
+        }).ToList(),
+        Resolutions = adventure.Resolutions.ToList(),
+        Rewards = adventure.Rewards.ToList()
+    };
+
+    private static MjPdfPnjDto ToPdfPnj(AdventureNpc pnj, string danger) => new()
+    {
+        Name = pnj.Name,
+        Role = pnj.Role,
+        Profession = pnj.Profession,
+        Origin = pnj.Origin,
+        Danger = danger,
+        Appearance = pnj.Appearance,
+        Manner = pnj.Manner,
+        Motivation = pnj.Motivation,
+        Secret = pnj.Secret,
+        Weapon = pnj.Weapon,
+        Equipment = pnj.Equipment,
+        Stats = Stats(pnj.Name, pnj.Role, pnj.Origin, danger, pnj.Stats)
+    };
 
     private static string ResolveAdvChoice(string choice, IReadOnlyList<string> options) =>
         choice == "Aleatoire" ? Pick(options) : choice;
@@ -3015,6 +3205,9 @@
         "Eleve" => Color.Error,
         _ => Color.Warning,
     };
+
+    private static string NarrativeSynopsisFor(GeneratedAdventure adventure) =>
+        string.IsNullOrWhiteSpace(adventure.NarrativeSynopsis) ? adventure.Synopsis : adventure.NarrativeSynopsis;
 
     private static Color ActColor(int index, int total) => index switch
     {
@@ -3194,6 +3387,8 @@
     private sealed record HumanoidProfile(string Race, string Class, string Career);
     private sealed record GeneratedAdventure(string Title, string Theme, string Region, string Danger, string Duration, string Synopsis, string Location, string Hook, string Threat, List<AdventureNpc> KeyNpcs, IReadOnlyList<AdventureAct> Acts, string Twist, string Climax, IReadOnlyList<string> Resolutions, IReadOnlyList<string> Rewards, string CityName, double CityLat, double CityLng, string RegionDescription, IReadOnlyList<string> NearbyCities, string Atmosphere, string? CampaignLink)
     {
+        public string NarrativeSynopsis { get; set; } = string.Empty;
+        public string PlayerSynopsis { get; set; } = string.Empty;
         public string? Notes { get; set; }
     }
     private sealed record AdventureNpc(string Name, string Role, string Profession, string Origin, string Appearance, string Manner, string Motivation, string Secret, string Weapon, string Equipment, CreatureStats Stats);
@@ -3679,4 +3874,11 @@
         new("Zhufbar", "Cité", "12 000 hab.", "Royaumes nains", 60.239, 3.424),
         new("Zipf", "Bourg", "300 hab.", "Empire, Stirland", 64.179, -9.338),
     ];
+
+    private static IReadOnlyList<RandomMapSettlement> SettlementMapOptions { get; } = MapCities
+        .Where(city => city.Type is "Village" or "Bourg" or "Ville" or "Cité")
+        .OrderBy(city => city.Type switch { "Village" => 0, "Bourg" => 1, "Ville" => 2, _ => 3 })
+        .ThenBy(city => city.Name)
+        .Select(city => new RandomMapSettlement(city.Name, city.Type, city.Population, city.Region))
+        .ToArray();
 }

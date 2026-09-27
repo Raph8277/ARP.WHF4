@@ -22,6 +22,17 @@ public class PersonnageService
 
     public async Task<Personnage> CreerPersonnage(string keycloakId, CreatePersonnageRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Nom) || request.Nom.Length > 120)
+            throw new InvalidOperationException("Le nom doit contenir entre 1 et 120 caractères.");
+        if (request.XpBonus is not (0 or 25 or 50))
+            throw new InvalidOperationException("Le bonus XP de création doit être 0, 25 ou 50.");
+        string[] codes = ["CC", "CT", "F", "E", "I", "Ag", "Dex", "Int", "FM", "Soc"];
+        if (request.CaracteristiquesInitiales == null || request.CaracteristiquesInitiales.Count != codes.Length
+            || codes.Any(code => !request.CaracteristiquesInitiales.TryGetValue(code, out var value) || value < 1 || value > 100))
+            throw new InvalidOperationException("Les dix caractéristiques initiales sont obligatoires, entre 1 et 100.");
+        if (request.CompetencesInitiales == null || request.TalentsInitiaux == null || request.SortsInitiaux == null)
+            throw new InvalidOperationException("Les listes de choix initiaux sont obligatoires.");
+
         var espece = await _db.Especes.FindAsync(request.EspeceId)
             ?? throw new InvalidOperationException("Espèce introuvable.");
 
@@ -29,6 +40,12 @@ public class PersonnageService
             .Include(n => n.Carriere)
             .FirstOrDefaultAsync(n => n.Id == request.NiveauCarriereId)
             ?? throw new InvalidOperationException("Niveau de carrière introuvable.");
+
+        if (niveauCarriere.Niveau != 1)
+            throw new InvalidOperationException("Un personnage doit commencer au premier niveau de sa carrière.");
+        var especesAutorisees = ParseCodes(niveauCarriere.Carriere.EspecesAutorisees);
+        if (especesAutorisees.Count > 0 && !especesAutorisees.Contains(espece.Code))
+            throw new InvalidOperationException("Cette carrière n'est pas accessible à l'espèce du personnage.");
 
         var competenceIdsCarriere = await GetCompetenceIdsCarriere(niveauCarriere);
         var talentIdsCarriere = await GetTalentIdsCarriere(niveauCarriere);
@@ -221,6 +238,7 @@ public class PersonnageService
         var coutCalcule = _xpService.CalculerCoutCaracteristiqueTotal(carac.Avances, nombrePoints);
         var cout = PlafonnerRemboursementXp(coutCalcule, personnage.XpDepense);
         carac.Avances += nombrePoints;
+        CalculerAttributsDerives(personnage, personnage.Espece);
         personnage.XpDepense += cout;
         personnage.UpdatedAt = DateTime.UtcNow;
 

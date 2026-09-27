@@ -1,0 +1,14 @@
+  Wfrp4.Shared -> G:\repos\ARP.WHF4\app\src\Wfrp4.Shared\bin\Release\net9.0\Wfrp4.Shared.dll
+  Wfrp4.Infrastructure -> G:\repos\ARP.WHF4\app\src\Wfrp4.Infrastructure\bin\Release\net9.0\Wfrp4.Infrastructure.dll
+  Wfrp4.Infrastructure.Tests -> G:\repos\ARP.WHF4\app\tests\Wfrp4.Infrastructure.Tests\bin\Release\net9.0\Wfrp4.Infrastructure.Tests.dll
+  Wfrp4.Seed -> G:\repos\ARP.WHF4\app\tools\Wfrp4.Seed\bin\Release\net9.0\Wfrp4.Seed.dll
+  Wfrp4.Client -> G:\repos\ARP.WHF4\app\src\Wfrp4.Client\bin\Release\net9.0\Wfrp4.Client.dll
+  Wfrp4.Client (Blazor output) -> G:\repos\ARP.WHF4\app\src\Wfrp4.Client\bin\Release\net9.0\wwwroot
+  Wfrp4.Server -> G:\repos\ARP.WHF4\app\src\Wfrp4.Server\bin\Release\net9.0\Wfrp4.Server.dll
+  Wfrp4.Server.Tests -> G:\repos\ARP.WHF4\app\tests\Wfrp4.Server.Tests\bin\Release\net9.0\Wfrp4.Server.Tests.dll
+
+La génération a réussi.
+    0 Avertissement(s)
+    0 Erreur(s)
+
+Temps écoulé 00:00:05.46

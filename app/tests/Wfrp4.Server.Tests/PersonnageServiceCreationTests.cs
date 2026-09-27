@@ -9,6 +9,73 @@ namespace Wfrp4.Server.Tests;
 
 public class PersonnageServiceCreationTests
 {
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(51)]
+    [InlineData(1000000)]
+    public async Task Creation_refuse_un_bonus_xp_hors_contrat(int bonus)
+    {
+        await using var db = CreateDb();
+        var niveau = await SeedCareerAsync(db);
+        var request = CreateValidRequest(niveau.Id);
+        request.XpBonus = bonus;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new PersonnageService(db, new XPService())
+            .CreerPersonnage("user-1", request));
+        Assert.Empty(db.Personnages);
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("unknown")]
+    [InlineData("negative")]
+    [InlineData("excessive")]
+    public async Task Creation_refuse_les_caracteristiques_invalides(string variant)
+    {
+        await using var db = CreateDb();
+        var niveau = await SeedCareerAsync(db);
+        var request = CreateValidRequest(niveau.Id);
+        if (variant == "missing") request.CaracteristiquesInitiales.Remove("CC");
+        if (variant == "unknown") request.CaracteristiquesInitiales["INCONNU"] = 30;
+        if (variant == "negative") request.CaracteristiquesInitiales["CC"] = -1;
+        if (variant == "excessive") request.CaracteristiquesInitiales["CC"] = 1000000;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new PersonnageService(db, new XPService())
+            .CreerPersonnage("user-1", request));
+        Assert.Empty(db.Personnages);
+    }
+
+    [Fact]
+    public async Task Creation_refuse_un_niveau_superieur_et_une_espece_incompatible()
+    {
+        await using var db = CreateDb();
+        var niveau = await SeedCareerAsync(db);
+        var request = CreateValidRequest(niveau.Id);
+        var service = new PersonnageService(db, new XPService());
+        niveau.Niveau = 2;
+        await db.SaveChangesAsync();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreerPersonnage("user-1", request));
+        niveau.Niveau = 1;
+        niveau.Carriere.EspecesAutorisees = "NAIN|ELFE";
+        await db.SaveChangesAsync();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreerPersonnage("user-1", request));
+        Assert.Empty(db.Personnages);
+    }
+
+    [Fact]
+    public async Task Avance_endurance_recalcule_les_blessures_dans_les_deux_sens()
+    {
+        await using var db = CreateDb();
+        var niveau = await SeedCareerAsync(db);
+        var request = CreateValidRequest(niveau.Id);
+        request.CaracteristiquesInitiales["E"] = 39;
+        var service = new PersonnageService(db, new XPService());
+        var personnage = await service.CreerPersonnage("user-1", request);
+        var initial = personnage.BlessuresMax;
+        await service.AvancerCaracteristique(personnage.Id, "E");
+        Assert.Equal(initial + 2, personnage.BlessuresMax);
+        await service.AvancerCaracteristique(personnage.Id, "E", -1);
+        Assert.Equal(initial, personnage.BlessuresMax);
+    }
+
     [Fact]
     public async Task CreerPersonnage_ne_facture_pas_les_avances_et_talent_gratuits()
     {
@@ -214,9 +281,9 @@ public class PersonnageServiceCreationTests
         db.NiveauCarrieres.Add(niveauSuivant);
         await db.SaveChangesAsync();
         var request = CreateValidRequest(niveau.Id);
-        request.XpBonus = 200;
         var service = new PersonnageService(db, new XPService());
         var personnage = await service.CreerPersonnage("user-1", request);
+        await service.OctroyerXP(personnage.Id, "mj-test", new XPGrantRequest { Montant = 150 });
 
         var cout = await service.AvancerCarriere(personnage.Id, niveauSuivant.Id);
 
@@ -245,9 +312,9 @@ public class PersonnageServiceCreationTests
         db.NiveauCarrieres.Add(niveauSuivant);
         await db.SaveChangesAsync();
         var request = CreateValidRequest(niveau.Id);
-        request.XpBonus = 200;
         var service = new PersonnageService(db, new XPService());
         var personnage = await service.CreerPersonnage("user-1", request);
+        await service.OctroyerXP(personnage.Id, "mj-test", new XPGrantRequest { Montant = 150 });
         personnage.Competences.Single(c => c.CompetenceId == 1).Avances = 4;
         await db.SaveChangesAsync();
 
@@ -271,9 +338,9 @@ public class PersonnageServiceCreationTests
         db.NiveauCarrieres.Add(niveauSuivant);
         await db.SaveChangesAsync();
         var request = CreateValidRequest(niveau.Id);
-        request.XpBonus = 200;
         var service = new PersonnageService(db, new XPService());
         var personnage = await service.CreerPersonnage("user-1", request);
+        await service.OctroyerXP(personnage.Id, "mj-test", new XPGrantRequest { Montant = 150 });
         await service.AvancerCarriere(personnage.Id, niveauSuivant.Id);
 
         var remboursement = await service.AnnulerDernierPassageCarriere(personnage.Id);
@@ -300,9 +367,9 @@ public class PersonnageServiceCreationTests
         db.NiveauCarrieres.Add(cible);
         await db.SaveChangesAsync();
         var request = CreateValidRequest(niveau.Id);
-        request.XpBonus = 200;
         var service = new PersonnageService(db, new XPService());
         var personnage = await service.CreerPersonnage("user-1", request);
+        await service.OctroyerXP(personnage.Id, "mj-test", new XPGrantRequest { Montant = 150 });
 
         var cout = await service.AvancerCarriere(personnage.Id, cible.Id);
 
