@@ -31,7 +31,7 @@ directement et la preuve de validation est calculée sur le contenu courant.
 | AVENTURE-NARRATION | Le pitch dépend désormais du thème et du lieu ; un synopsis développé relie ambiance, accroche, menace, itinéraire, retournement, climax et conséquence d'échec. Une variante joueurs exclut les révélations MJ et est utilisée par son export PDF. | Huit cas de régression couvrent les cinq thèmes, la structure en paragraphes, la cohérence du contexte et l'absence de fuite du synopsis MJ dans le PDF joueurs. L'affichage Razor compile, mais reste à valider dans un parcours navigateur. |
 | PDF-INTERLIGNE | L'interligne des champs PDF multilignes est désormais calculé dans le repère du template à partir de la taille réelle de la police, avec deux points de respiration. Les retours à la ligne du synopsis produisent de vrais paragraphes au lieu de caractères `?`. | Deux régressions inspectent les lignes de base du flux PDF : écart de 12 à 14 points en densité standard et ligne blanche entre deux paragraphes. |
 | PDF-TITRE | L'en-tête des aventures et campagnes réserve désormais une séparation verticale suffisante entre le libellé du dossier, le grand titre et le trait horizontal. | Une régression contrôle un écart de 28 à 30 points entre les lignes de base du libellé et du titre. |
-| CARTES-ALÉATOIRES | L'onglet Plans de l'Atelier MJ génère quatre familles de lieux : donjon, grotte, auberge et village/ville. Les plans de localités sont raccordés au référentiel existant de l'Atelier MJ : nom, type, population et région sont repris sans créer un second catalogue. La population et le statut (village, bourg, ville ou cité) règlent la densité, l'importance de la voirie et l'implantation : village-rue, habitat groupé, habitat dispersé ou enceinte fortifiée. Les zones urbaines sont représentées par des grappes éditables de toitures variées, des monuments plus grands et un tissu dense de maisons d'arrière-plan ; dans les villes fortifiées, les lieux structurants restent contenus dans l'enceinte. Palissades, murailles, tours, végétation, grain de terrain, cadre, rose des vents et quelques labels de quartiers renforcent le rendu aérien médiéval. Les détails tactiques peuvent être masqués afin de ne pas couvrir le plan. Les voies principales et secondaires ont été affinées et éclaircies. Le paysage est modifiable entre campagne, rivière et port ; le port ajoute bassin, quais, embarcations et rivage. La région nuance le terrain. Le village s'organise autour d'une route sinueuse et l'auberge forme un bâtiment continu. Le donjon se développe désormais de proche en proche plutôt que sur une grille : salles de tailles irrégulières, grandes salles ponctuelles, maçonneries déformées, murs épais, fissures et corridors à plusieurs coudes. Braseros, sarcophages, gravats et statues complètent ses décors. L'édition à la souris, l'annulation et les exports SVG/PNG sont conservés. | Vingt-quatre cas testent les quatre styles, dont le déterminisme, les bornes, l'accessibilité, les détails, les orientations du village, la compacité de l'auberge, la diversité des implantations du donjon, la densité issue de la population, la conservation des données et du paysage lors du clonage, ainsi que la disposition urbaine issue du statut de localité. Compilation Razor réussie ; le parcours navigateur authentifié a permis de comparer puis d'ajuster la densité, les marqueurs, les labels et la voirie d'une cité portuaire. |
+| CARTES-ALÉATOIRES | L'onglet Plans de l'Atelier MJ génère quatre familles de lieux : donjon, grotte, auberge et village/ville. Les plans de localités sont raccordés au référentiel existant de l'Atelier MJ : nom, type, population et région sont repris sans créer un second catalogue. La population et le statut règlent la densité et l'implantation de l'habitat. Inspirées du principe « block-centric » du [Medieval Fantasy City Generator de Watabou](https://watabou.itch.io/medieval-fantasy-city-generator), les localités sont découpées en îlots polygonaux autour du marché ; les rues occupent l'espace entre les îlots, et les bâtiments restent contenus dans leur parcelle. L'enceinte conserve ses portes et les villes se densifient selon leur statut. Le réglage de ville comprend l'emprise (65–160 %), la densité bâtie (65–140 %), la forme compacte, étirée ou étalée, et la largeur de rue (60–150 %). Rivière, côte et forêt sont combinables. Les lieux détaillés restent dans l'emprise terrestre et leurs détails suivent leur déplacement. Les options sont conservées à l'export et à l'ouverture du projet JSON. L'auberge forme un bâtiment continu ; le donjon utilise des salles irrégulières et des corridors à plusieurs coudes. | Les régressions couvrent la génération des quatre familles, le format projet, les paramètres urbains, l'emprise et l'eau, ainsi que la densité, les rues et les quartiers. Tests unitaires, sans parcours visuel authentifié. L'import reste limité à 1 Mio et valide identifiants, bornes et rattachements avant de remplacer le plan courant. |
 | O02 — partiel | Régressions ajoutées, harness exécutable et workflow CI | Validation locale réussie ; les intégrations PostgreSQL/Keycloak et la CI distante restent à exécuter. |
 
 Limites PDF de ce lot : 2 Mio de corps HTTP, 64 sections, 512 lignes, 128 profils,
@@ -46,6 +46,41 @@ refuse les deltas hors ±1 000 000 et les dépassements d'entier. Il protège
 l'identité mais ne résout pas les mises à jour concurrentes de la bourse.
 
 ## Vérifications
+
+- Paramétrage urbain affiné : emprise continue de 65 à 160 %, densité bâtie de
+  65 à 140 %, morphologie compacte/étirée/étalée, et largeur de rue de 60 à 150 %.
+  Les quatre réglages sont enregistrés dans le projet, mettent à jour l'aperçu et
+  déplacent les repères pour qu'ils restent dans les terres. Côte, rivière et
+  forêt restent combinables. Les tests couvrent chaque axe, la sauvegarde JSON,
+  les bornes d'import et l'emprise terrestre ; le rendu complet reste à contrôler
+  dans le navigateur authentifié.
+- Optimisation de l'atlas urbain : rues, toits, arbres et traversées de pont sont
+  regroupés en chemins SVG, et les bâtiments ne comparent leurs collisions qu'aux
+  voisins spatiaux. Le plan est réutilisé entre le recalage des lieux et le rendu ;
+  densité, largeur de rue et forêt ne déclenchent plus un recalage inutile.
+  Sur une cité maximale mixant forêt, côte et rivière, le rendu Release passe de
+  12 036 à environ 165 éléments `<path>` et de 1,05 Mo à 144 Ko. C'est une mesure
+  directe du moteur .NET Release, sans le coût DOM/WebAssembly du navigateur.
+
+- Référence visuelle Doverley fournie par l'utilisateur : le rendu urbain utilise
+  désormais `SettlementAtlas`, indépendant des salles de donjon. Petites emprises
+  alignées sur des rues partagées, cours, jardins, rivière traversante et ponts,
+  faubourg étiré, palette mate et quatre noms de quartiers. Aucun code ni asset de
+  Watabou n'est incorporé. Les paramètres de localité et le numéro restent
+  déterministes ; les repères existants sont accessibles via « Lieux et détails ».
+  Les maisons de fond et les rues ne sont pas individuellement éditables. Les
+  anciennes descriptions ci-dessous concernant les enceintes et la voirie du
+  composant restent l'historique des itérations, pas les capacités de cet atlas.
+  Cinq régressions contrôlent les chevauchements, les bornes, l'eau, le déterminisme,
+  les densités et l'encodage XML du titre. Aperçus SVG du même moteur générés dans
+  `tmp/atlas-preview/` et inspectés en PNG ; ce contrôle n'est pas un parcours
+  authentifié de l'éditeur complet. La connexité globale des rues reste à couvrir.
+
+- Ergonomie des plans : « Graine » devient « Numéro de génération », avec une
+  explication visible du déterminisme et du bouton Surprise. Les actions Surprise
+  et Générer sont aussi disponibles sous le plan, alignées à droite, et réutilisent
+  les mêmes événements que les actions en haut. Ce changement ne constitue pas
+  une validation de la qualité visuelle des villes et villages.
 
 - Avant correction : **15 tests de régression en échec**, quatre cas autorisés
   ou déjà refusés réussis, sans requête de surcharge ni suppression réelle.
@@ -69,6 +104,42 @@ l'identité mais ne résout pas les mises à jour concurrentes de la bourse.
   (92 serveur, 1 infrastructure), harness et compilation Release réussis.
 - Après enrichissement visuel des localités : **94 tests .NET réussis**
   (93 serveur, 1 infrastructure), harness et compilation Release réussis.
+- Après ajout de la sauvegarde et de la réouverture des projets de carte :
+  **96 tests .NET réussis** (95 serveur, 1 infrastructure), harness et compilation
+  Release réussis. Les deux nouvelles régressions sont unitaires ; elles ne
+  simulent pas le sélecteur de fichier du navigateur ni le téléchargement.
+- Après structuration des villes et villages en quartiers inspirés de Watabou :
+  **100 tests .NET réussis** (99 serveur, 1 infrastructure), harness et compilation
+  Release réussis. Les nouvelles régressions contrôlent les géométries générées,
+  pas encore leur lisibilité dans toutes les tailles d'écran.
+- Après différenciation des paysages et raccordement complet de la voirie :
+  **101 tests .NET réussis** (100 serveur, 1 infrastructure), harness et compilation
+  Release réussis. La régression unitaire garantit que la route
+  principale dépasse les deux bords ; le pont et les textures restent à confirmer
+  visuellement dans un navigateur authentifié.
+- Après hiérarchisation du réseau urbain, ajout des portes et réservation des rues :
+  **103 tests .NET réussis** (102 serveur, 1 infrastructure), harness et compilation
+  Release réussis. Deux nouvelles régressions prouvent la connexité de tous les
+  quartiers vers le marché et la présence d'une porte sur chaque face de l'enceinte ;
+  elles ne remplacent pas une inspection visuelle authentifiée.
+- Après inspection de la capture d'un village généré, suppression des boucles
+  polygonales de quartier et de la ceinture globale, réduction des aplats et des
+  libellés, et limitation des ruelles aux bourgs, villes et cités. Le total reste
+  **103 tests .NET réussis** ; cette correction concerne principalement la lisibilité SVG.
+- Après décision de reprendre entièrement la lisibilité des localités, séparation
+  du rendu urbain et du rendu générique des donjons : les passages techniques ne
+  sont plus superposés aux rues, les polygones de quartiers deviennent une seule
+  empreinte urbaine discrète, la densité des bâtiments baisse et la légende décrit
+  désormais routes, rues, lieux et paysage. Un passage choisi dans l'inspecteur
+  reste ponctuellement surligné afin de préserver son édition. Le total reste
+  **103 tests .NET réussis** ; le parcours visuel authentifié demeure la limite.
+- Après reprise « block-centric » des villes et villages, les anciens chemins
+  dessinés par-dessus le plan ont été retirés du composant. La voirie est désormais
+  formée par les intervalles continus entre des îlots rétractés ; les bâtiments sont
+  contenus dans ces îlots, moins nombreux, alignés localement et moins contrastés.
+  La place du marché, les approches extérieures, les repères importants et trois
+  libellés au plus structurent la lecture. Les **33 tests ciblés de cartes** et la
+  compilation Razor réussissent ; le parcours visuel authentifié demeure la limite.
 - Les éditions PDF de référence PNJ joueurs, trésor MJ et aventure longue ont
   été rendues en PNG. La première inspection a révélé un débordement horizontal ;
   le calcul de césure a été corrigé puis les trois pages d'aventure finales ont

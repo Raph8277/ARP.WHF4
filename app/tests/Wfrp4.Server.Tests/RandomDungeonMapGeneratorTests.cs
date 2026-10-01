@@ -21,6 +21,8 @@ public class RandomDungeonMapGeneratorTests
             second.Passages.Select(passage => (passage.FromAreaId, passage.ToAreaId, passage.Secret, passage.Routing)));
         Assert.Equal(first.Features.Select(feature => (feature.AreaId, feature.X, feature.Y, feature.Kind)),
             second.Features.Select(feature => (feature.AreaId, feature.X, feature.Y, feature.Kind)));
+        Assert.Equal(first.Districts.SelectMany(district => district.Boundary.Select(point => (district.Id, point.X, point.Y))),
+            second.Districts.SelectMany(district => district.Boundary.Select(point => (district.Id, point.X, point.Y))));
     }
 
     [Theory]
@@ -172,6 +174,7 @@ public class RandomDungeonMapGeneratorTests
         Assert.Equal("Empire, Ostermark", map.SettlementRegion);
         Assert.Equal(RandomMapSettlementLandscape.River, map.SettlementLandscape);
         Assert.Equal(map.SettlementLandscape, map.Clone().SettlementLandscape);
+        Assert.Equal(map.Districts.Count, map.Clone().Districts.Count);
         Assert.Equal(areaCount, map.Areas.Count);
         Assert.Contains(map.Areas, area => area.Name == "Entrée de Bissendorf");
         Assert.Contains(map.Areas, area => area.Name == "Route de Ostermark");
@@ -209,6 +212,179 @@ public class RandomDungeonMapGeneratorTests
         foreach (var (area, index) in map.Areas.Select((area, index) => (area, index)))
         foreach (var other in map.Areas.Skip(index + 1))
             Assert.False(Intersects(area, other));
+    }
+
+    [Fact]
+    public void Une_cite_est_decoupee_en_quartiers_organiques_autour_d_un_marche()
+    {
+        var city = new RandomMapSettlement("Altdorf", "Cité", "15 000 hab.", "Empire, Reikland");
+
+        var map = RandomDungeonMapGenerator.Generate(RandomMapKind.Village, 30, 6, 1789, city);
+
+        Assert.InRange(map.Districts.Count, 12, 16);
+        Assert.Equal(RandomMapDistrictKind.Market, map.Districts[0].Kind);
+        Assert.Contains(map.Districts, district => district.Kind == RandomMapDistrictKind.Craftsmen);
+        Assert.Contains(map.Districts, district => district.Kind == RandomMapDistrictKind.Merchant);
+        Assert.Contains(map.Districts, district => district.Kind == RandomMapDistrictKind.Military);
+        Assert.All(map.Districts, district =>
+        {
+            Assert.True(district.Boundary.Count >= 3);
+            Assert.All(district.Boundary, point =>
+            {
+                Assert.InRange(point.X, 0, RandomDungeonMap.CanvasWidth);
+                Assert.InRange(point.Y, 0, RandomDungeonMap.CanvasHeight);
+            });
+        });
+    }
+
+    [Theory]
+    [InlineData(3, RandomMapSettlementLayout.Linear)]
+    [InlineData(4, RandomMapSettlementLayout.Clustered)]
+    [InlineData(5, RandomMapSettlementLayout.Dispersed)]
+    public void Un_village_aleatoire_recoit_une_implantation_et_des_quartiers_reproductibles(
+        int seed,
+        RandomMapSettlementLayout expectedLayout)
+    {
+        var first = RandomDungeonMapGenerator.Generate(RandomMapKind.Village, 14, 2, seed);
+        var second = RandomDungeonMapGenerator.Generate(RandomMapKind.Village, 14, 2, seed);
+
+        Assert.Equal(expectedLayout, first.SettlementLayout);
+        Assert.InRange(first.Districts.Count, 4, 6);
+        Assert.All(first.Districts, district => Assert.True(district.Boundary.Count >= 3));
+        Assert.Equal(first.SettlementBoundary.Select(point => (point.X, point.Y)),
+            second.SettlementBoundary.Select(point => (point.X, point.Y)));
+        Assert.Equal(first.Districts.Select(district => (district.Name, district.Kind, district.CenterX, district.CenterY)),
+            second.Districts.Select(district => (district.Name, district.Kind, district.CenterX, district.CenterY)));
+    }
+
+    [Fact]
+    public void La_route_principale_traverse_entierement_la_carte()
+    {
+        var first = RandomSettlementMapGeometry.MainRoadPoints(1789);
+        var second = RandomSettlementMapGeometry.MainRoadPoints(1789);
+
+        Assert.True(first[0].X < 0);
+        Assert.True(first[^1].X > RandomDungeonMap.CanvasWidth);
+        Assert.All(first, point => Assert.InRange(point.Y, 0, RandomDungeonMap.CanvasHeight));
+        Assert.Equal(first.Select(point => (point.X, point.Y)), second.Select(point => (point.X, point.Y)));
+    }
+
+    [Fact]
+    public void Le_reseau_de_rues_raccorde_tous_les_quartiers_au_marche()
+    {
+        var city = new RandomMapSettlement("Altdorf", "Cité", "15 000 hab.", "Empire, Reikland");
+        var map = RandomDungeonMapGenerator.Generate(RandomMapKind.Village, 30, 6, 1789, city);
+        var connections = RandomSettlementMapGeometry.DistrictConnections(map);
+        var market = Assert.Single(map.Districts, district => district.Kind == RandomMapDistrictKind.Market);
+        var reached = new HashSet<int> { market.Id };
+
+        Assert.Equal(map.Districts.Count - 1, connections.Count);
+        while (true)
+        {
+            var previousCount = reached.Count;
+            foreach (var connection in connections)
+            {
+                if (reached.Contains(connection.FromDistrictId)) reached.Add(connection.ToDistrictId);
+                if (reached.Contains(connection.ToDistrictId)) reached.Add(connection.FromDistrictId);
+            }
+            if (reached.Count == previousCount) break;
+        }
+
+        Assert.Equal(map.Districts.Select(district => district.Id).Order(), reached.Order());
+    }
+
+    [Fact]
+    public void Une_cite_fortifiee_possede_une_porte_sur_chaque_face_de_l_enceinte()
+    {
+        var city = new RandomMapSettlement("Altdorf", "Cité", "15 000 hab.", "Empire, Reikland");
+        var map = RandomDungeonMapGenerator.Generate(RandomMapKind.Village, 30, 6, 1789, city);
+
+        var gates = RandomSettlementMapGeometry.SettlementGates(map);
+
+        Assert.Equal(4, gates.Count);
+        Assert.Equal(4, gates.Select(gate => gate.Edge).Distinct().Count());
+        Assert.Equal(map.SettlementBoundary.Min(point => point.Y), Assert.Single(gates, gate => gate.Edge == RandomMapEdge.North).Y);
+        Assert.Equal(map.SettlementBoundary.Max(point => point.X), Assert.Single(gates, gate => gate.Edge == RandomMapEdge.East).X);
+        Assert.Equal(map.SettlementBoundary.Max(point => point.Y), Assert.Single(gates, gate => gate.Edge == RandomMapEdge.South).Y);
+        Assert.Equal(map.SettlementBoundary.Min(point => point.X), Assert.Single(gates, gate => gate.Edge == RandomMapEdge.West).X);
+    }
+
+    [Fact]
+    public void Un_projet_de_carte_sauvegarde_restitue_la_carte_editable_et_ses_options()
+    {
+        var map = RandomDungeonMapGenerator.Generate(RandomMapKind.Village, 14, 4, 1789);
+        map.Name = "Crypte du Corbeau";
+        map.Areas[1].Name = "Salle remaniée";
+        map.Passages[0].Secret = true;
+        map.SettlementFootprintPercent = 135;
+        map.SettlementDensityPercent = 115;
+        map.SettlementStreetWidthPercent = 90;
+        map.SettlementForm = RandomMapSettlementForm.Sprawling;
+        var source = new RandomDungeonMapProject
+        {
+            Map = map,
+            AreaCount = 14,
+            Loops = 4,
+            ShowGrid = true,
+            ShowLabels = false,
+            ShowFeatures = false
+        };
+
+        var json = RandomDungeonMapProjectSerializer.Serialize(source);
+        var success = RandomDungeonMapProjectSerializer.TryDeserialize(json, out var restored, out var error);
+
+        Assert.True(success, error);
+        Assert.NotNull(restored);
+        Assert.Equal("Crypte du Corbeau", restored.Map.Name);
+        Assert.Equal("Salle remaniée", restored.Map.Areas[1].Name);
+        Assert.True(restored.Map.Passages[0].Secret);
+        Assert.Equal(4, restored.Loops);
+        Assert.True(restored.ShowGrid);
+        Assert.False(restored.ShowLabels);
+        Assert.False(restored.ShowFeatures);
+        Assert.Equal(map.Districts.Count, restored.Map.Districts.Count);
+        Assert.Equal(135, restored.Map.SettlementFootprintPercent);
+        Assert.Equal(115, restored.Map.SettlementDensityPercent);
+        Assert.Equal(90, restored.Map.SettlementStreetWidthPercent);
+        Assert.Equal(RandomMapSettlementForm.Sprawling, restored.Map.SettlementForm);
+    }
+
+    [Fact]
+    public void Un_projet_importe_refuse_un_detail_rattache_a_une_zone_inconnue()
+    {
+        var map = RandomDungeonMapGenerator.Generate(RandomMapKind.Inn, 10, 2, 42);
+        map.Features[0].AreaId = 999;
+        var json = RandomDungeonMapProjectSerializer.Serialize(new RandomDungeonMapProject
+        {
+            Map = map,
+            AreaCount = 10,
+            Loops = 2
+        });
+
+        var success = RandomDungeonMapProjectSerializer.TryDeserialize(json, out var restored, out var error);
+
+        Assert.False(success);
+        Assert.Null(restored);
+        Assert.Contains("détail", error);
+    }
+
+    [Fact]
+    public void Un_projet_refuse_des_parametres_de_ville_hors_limites()
+    {
+        var map = RandomDungeonMapGenerator.Generate(RandomMapKind.Village, 10, 2, 42);
+        map.SettlementDensityPercent = 500;
+        var json = RandomDungeonMapProjectSerializer.Serialize(new RandomDungeonMapProject
+        {
+            Map = map,
+            AreaCount = 10,
+            Loops = 2
+        });
+
+        var success = RandomDungeonMapProjectSerializer.TryDeserialize(json, out var restored, out var error);
+
+        Assert.False(success);
+        Assert.Null(restored);
+        Assert.Contains("paramètres de ville", error);
     }
 
     private static bool Intersects(RandomMapArea left, RandomMapArea right) =>
