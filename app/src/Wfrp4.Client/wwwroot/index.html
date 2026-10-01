@@ -301,6 +301,10 @@
                 image.src = svgUrl;
             },
 
+            downloadText: function (content, fileName) {
+                this.download(new Blob([content], { type: 'application/json;charset=utf-8' }), fileName);
+            },
+
             download: function (blob, fileName) {
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');

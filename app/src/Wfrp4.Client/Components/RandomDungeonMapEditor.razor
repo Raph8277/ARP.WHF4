@@ -27,38 +27,72 @@
             <MudSelectItem T="RandomMapKind" Value="RandomMapKind.Inn">Auberge</MudSelectItem>
             <MudSelectItem T="RandomMapKind" Value="RandomMapKind.Village">Village / ville</MudSelectItem>
         </MudSelect>
-        <MudNumericField T="int" @bind-Value="_seed" Label="Graine" Min="1" Max="2147483646" Margin="Margin.Dense" />
-        <MudNumericField T="int" @bind-Value="_areaCount" Label="Zones" Min="4" Max="30" Margin="Margin.Dense" />
+        <div>
+            <MudNumericField T="int" @bind-Value="_seed" Label="Numéro de génération" Min="1" Max="2147483646" Margin="Margin.Dense" />
+            <p class="dungeon-editor__seed-help">Même numéro et mêmes réglages : même carte. Surprise choisit un nouveau numéro.</p>
+        </div>
+        <MudNumericField T="int" @bind-Value="_areaCount" Label="@(_kind == RandomMapKind.Village ? "Lieux importants" : "Zones")" Min="4" Max="30" Margin="Margin.Dense" />
+        @if (_kind != RandomMapKind.Village)
+        {
         <MudSelect T="int" @bind-Value="_loops" Label="Connexions" Margin="Margin.Dense">
             <MudSelectItem T="int" Value="0">Linéaire</MudSelectItem>
             <MudSelectItem T="int" Value="2">Ramifié</MudSelectItem>
             <MudSelectItem T="int" Value="4">Complexe</MudSelectItem>
             <MudSelectItem T="int" Value="6">Labyrinthique</MudSelectItem>
         </MudSelect>
+        }
         <MudCheckBox T="bool" @bind-Value="_showGrid" Label="Grille" />
         <MudCheckBox T="bool" @bind-Value="_showLabels" Label="Noms" />
-        <MudCheckBox T="bool" Value="_showFeatures" ValueChanged="OnShowFeaturesChanged" Label="Détails" />
+        <MudCheckBox T="bool" Value="_showFeatures" ValueChanged="OnShowFeaturesChanged" Label="@(_kind == RandomMapKind.Village ? "Lieux et détails" : "Détails")" />
     </MudPaper>
 
-    @if (_kind == RandomMapKind.Village && Settlements.Count > 0)
+    @if (_kind == RandomMapKind.Village)
     {
         <MudPaper Class="dungeon-editor__settlement pa-3" Elevation="0">
-            <MudSelect T="string" Value="_selectedSettlementName" ValueChanged="OnSettlementChanged"
-                       Label="Localité existante" Margin="Margin.Dense">
-                <MudSelectItem T="string" Value="@string.Empty">Village aléatoire</MudSelectItem>
-                @foreach (var settlement in Settlements)
-                {
-                    <MudSelectItem T="string" Value="settlement.Name">
-                        @settlement.Name — @settlement.Type
-                    </MudSelectItem>
-                }
+            @if (Settlements.Count > 0)
+            {
+                <MudSelect T="string" Value="_selectedSettlementName" ValueChanged="OnSettlementChanged"
+                           Label="Localité existante" Margin="Margin.Dense">
+                    <MudSelectItem T="string" Value="@string.Empty">Village aléatoire</MudSelectItem>
+                    @foreach (var settlement in Settlements)
+                    {
+                        <MudSelectItem T="string" Value="settlement.Name">
+                            @settlement.Name — @settlement.Type
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            <div class="dungeon-editor__settlement-control">
+                <MudText Typo="Typo.body2">Emprise — @CurrentFootprintPercent%</MudText>
+                <MudSlider T="int" Value="CurrentFootprintPercent" ValueChanged="UpdateFootprint"
+                           Min="65" Max="160" Step="5" ValueLabel="true" Immediate="false"
+                           aria-label="Taille de l’agglomération, en pourcentage" />
+                <MudText Typo="Typo.caption">Ajustez la surface occupée par la ville.</MudText>
+            </div>
+            <div class="dungeon-editor__settlement-control">
+                <MudText Typo="Typo.body2">Densité bâtie — @CurrentDensityPercent%</MudText>
+                <MudSlider T="int" Value="CurrentDensityPercent" ValueChanged="UpdateDensity"
+                           Min="65" Max="140" Step="5" ValueLabel="true" Immediate="false"
+                           aria-label="Densité des bâtiments" />
+                <MudText Typo="Typo.caption">Plus dense : davantage de pâtés de maisons.</MudText>
+            </div>
+            <MudSelect T="RandomMapSettlementForm" Value="CurrentSettlementForm" ValueChanged="UpdateSettlementForm"
+                       Label="Forme de la ville" Margin="Margin.Dense">
+                <MudSelectItem T="RandomMapSettlementForm" Value="RandomMapSettlementForm.Compact">Compacte</MudSelectItem>
+                <MudSelectItem T="RandomMapSettlementForm" Value="RandomMapSettlementForm.Elongated">Étirée</MudSelectItem>
+                <MudSelectItem T="RandomMapSettlementForm" Value="RandomMapSettlementForm.Sprawling">Étalée</MudSelectItem>
             </MudSelect>
-            <MudSelect T="RandomMapSettlementLandscape" Value="CurrentSettlementLandscape" ValueChanged="UpdateSettlementLandscape"
-                       Label="Paysage" Margin="Margin.Dense">
-                <MudSelectItem T="RandomMapSettlementLandscape" Value="RandomMapSettlementLandscape.Countryside">Campagne</MudSelectItem>
-                <MudSelectItem T="RandomMapSettlementLandscape" Value="RandomMapSettlementLandscape.River">Rivière</MudSelectItem>
-                <MudSelectItem T="RandomMapSettlementLandscape" Value="RandomMapSettlementLandscape.Port">Port</MudSelectItem>
-            </MudSelect>
+            <div class="dungeon-editor__settlement-control">
+                <MudText Typo="Typo.body2">Largeur des rues — @CurrentStreetWidthPercent%</MudText>
+                <MudSlider T="int" Value="CurrentStreetWidthPercent" ValueChanged="UpdateStreetWidth"
+                           Min="60" Max="150" Step="5" ValueLabel="true" Immediate="false"
+                           aria-label="Largeur des rues" />
+                <MudText Typo="Typo.caption">Des rues plus larges dégagent les pâtés.</MudText>
+            </div>
+            <MudText Typo="Typo.caption">Environnement — vous pouvez combiner plusieurs éléments.</MudText>
+            <MudCheckBox T="bool" Value="CurrentHasRiver" ValueChanged="SetHasRiver" Label="Rivière" />
+            <MudCheckBox T="bool" Value="CurrentHasCoast" ValueChanged="SetHasCoast" Label="Côte" />
+            <MudCheckBox T="bool" Value="CurrentHasForest" ValueChanged="SetHasForest" Label="Bois et forêt" />
             @if (SelectedSettlement is not null)
             {
                 <div class="dungeon-editor__settlement-info">
@@ -71,7 +105,7 @@
             }
             else
             {
-                <MudText Typo="Typo.caption">Choisissez une localité du référentiel pour adapter le nom, la région, la population et la densité du plan.</MudText>
+                <MudText Typo="Typo.caption">La taille, la densité, la forme et le paysage se règlent indépendamment du référentiel.</MudText>
             }
         </MudPaper>
     }
@@ -80,13 +114,27 @@
         <section class="dungeon-editor__canvas-panel" aria-label="Aperçu du plan">
             <div class="dungeon-editor__canvas-toolbar">
                 <MudTextField T="string" Value="_map.Name" ValueChanged="UpdateMapName" Label="Nom de la carte" Margin="Margin.Dense" />
-                <div class="d-flex gap-1">
+                <div class="d-flex flex-wrap gap-1">
                     <MudIconButton Icon="@Icons.Material.Filled.Undo" Disabled="@(_history.Count == 0)" OnClick="Undo" aria-label="Annuler la dernière modification" />
                     <MudIconButton Icon="@Icons.Material.Filled.AddBox" OnClick="AddArea" Disabled="@(_map.Areas.Count >= 30)" aria-label="Ajouter une zone" />
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveProject">Sauvegarder</MudButton>
+                    <label class="dungeon-editor__open-project">
+                        <InputFile @key="_projectFileInputKey" OnChange="OpenProject" accept=".json,application/json"
+                                   aria-label="Ouvrir un projet de carte JSON" />
+                        <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Small" />
+                        <span>Ouvrir</span>
+                    </label>
                     <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="@(() => ExportMap("svg"))">SVG</MudButton>
                     <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Image" OnClick="@(() => ExportMap("png"))">PNG</MudButton>
                 </div>
             </div>
+
+            @if (_projectMessage is not null)
+            {
+                <MudAlert Severity="@(_projectLoadFailed ? Severity.Error : Severity.Success)" Dense="true" Class="mb-2">
+                    @_projectMessage
+                </MudAlert>
+            }
 
             @if (_linkSourceId is not null)
             {
@@ -110,6 +158,18 @@
                         <pattern id="village-fields" width="120" height="90" patternUnits="userSpaceOnUse" patternTransform="rotate(-7)">
                             <path d="M 0 18 H 120 M 0 36 H 120 M 0 54 H 120 M 0 72 H 120" fill="none" stroke="#65734d" stroke-width="1.5" opacity="0.3" />
                             <path d="M 20 0 V 90 M 80 0 V 90" fill="none" stroke="#c6b27a" stroke-width="1" opacity="0.22" />
+                        </pattern>
+                        <pattern id="village-river-meadow" width="150" height="100" patternUnits="userSpaceOnUse">
+                            <path d="M -20 25 Q 32 2 82 28 T 170 24 M -18 73 Q 34 48 88 75 T 170 70"
+                                  fill="none" stroke="#55776a" stroke-width="2" opacity="0.3" />
+                            <circle cx="24" cy="54" r="2.5" fill="#365f52" opacity="0.3" />
+                            <circle cx="118" cy="45" r="2" fill="#365f52" opacity="0.24" />
+                        </pattern>
+                        <pattern id="village-coast-ground" width="110" height="84" patternUnits="userSpaceOnUse" patternTransform="rotate(5)">
+                            <path d="M 0 18 Q 28 8 55 18 T 110 18 M 0 58 Q 28 48 55 58 T 110 58"
+                                  fill="none" stroke="#b19b69" stroke-width="1.6" opacity="0.34" />
+                            <circle cx="18" cy="38" r="1.8" fill="#765f3e" opacity="0.24" />
+                            <circle cx="79" cy="73" r="1.6" fill="#765f3e" opacity="0.2" />
                         </pattern>
                         <pattern id="inn-planks" width="34" height="34" patternUnits="userSpaceOnUse">
                             <path d="M 0 8 H 34 M 0 25 H 34 M 12 8 V 25 M 27 0 V 8 M 24 25 V 34" fill="none" stroke="#725238" stroke-width="1" opacity="0.28" />
@@ -144,73 +204,7 @@
                     }
                     else if (_map.Kind == RandomMapKind.Village)
                     {
-                        <rect width="960" height="640" fill="url(#village-fields)" opacity="0.64" filter="url(#village-grain)" />
-                        @if (ShowHarbor)
-                        {
-                            <path d="@HarborWaterPath" fill="url(#harbor-water)" stroke="#294f59" stroke-width="7" filter="url(#dungeon-shadow)" />
-                            <path d="@HarborShorePath" fill="none" stroke="#d9c58f" stroke-width="10" opacity="0.74" />
-                        }
-                        @foreach (var tree in VillageTrees())
-                        {
-                            <g transform="translate(@F(tree.X) @F(tree.Y)) scale(@F(tree.Scale))" opacity="0.82" pointer-events="none">
-                                <path d="M 0 3 V 14" stroke="#644529" stroke-width="3" />
-                                <circle cy="-2" r="10" fill="#4f7045" stroke="#30452d" stroke-width="2" />
-                                <circle cx="-6" cy="1" r="6" fill="#607f50" opacity="0.88" />
-                            </g>
-                        }
-                        @if (ShowRiver)
-                        {
-                            <path d="@VillageStreamPath" fill="none" stroke="#4e6f77" stroke-width="20" stroke-linecap="round" opacity="0.68" />
-                            <path d="@VillageStreamPath" fill="none" stroke="#9ab1ad" stroke-width="8" stroke-linecap="round" opacity="0.64" />
-                        }
-                        @if (ShowsSettlementWall)
-                        {
-                            <path d="@SettlementWallPath" fill="rgba(202,183,137,.12)" stroke="#40382e" stroke-width="@SettlementWallOuterWidth"
-                                  stroke-linejoin="round" filter="url(#dungeon-shadow)" />
-                            <path d="@SettlementWallPath" fill="none" stroke="@SettlementWallFill" stroke-width="@SettlementWallInnerWidth"
-                                  stroke-linejoin="round" stroke-dasharray="@(IsPalisadedSettlement ? "11 3" : null)" />
-                            @foreach (var tower in SettlementTowers)
-                            {
-                                <circle cx="@F(tower.X)" cy="@F(tower.Y)" r="@F(tower.Radius)" fill="@SettlementWallFill"
-                                        stroke="#40382e" stroke-width="4" filter="url(#dungeon-shadow)" />
-                                <circle cx="@F(tower.X)" cy="@F(tower.Y)" r="@F(Math.Max(3, tower.Radius - 6))" fill="none"
-                                        stroke="#d6c395" stroke-width="1.5" opacity="0.65" />
-                            }
-                        }
-                        @foreach (var building in SettlementInfillBuildings())
-                        {
-                            <g transform="@BuildingRotation(building)" opacity="0.92" pointer-events="none">
-                                <path d="@VillageBuildingPath(building)" fill="@VillageBuildingFill(RandomMapAreaPurpose.Chamber, building)"
-                                      stroke="#4b342a" stroke-width="2" stroke-linejoin="round" />
-                                <path d="@BuildingRoofPath(building)" fill="none" stroke="#4b342a" stroke-width="1.25" opacity="0.7" />
-                            </g>
-                        }
-                        @if (_map.SettlementLayout == RandomMapSettlementLayout.Fortified)
-                        {
-                            @foreach (var street in FortifiedStreetPaths)
-                            {
-                                <path d="@street" fill="none" stroke="#755e40" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity="0.76" />
-                                <path d="@street" fill="none" stroke="#cdb581" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.98" />
-                            }
-                            <ellipse cx="480" cy="320" rx="47" ry="34" fill="#cdb581" stroke="#755e40" stroke-width="5" opacity="0.96" />
-                            <ellipse cx="480" cy="320" rx="31" ry="20" fill="none" stroke="#e0ca94" stroke-width="2" stroke-dasharray="3 5" />
-                        }
-                        @if (_map.SettlementLayout != RandomMapSettlementLayout.Fortified)
-                        {
-                            <path d="@VillageMainRoadPath" fill="none" stroke="#65513a" stroke-width="@VillageRoadBorderWidth" stroke-linecap="round" opacity="0.7" />
-                            <path d="@VillageMainRoadPath" fill="none" stroke="#b49a6b" stroke-width="@VillageRoadWidth" stroke-linecap="round" opacity="0.96" />
-                            <path d="@VillageMainRoadPath" fill="none" stroke="#d0b985" stroke-width="3" stroke-dasharray="2 12" stroke-linecap="round" opacity="0.58" />
-                        }
-                        @if (ShowHarbor)
-                        {
-                            @foreach (var dock in HarborDocks)
-                            {
-                                <path d="@dock" fill="none" stroke="#4c3424" stroke-width="11" stroke-linecap="square" />
-                                <path d="@dock" fill="none" stroke="#9a6d43" stroke-width="6" stroke-dasharray="2 4" />
-                            }
-                            <path d="M 735 535 q 18 -12 36 0 l -5 18 q -13 8 -26 0 Z" fill="#795138" stroke="#302015" stroke-width="3" />
-                            <path d="M 842 485 q 15 -10 31 1 l -5 16 q -11 7 -23 0 Z" fill="#795138" stroke="#302015" stroke-width="3" />
-                        }
+                        @((MarkupString)UrbanAtlasSvg)
                     }
                     else if (_map.Kind == RandomMapKind.Inn)
                     {
@@ -222,27 +216,40 @@
                         <rect width="960" height="640" fill="url(#dungeon-large-grid)" />
                     }
 
-                    @foreach (var passage in _map.Passages)
+                    @if (_map.Kind != RandomMapKind.Village)
                     {
-                        var from = AreaById(passage.FromAreaId);
-                        var to = AreaById(passage.ToAreaId);
+                        @foreach (var passage in _map.Passages)
+                        {
+                            var from = AreaById(passage.FromAreaId);
+                            var to = AreaById(passage.ToAreaId);
+                            if (from is not null && to is not null)
+                            {
+                                var path = PassagePath(from, to, passage);
+                                var passageSelected = IsSelectedPassage(passage);
+                                @if (passageSelected)
+                                {
+                                    <path d="@path" fill="none" stroke="#e2bf5b" stroke-width="@PassageSelectionWidth" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+                                }
+                                <path d="@path" fill="none" stroke="@PassageBorderColor" stroke-width="@PassageBorderWidth" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="@path" fill="none" stroke="@PassageFill" stroke-width="@PassageInnerWidth"
+                                      stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="@(passage.Secret ? "8 7" : null)" />
+                                <path d="@path" fill="none" stroke="transparent" stroke-width="34" pointer-events="stroke"
+                                      class="dungeon-editor__passage-hit" @onclick="@(() => SelectPassage(passage))" @onclick:stopPropagation="true" />
+                            }
+                        }
+                    }
+                    else if (SelectedPassage is { } selectedVillagePassage)
+                    {
+                        var from = AreaById(selectedVillagePassage.FromAreaId);
+                        var to = AreaById(selectedVillagePassage.ToAreaId);
                         if (from is not null && to is not null)
                         {
-                            var path = PassagePath(from, to, passage);
-                            var passageSelected = IsSelectedPassage(passage);
-                            @if (passageSelected)
-                            {
-                                <path d="@path" fill="none" stroke="#e2bf5b" stroke-width="@PassageSelectionWidth" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
-                            }
-                            <path d="@path" fill="none" stroke="@PassageBorderColor" stroke-width="@PassageBorderWidth" stroke-linecap="round" stroke-linejoin="round" />
-                            <path d="@path" fill="none" stroke="@PassageFill" stroke-width="@PassageInnerWidth"
-                                  stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="@(passage.Secret ? "8 7" : null)" />
-                            <path d="@path" fill="none" stroke="transparent" stroke-width="34" pointer-events="stroke"
-                                  class="dungeon-editor__passage-hit" @onclick="@(() => SelectPassage(passage))" @onclick:stopPropagation="true" />
+                            <path d="@PassagePath(from, to, selectedVillagePassage)" fill="none" stroke="#e2bf5b"
+                                  stroke-width="7" stroke-linecap="round" stroke-dasharray="7 5" opacity="0.9" pointer-events="none" />
                         }
                     }
 
-                    @foreach (var area in _map.Areas)
+                    @foreach (var area in _map.Areas.Where(area => _map.Kind != RandomMapKind.Village || _showFeatures || area.Id == _selectedAreaId))
                     {
                         var selected = area.Id == _selectedAreaId;
                         <g class="dungeon-editor__area" @onclick="@(() => SelectArea(area.Id))" @onclick:stopPropagation="true"
@@ -259,25 +266,9 @@
                             }
                             else if (_map.Kind == RandomMapKind.Village)
                             {
-                                @foreach (var building in VillageBuildings(area))
-                                {
-                                    <g transform="@BuildingRotation(building)">
-                                        <path d="@VillageBuildingPath(building)" fill="@VillageBuildingFill(area.Purpose, building)"
-                                              stroke="@(selected && building.IsPrimary ? "#e2bf5b" : "#3b281c")"
-                                              stroke-width="@(selected && building.IsPrimary ? 5 : 3)"
-                                              stroke-linejoin="round" filter="url(#dungeon-shadow)" />
-                                        <path d="@BuildingRoofPath(building)" fill="none" stroke="#4b342a" stroke-width="2.1" opacity="0.82" pointer-events="none" />
-                                        @if (building.IsPrimary)
-                                        {
-                                            <path d="@VillageTimberPath(building)" fill="none" stroke="#f0d39b" stroke-width="1.25" opacity="0.48" pointer-events="none" />
-                                        }
-                                    </g>
-                                }
-                                @if (selected)
-                                {
-                                    <rect x="@F(area.X - 5)" y="@F(area.Y - 5)" width="@F(area.Width + 10)" height="@F(area.Height + 10)" rx="8"
-                                          fill="none" stroke="#e2bf5b" stroke-width="2" stroke-dasharray="7 5" pointer-events="none" />
-                                }
+                                <title>@area.Name</title>
+                                <circle cx="@F(area.CenterX)" cy="@F(area.CenterY)" r="@(selected ? 9 : 5)"
+                                        fill="@(selected ? "#e2bf5b" : "#eee5d2")" stroke="#61574a" stroke-width="1.5" />
                             }
                             else if (_map.Kind != RandomMapKind.Cave)
                             {
@@ -407,26 +398,44 @@
                             </g>
                         }
                     }
-                    @if (_map.Kind == RandomMapKind.Village)
-                    {
-                        <g pointer-events="none">
-                            <rect x="8" y="8" width="944" height="624" rx="4" fill="none" stroke="#3b2a1c" stroke-width="8" opacity="0.88" />
-                            <rect x="17" y="17" width="926" height="606" rx="3" fill="none" stroke="#d6bd83" stroke-width="2" opacity="0.72" />
-                            <rect x="27" y="24" width="245" height="34" rx="4" fill="#e9dab0" stroke="#5e4932" stroke-width="2" opacity="0.9" />
-                            <path d="M 900 52 v 54 M 873 79 h 54 M 882 61 l 36 36 M 918 61 l -36 36" stroke="#33261c" stroke-width="3" />
-                            <text x="900" y="46" text-anchor="middle" fill="#33261c" font-family="Cormorant Garamond,Georgia,serif" font-size="18" font-weight="700">N</text>
-                            <text x="39" y="48" fill="#33261c" font-family="Cormorant Garamond,Georgia,serif" font-size="22" font-weight="700">@ShortName(_map.Name)</text>
-                        </g>
-                    }
                 </svg>
             </div>
 
             <div class="dungeon-editor__legend">
-                @foreach (var purpose in Enum.GetValues<RandomMapAreaPurpose>())
+                @if (_map.Kind == RandomMapKind.Village)
                 {
-                    <span><i style="@($"background:{PurposeColor(purpose)}")"></i>@PurposeLabel(purpose)</span>
+                    <span><i style="background:#e9e1cf"></i>Rues</span>
+                    <span><i style="background:#7d798e"></i>Bâtiments</span>
+                    <span><i style="background:#939e7b"></i>Jardins</span>
+                    @if (ShowRiver)
+                    {
+                        <span><i style="background:#6f969b"></i>Rivière</span>
+                    }
+                    @if (ShowHarbor)
+                    {
+                        <span><i style="background:#3d8799"></i>Côte</span>
+                    }
+                    @if (CurrentHasForest)
+                    {
+                        <span><i style="background:#aab394"></i>Forêt</span>
+                    }
                 }
-                <span><b class="dungeon-editor__secret-line"></b>Passage secret</span>
+                else
+                {
+                    @foreach (var purpose in Enum.GetValues<RandomMapAreaPurpose>())
+                    {
+                        <span><i style="@($"background:{PurposeColor(purpose)}")"></i>@PurposeLabel(purpose)</span>
+                    }
+                    <span><b class="dungeon-editor__secret-line"></b>Passage secret</span>
+                }
+            </div>
+            <div class="dungeon-editor__generation-actions" role="group" aria-label="Génération du plan">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.AutoAwesome" OnClick="GenerateSurprise">
+                    Surprise
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Casino" OnClick="GenerateMap">
+                    Générer
+                </MudButton>
             </div>
         </section>
 
@@ -473,7 +482,9 @@
                 <div class="dungeon-editor__empty">
                     <MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="Size.Large" />
                     <MudText Typo="Typo.h6">Sélectionnez un élément</MudText>
-                    <MudText Typo="Typo.body2">Pièce, détail ou passage : chaque élément peut être modifié directement.</MudText>
+                    <MudText Typo="Typo.body2">@(_map.Kind == RandomMapKind.Village
+                        ? "Activez Lieux et détails pour afficher et déplacer vos repères. Les maisons et les rues composent le fond de carte."
+                        : "Pièce, détail ou passage : chaque élément peut être modifié directement.")</MudText>
                 </div>
             }
             else
@@ -570,6 +581,37 @@
 </div>
 
 @code {
+    private string? _atlasKey;
+    private string? _atlasPlanKey;
+    private SettlementAtlas.Plan? _atlasPlan;
+    private string _atlasSvg = string.Empty;
+    private string SettlementPlanKey => $"{_map.Seed}|{_map.SettlementType}|{CurrentFootprintPercent}|{CurrentDensityPercent}|{CurrentSettlementForm}|{CurrentStreetWidthPercent}|{CurrentHasRiver}|{CurrentHasCoast}|{CurrentHasForest}";
+    private SettlementAtlas.Plan CurrentAtlasPlan
+    {
+        get
+        {
+            var key = SettlementPlanKey;
+            if (_atlasPlan is null || key != _atlasPlanKey)
+            {
+                _atlasPlan = SettlementAtlas.Generate(_map);
+                _atlasPlanKey = key;
+            }
+            return _atlasPlan;
+        }
+    }
+    private string UrbanAtlasSvg
+    {
+        get
+        {
+            var key = $"{SettlementPlanKey}|{_map.Name}|{_showLabels}";
+            if (key != _atlasKey)
+            {
+                _atlasSvg = SettlementAtlas.Render(CurrentAtlasPlan, _map.Name, _showLabels);
+                _atlasKey = key;
+            }
+            return _atlasSvg;
+        }
+    }
     private const string SvgId = "wfrp4-random-dungeon-map";
     [Parameter] public IReadOnlyList<RandomMapSettlement> Settlements { get; set; } = [];
 
@@ -578,6 +620,7 @@
     private int _seed = 1789;
     private int _areaCount = 14;
     private int _loops = 2;
+    private int _projectFileInputKey;
     private bool _showGrid;
     private bool _showLabels = true;
     private bool _showFeatures = true;
@@ -595,6 +638,8 @@
     private double _svgScaleX = 1;
     private double _svgScaleY = 1;
     private bool _pointerChanged;
+    private bool _projectLoadFailed;
+    private string? _projectMessage;
     private RandomDungeonMap? _pointerSnapshot;
     private RandomDungeonMap _map = RandomDungeonMapGenerator.Generate(RandomMapKind.Dungeon, 14, 2, 1789);
 
@@ -618,7 +663,7 @@
     {
         RandomMapKind.Cave => "#9e9277",
         RandomMapKind.Inn => "#b99b75",
-        RandomMapKind.Village => SettlementTerrainFill(_map.SettlementRegion),
+        RandomMapKind.Village => SettlementLandscapeFill(),
         _ => "#756d5f"
     };
     private string PassageFill => _map.Kind switch
@@ -650,30 +695,38 @@
         RandomMapKind.Inn => 5,
         _ => 10
     };
-    private string VillageMainRoadPath => BuildVillageRoadPath();
-    private int VillageRoadWidth => _map.SettlementType switch
-    {
-        "Cité" => 21,
-        "Ville" => 19,
-        "Bourg" => 17,
-        _ => 15
-    };
-    private int VillageRoadBorderWidth => VillageRoadWidth + 6;
     private RandomMapSettlementLandscape CurrentSettlementLandscape =>
         _map.SettlementLandscape ?? RandomMapSettlementLandscape.River;
-    private bool ShowRiver => CurrentSettlementLandscape == RandomMapSettlementLandscape.River;
-    private bool ShowHarbor => CurrentSettlementLandscape == RandomMapSettlementLandscape.Port;
+    private bool CurrentHasRiver => _map.SettlementHasRiver ?? CurrentSettlementLandscape == RandomMapSettlementLandscape.River;
+    private bool CurrentHasCoast => _map.SettlementHasCoast ?? CurrentSettlementLandscape == RandomMapSettlementLandscape.Port;
+    private bool CurrentHasForest => _map.SettlementHasForest ?? false;
+    private int CurrentFootprintPercent => _map.SettlementFootprintPercent ?? _map.SettlementSize switch
+    {
+        RandomMapSettlementSize.Small => 78,
+        RandomMapSettlementSize.Large => 130,
+        _ => 100
+    };
+    private int CurrentDensityPercent => _map.SettlementDensityPercent ?? 100;
+    private int CurrentStreetWidthPercent => _map.SettlementStreetWidthPercent ?? 100;
+    private RandomMapSettlementForm CurrentSettlementForm => _map.SettlementForm ?? _map.SettlementLayout switch
+    {
+        RandomMapSettlementLayout.Linear => RandomMapSettlementForm.Elongated,
+        RandomMapSettlementLayout.Dispersed => RandomMapSettlementForm.Sprawling,
+        _ => RandomMapSettlementForm.Compact
+    };
+    private bool ShowRiver => CurrentHasRiver;
+    private bool ShowHarbor => CurrentHasCoast;
+    private string SettlementGroundPattern => CurrentSettlementLandscape switch
+    {
+        RandomMapSettlementLandscape.River => "url(#village-river-meadow)",
+        RandomMapSettlementLandscape.Port => "url(#village-coast-ground)",
+        _ => "url(#village-fields)"
+    };
     private string HarborWaterPath => "M 575 640 C 568 565 590 486 652 451 C 728 407 817 402 960 443 L 960 640 Z";
     private string HarborShorePath => "M 578 634 C 575 557 598 493 658 459 C 732 417 817 414 957 451";
-    private IReadOnlyList<string> FortifiedStreetPaths =>
-    [
-        "M 178 318 C 176 208 286 139 466 129 C 654 120 779 198 790 313 C 801 432 674 502 489 511 C 302 518 181 440 178 318 Z",
-        "M 300 318 C 302 242 374 202 480 200 C 588 198 661 244 662 321 C 663 397 585 438 478 438 C 373 438 299 397 300 318 Z",
-        "M 480 113 C 449 200 513 258 480 320 C 450 379 494 438 480 529",
-        "M 127 315 C 261 282 354 340 480 320 C 610 299 707 342 842 309",
-        "M 211 151 C 319 223 377 258 480 320 C 574 376 650 420 748 498",
-        "M 753 154 C 657 217 585 260 480 320 C 381 377 314 420 221 491"
-    ];
+    private IReadOnlyList<string> SettlementApproachPaths => BuildSettlementApproachPaths();
+    private IReadOnlyList<RandomSettlementGate> SettlementGates => RandomSettlementMapGeometry.SettlementGates(_map);
+    private IReadOnlyList<DistrictLandmarkGlyph> DistrictLandmarks => BuildDistrictLandmarks();
     private IReadOnlyList<string> HarborDocks =>
     [
         "M 650 511 L 713 540", "M 704 465 L 748 516", "M 787 437 L 803 497", "M 872 437 L 865 490"
@@ -690,19 +743,38 @@
     private int SettlementWallOuterWidth => IsPalisadedSettlement ? 10 : 18;
     private int SettlementWallInnerWidth => IsPalisadedSettlement ? 6 : 11;
     private string SettlementWallFill => IsPalisadedSettlement ? "#72563c" : "#918571";
-    private string SettlementWallPath => IsPalisadedSettlement
-        ? "M 146 154 Q 476 62 816 166 Q 900 320 812 493 Q 480 584 142 486 Q 65 320 146 154 Z"
-        : "M 112 134 Q 476 38 850 147 Q 925 320 844 518 Q 476 608 108 505 Q 33 318 112 134 Z";
-    private IReadOnlyList<SettlementTower> SettlementTowers => IsPalisadedSettlement
-        ?
-        [
-            new(146, 154, 10), new(816, 166, 10), new(812, 493, 10), new(142, 486, 10)
-        ]
-        :
-        [
-            new(112, 134, 15), new(480, 82, 15), new(850, 147, 15), new(884, 324, 15),
-            new(844, 518, 15), new(476, 562, 15), new(108, 505, 15), new(70, 320, 15)
-        ];
+    private string SettlementWallPath => _map.SettlementBoundary.Count >= 3
+        ? SmoothClosedPath(_map.SettlementBoundary)
+        : IsPalisadedSettlement
+            ? "M 146 154 Q 476 62 816 166 Q 900 320 812 493 Q 480 584 142 486 Q 65 320 146 154 Z"
+            : "M 112 134 Q 476 38 850 147 Q 925 320 844 518 Q 476 608 108 505 Q 33 318 112 134 Z";
+    private IReadOnlyList<SettlementTower> SettlementTowers => _map.SettlementBoundary.Count >= 6
+        ? _map.SettlementBoundary
+            .Where((_, index) => index % (IsPalisadedSettlement ? 4 : 3) == 0)
+            .Select(point => new SettlementTower(point.X, point.Y, IsPalisadedSettlement ? 10 : 15))
+            .ToList()
+        : IsPalisadedSettlement
+            ? [new(146, 154, 10), new(816, 166, 10), new(812, 493, 10), new(142, 486, 10)]
+            :
+            [
+                new(112, 134, 15), new(480, 82, 15), new(850, 147, 15), new(884, 324, 15),
+                new(844, 518, 15), new(476, 562, 15), new(108, 505, 15), new(70, 320, 15)
+            ];
+    private (double X, double Y) SettlementCenter => _map.Districts.FirstOrDefault(district => district.Kind == RandomMapDistrictKind.Market) is { } market
+        ? (market.CenterX, market.CenterY)
+        : (480, 320);
+    private double MarketRadiusX => _map.SettlementType switch
+    {
+        "Cité" or "Ville" => 47,
+        "Bourg" => 40,
+        _ => 34
+    };
+    private double MarketRadiusY => _map.SettlementType switch
+    {
+        "Cité" or "Ville" => 34,
+        "Bourg" => 28,
+        _ => 24
+    };
     private string VillageStreamPath
     {
         get
@@ -711,6 +783,7 @@
             return $"M -30 {F(105 + offset)} C 180 {F(35 + offset)} 305 {F(185 + offset)} 505 {F(108 + offset)} S 785 {F(60 + offset)} 990 {F(132 + offset)}";
         }
     }
+    private double VillageBridgeY => 108 + _map.Seed % 83 - 41;
     private string CanvasClass => _pointerAction == PointerAction.None
         ? "dungeon-editor__canvas"
         : "dungeon-editor__canvas dungeon-editor__canvas--dragging";
@@ -718,12 +791,28 @@
     private void GenerateMap()
     {
         var settlement = _kind == RandomMapKind.Village ? SelectedSettlement : null;
-        var landscape = CurrentSettlementLandscape;
+        var footprint = CurrentFootprintPercent;
+        var density = CurrentDensityPercent;
+        var streetWidth = CurrentStreetWidthPercent;
+        var form = _map.Kind == RandomMapKind.Village ? (RandomMapSettlementForm?)_map.SettlementForm : null;
+        var hasRiver = CurrentHasRiver;
+        var hasCoast = CurrentHasCoast;
+        var hasForest = CurrentHasForest;
         _map = RandomDungeonMapGenerator.Generate(_kind, _areaCount, _loops, Math.Max(1, _seed), settlement);
         if (_kind == RandomMapKind.Village)
-            _map.SettlementLandscape = landscape;
+        {
+            _map.SettlementFootprintPercent = footprint;
+            _map.SettlementDensityPercent = density;
+            _map.SettlementStreetWidthPercent = streetWidth;
+            _map.SettlementForm = form;
+            _map.SettlementHasRiver = hasRiver;
+            _map.SettlementHasCoast = hasCoast;
+            _map.SettlementHasForest = hasForest;
+            _map.SettlementLandscape = hasCoast ? RandomMapSettlementLandscape.Port : hasRiver ? RandomMapSettlementLandscape.River : RandomMapSettlementLandscape.Countryside;
+            ConstrainSettlementPlacesAndCache();
+        }
         _history.Clear();
-        _selectedAreaId = _map.Areas[0].Id;
+        _selectedAreaId = _map.Kind == RandomMapKind.Village ? null : _map.Areas[0].Id;
         _selectedFeatureId = null;
         ClearPassageSelection();
         _linkSourceId = null;
@@ -768,11 +857,39 @@
         GenerateMap();
     }
 
-    private void UpdateSettlementLandscape(RandomMapSettlementLandscape landscape)
+    private void UpdateFootprint(int value) => UpdateSettlementGeometry(() => _map.SettlementFootprintPercent = value, true);
+    private void UpdateDensity(int value) => UpdateSettlementGeometry(() => _map.SettlementDensityPercent = value);
+    private void UpdateStreetWidth(int value) => UpdateSettlementGeometry(() => _map.SettlementStreetWidthPercent = value);
+    private void UpdateSettlementForm(RandomMapSettlementForm form) => UpdateSettlementGeometry(() => _map.SettlementForm = form, true);
+
+    private void UpdateSettlementGeometry(Action update, bool relocatePlaces = false)
     {
-        if (_map.SettlementLandscape == landscape) return;
         SaveSnapshot();
-        _map.SettlementLandscape = landscape;
+        update();
+        if (relocatePlaces) ConstrainSettlementPlacesAndCache();
+    }
+
+    private void ConstrainSettlementPlacesAndCache()
+    {
+        var plan = SettlementAtlas.Generate(_map);
+        SettlementAtlas.ConstrainPlaces(_map, plan);
+        _atlasPlan = plan;
+        _atlasPlanKey = SettlementPlanKey;
+    }
+
+    private void SetHasRiver(bool value) => UpdateSettlementEnvironment(() => _map.SettlementHasRiver = value, true);
+    private void SetHasCoast(bool value) => UpdateSettlementEnvironment(() => _map.SettlementHasCoast = value, true);
+    private void SetHasForest(bool value) => UpdateSettlementEnvironment(() => _map.SettlementHasForest = value);
+
+    private void UpdateSettlementEnvironment(Action update, bool relocatePlaces = false)
+    {
+        SaveSnapshot();
+        _map.SettlementHasRiver ??= CurrentHasRiver;
+        _map.SettlementHasCoast ??= CurrentHasCoast;
+        _map.SettlementHasForest ??= CurrentHasForest;
+        update();
+        _map.SettlementLandscape = CurrentHasCoast ? RandomMapSettlementLandscape.Port : CurrentHasRiver ? RandomMapSettlementLandscape.River : RandomMapSettlementLandscape.Countryside;
+        if (relocatePlaces) ConstrainSettlementPlacesAndCache();
     }
 
     private void SaveSnapshot()
@@ -927,6 +1044,7 @@
             Purpose = RandomMapAreaPurpose.Chamber
         };
         _map.Areas.Add(area);
+        if (_map.Kind == RandomMapKind.Village) ConstrainSettlementPlacesAndCache();
         if (previousSelection is not null)
         {
             _map.Passages.Add(new RandomMapPassage
@@ -1328,105 +1446,65 @@
 
     private IReadOnlyList<VillageBuildingGlyph> VillageBuildings(RandomMapArea area)
     {
-        var count = _map.SettlementType switch
-        {
-            "Cité" => 4,
-            "Ville" => 4,
-            "Bourg" => 3,
-            _ => 2
-        };
-        var random = new Random(area.ShapeSeed ^ 0x4a17c9);
-        var buildings = new List<VillageBuildingGlyph>(count);
         var landmark = area.Purpose != RandomMapAreaPurpose.Chamber;
-        var primaryWidth = area.Width * (landmark ? 0.68 : 0.55);
-        var primaryHeight = area.Height * (landmark ? 0.62 : 0.52);
-        buildings.Add(new VillageBuildingGlyph(
+        var primaryWidth = Math.Clamp(area.Width * (landmark ? 0.52 : 0.36), 24, landmark ? 52 : 38);
+        var primaryHeight = Math.Clamp(area.Height * (landmark ? 0.5 : 0.34), 16, landmark ? 38 : 27);
+        return
+        [
+            new VillageBuildingGlyph(
             area.CenterX - primaryWidth / 2,
             area.CenterY - primaryHeight / 2,
             primaryWidth,
             primaryHeight,
             area.Rotation,
             area.ShapeSeed,
-            true));
-
-        (double X, double Y)[] anchors =
-        [
-            (0.16, 0.18), (0.5, 0.14), (0.84, 0.2),
-            (0.16, 0.8), (0.5, 0.85), (0.84, 0.78)
+            true)
         ];
-        for (var index = 1; index < count; index++)
-        {
-            var width = area.Width * (0.24 + random.NextDouble() * 0.07);
-            var height = area.Height * (0.23 + random.NextDouble() * 0.075);
-            var anchor = anchors[index - 1];
-            var centerX = area.X + area.Width * anchor.X + Jitter(random, area.Width * 0.035);
-            var centerY = area.Y + area.Height * anchor.Y + Jitter(random, area.Height * 0.035);
-            buildings.Add(new VillageBuildingGlyph(
-                Math.Clamp(centerX - width / 2, area.X + 2, area.X + area.Width - width - 2),
-                Math.Clamp(centerY - height / 2, area.Y + 2, area.Y + area.Height - height - 2),
-                width,
-                height,
-                area.Rotation + Jitter(random, 16),
-                random.Next(1, int.MaxValue),
-                false));
-        }
-
-        return buildings;
     }
 
     private IReadOnlyList<VillageBuildingGlyph> SettlementInfillBuildings()
     {
-        if (_map.SettlementLayout == RandomMapSettlementLayout.Fortified)
-            return FortifiedSettlementBlocks();
-
         var desiredCount = _map.SettlementType switch
         {
-            "Bourg" => 55,
-            _ => 24
+            "Cité" => 96,
+            "Ville" => 68,
+            "Bourg" => 40,
+            _ => 22
         };
         var random = new Random(_map.Seed ^ 0x63b7a1);
         var buildings = new List<VillageBuildingGlyph>(desiredCount);
-        var phase = new Random(_map.Seed).NextDouble() * Math.PI * 2;
+        var districts = _map.Districts
+            .Where(district => district.Kind is not (RandomMapDistrictKind.Market or RandomMapDistrictKind.Green))
+            .ToList();
+        if (districts.Count == 0) return buildings;
 
-        for (var attempt = 0; attempt < desiredCount * 35 && buildings.Count < desiredCount; attempt++)
+        for (var attempt = 0; attempt < desiredCount * 90 && buildings.Count < desiredCount; attempt++)
         {
-            var width = 14 + random.NextDouble() * 14;
-            var height = 9 + random.NextDouble() * 10;
-            double centerX;
-            double centerY;
+            var district = districts[random.Next(districts.Count)];
+            var block = InsetDistrictPoints(district, DistrictBuildingInset);
+            var minX = block.Min(point => point.X);
+            var maxX = block.Max(point => point.X);
+            var minY = block.Min(point => point.Y);
+            var maxY = block.Max(point => point.Y);
+            var centerX = minX + random.NextDouble() * (maxX - minX);
+            var centerY = minY + random.NextDouble() * (maxY - minY);
+            if (!PointInPolygon(centerX, centerY, block)) continue;
 
-            if (_map.SettlementLayout is RandomMapSettlementLayout.Fortified or RandomMapSettlementLayout.Clustered)
-            {
-                var angle = random.NextDouble() * Math.PI * 2;
-                var radius = Math.Sqrt(random.NextDouble());
-                var radiusX = _map.SettlementLayout == RandomMapSettlementLayout.Fortified ? 330 : 295;
-                var radiusY = _map.SettlementLayout == RandomMapSettlementLayout.Fortified ? 205 : 185;
-                centerX = 480 + Math.Cos(angle) * radius * radiusX;
-                centerY = 320 + Math.Sin(angle) * radius * radiusY;
-            }
-            else if (_map.SettlementLayout == RandomMapSettlementLayout.Linear)
-            {
-                centerX = 48 + random.NextDouble() * 864;
-                var roadY = 318 + Math.Sin(centerX / 145 + phase) * 82 + Math.Sin(centerX / 62 + phase * 0.7) * 18;
-                centerY = roadY + Jitter(random, 118);
-            }
-            else
-            {
-                centerX = 42 + random.NextDouble() * 876;
-                centerY = 42 + random.NextDouble() * 556;
-            }
+            var dense = _map.SettlementType is "Ville" or "Cité";
+            var width = (dense ? 14 : 17) + random.NextDouble() * (dense ? 10 : 12);
+            var height = (dense ? 9 : 11) + random.NextDouble() * (dense ? 7 : 9);
 
             var x = centerX - width / 2;
             var y = centerY - height / 2;
-            if (x < 38 || y < 38 || x + width > 922 || y + height > 602)
-                continue;
-            if (ShowHarbor && centerX > 570 && centerY > 405)
-                continue;
-            if (_map.Areas.Any(area => Intersects(area, x, y, width, height)))
+            if (!BuildingFitsBlock(x, y, width, height, block)) continue;
+            if (_map.Areas.Any(area => Intersects(area, x, y, width, height))) continue;
+            if (district.Kind is RandomMapDistrictKind.Temple or RandomMapDistrictKind.Military or
+                    RandomMapDistrictKind.Noble &&
+                Math.Pow(centerX - district.CenterX, 2) + Math.Pow(centerY - district.CenterY, 2) < 900)
                 continue;
             if (buildings.Any(building =>
-                    building.X - 2 < x + width && building.X + building.Width + 2 > x &&
-                    building.Y - 2 < y + height && building.Y + building.Height + 2 > y))
+                    building.X - 3 < x + width && building.X + building.Width + 3 > x &&
+                    building.Y - 3 < y + height && building.Y + building.Height + 3 > y))
                 continue;
 
             buildings.Add(new VillageBuildingGlyph(
@@ -1434,7 +1512,7 @@
                 y,
                 width,
                 height,
-                Jitter(random, 18),
+                DistrictOrientation(district) + Jitter(random, 5),
                 random.Next(1, int.MaxValue),
                 false));
         }
@@ -1442,111 +1520,109 @@
         return buildings;
     }
 
-    private IReadOnlyList<VillageBuildingGlyph> FortifiedSettlementBlocks()
+    private double DistrictBlockInset => _map.SettlementType switch
     {
-        var desiredCount = _map.SettlementType == "Cité" ? 260 : 205;
-        var random = new Random(_map.Seed ^ 0x2f96d3);
-        var buildings = new List<VillageBuildingGlyph>(desiredCount);
-        double[] blockColumns = [175, 280, 385, 490, 595, 700, 790];
-        double[] blockRows = [145, 230, 315, 400, 485];
+        "Cité" => 0.89,
+        "Ville" => 0.87,
+        "Bourg" => 0.84,
+        _ => 0.8
+    };
 
-        foreach (var baseY in blockRows)
-        foreach (var baseX in blockColumns)
-        {
-            var blockX = baseX + Jitter(random, 17);
-            var blockY = baseY + Jitter(random, 13);
-            var radialAngle = Math.Atan2(blockY - 320, blockX - 480) * 180 / Math.PI;
-            var rotation = radialAngle + 90 + Jitter(random, 9);
-            var radians = rotation * Math.PI / 180;
-            var columns = random.Next(3, 5);
-            var rows = random.Next(2, 4);
-            var spacingX = 31 + random.NextDouble() * 5;
-            var spacingY = 24 + random.NextDouble() * 4;
+    private double DistrictBuildingInset => Math.Max(0.62, DistrictBlockInset - 0.1);
 
-            for (var row = 0; row < rows && buildings.Count < desiredCount; row++)
-            for (var column = 0; column < columns && buildings.Count < desiredCount; column++)
+    private string InsetDistrictPath(RandomMapDistrict district, double? factor = null) =>
+        PolygonPath(InsetDistrictPoints(district, factor ?? DistrictBlockInset));
+
+    private static List<RandomMapPoint> InsetDistrictPoints(RandomMapDistrict district, double factor) =>
+        district.Boundary
+            .Select(point => new RandomMapPoint
             {
-                var localX = (column - (columns - 1) / 2d) * spacingX + Jitter(random, 2.5);
-                var localY = (row - (rows - 1) / 2d) * spacingY + Jitter(random, 2.5);
-                var centerX = blockX + localX * Math.Cos(radians) - localY * Math.Sin(radians);
-                var centerY = blockY + localX * Math.Sin(radians) + localY * Math.Cos(radians);
-                var width = 23 + random.NextDouble() * 8;
-                var height = 15 + random.NextDouble() * 5;
-                var x = centerX - width / 2;
-                var y = centerY - height / 2;
+                X = district.CenterX + (point.X - district.CenterX) * factor,
+                Y = district.CenterY + (point.Y - district.CenterY) * factor
+            })
+            .ToList();
 
-                var ellipse = Math.Pow((centerX - 480) / 350, 2) + Math.Pow((centerY - 320) / 222, 2);
-                if (ellipse > 0.9)
-                    continue;
-                if (ShowHarbor && centerX > 570 && centerY > 405)
-                    continue;
-                if (buildings.Any(building =>
-                        building.X - 2 < x + width && building.X + building.Width + 2 > x &&
-                        building.Y - 2 < y + height && building.Y + building.Height + 2 > y))
-                    continue;
-
-                buildings.Add(new VillageBuildingGlyph(
-                    x,
-                    y,
-                    width,
-                    height,
-                    rotation + Jitter(random, 4),
-                    random.Next(1, int.MaxValue),
-                    false));
-            }
-        }
-
-        return buildings;
+    private static bool BuildingFitsBlock(
+        double x,
+        double y,
+        double width,
+        double height,
+        IReadOnlyList<RandomMapPoint> block)
+    {
+        const double margin = 2;
+        return PointInPolygon(x - margin, y - margin, block) &&
+               PointInPolygon(x + width + margin, y - margin, block) &&
+               PointInPolygon(x + width + margin, y + height + margin, block) &&
+               PointInPolygon(x - margin, y + height + margin, block);
     }
 
-    private IEnumerable<VillageTree> VillageTrees()
+    private static double DistrictOrientation(RandomMapDistrict district)
     {
-        var desiredCount = _map.SettlementType switch
+        if (district.Boundary.Count < 2) return 0;
+        var longest = district.Boundary
+            .Select((point, index) =>
+            {
+                var next = district.Boundary[(index + 1) % district.Boundary.Count];
+                var dx = next.X - point.X;
+                var dy = next.Y - point.Y;
+                return (Dx: dx, Dy: dy, Length: dx * dx + dy * dy);
+            })
+            .MaxBy(edge => edge.Length);
+        return Math.Atan2(longest.Dy, longest.Dx) * 180 / Math.PI;
+    }
+
+    private IReadOnlyList<string> BuildSettlementApproachPaths()
+    {
+        if (_map.SettlementBoundary.Count < 3) return [];
+        var west = _map.SettlementBoundary.MinBy(point => point.X)!;
+        var east = _map.SettlementBoundary.MaxBy(point => point.X)!;
+        var paths = new List<string>
         {
-            "Cité" => 12,
-            "Ville" => 16,
-            "Bourg" => 21,
-            _ => 28
+            $"M -24 {F(west.Y)} C {F(west.X * 0.45)} {F(west.Y - 8)} {F(west.X * 0.78)} {F(west.Y + 5)} {F(west.X + 2)} {F(west.Y)}"
         };
-        var random = new Random(_map.Seed ^ 0x19d3a5);
-        var trees = new List<VillageTree>(desiredCount);
-        for (var attempt = 0; attempt < desiredCount * 10 && trees.Count < desiredCount; attempt++)
+        if (!ShowHarbor)
         {
-            var x = 24 + random.NextDouble() * 912;
-            var y = 24 + random.NextDouble() * 592;
-            if (ShowHarbor && x > 555 && y > 405)
-                continue;
-            if (_map.SettlementLayout == RandomMapSettlementLayout.Fortified &&
-                x is > 74 and < 886 && y is > 78 and < 566)
-                continue;
-            if (_map.Areas.Any(area =>
-                    x > area.X - 24 && x < area.X + area.Width + 24 &&
-                    y > area.Y - 24 && y < area.Y + area.Height + 24))
-                continue;
-            if (trees.Any(tree => Math.Pow(tree.X - x, 2) + Math.Pow(tree.Y - y, 2) < 430))
-                continue;
-            trees.Add(new VillageTree(x, y, 0.68 + random.NextDouble() * 0.5));
+            paths.Add($"M 984 {F(east.Y)} C {F(960 - (960 - east.X) * 0.45)} {F(east.Y + 7)} {F(960 - (960 - east.X) * 0.78)} {F(east.Y - 4)} {F(east.X - 2)} {F(east.Y)}");
         }
-        return trees;
+        return paths;
+    }
+
+    private IReadOnlyList<DistrictLandmarkGlyph> BuildDistrictLandmarks()
+    {
+        if (_map.SettlementType is not ("Bourg" or "Ville" or "Cité")) return [];
+        return _map.Districts
+            .Where(district => district.Kind is RandomMapDistrictKind.Temple or RandomMapDistrictKind.Military or
+                RandomMapDistrictKind.Green or RandomMapDistrictKind.Noble)
+            .GroupBy(district => district.Kind)
+            .Select(group => group.First())
+            .Select(district => new DistrictLandmarkGlyph(district.CenterX, district.CenterY, district.Kind))
+            .ToList();
+    }
+
+    private static double GateRotation(RandomMapEdge edge) => edge is RandomMapEdge.East or RandomMapEdge.West ? 90 : 0;
+
+    private IEnumerable<LandscapePatch> CountrysideFieldPatches()
+    {
+        var random = new Random(_map.Seed ^ 0x42f197);
+        var fills = new[] { "#b7ad70", "#8fa064", "#c4b983", "#7f9660", "#b69a63" };
+        for (var index = 0; index < 9; index++)
+        {
+            var x = -55 + random.NextDouble() * 940;
+            var y = -45 + random.NextDouble() * 590;
+            var width = 150 + random.NextDouble() * 250;
+            var height = 90 + random.NextDouble() * 150;
+            var skew = -35 + random.NextDouble() * 70;
+            yield return new LandscapePatch(
+                $"M {F(x)} {F(y)} L {F(x + width)} {F(y + skew)} L {F(x + width - 18)} {F(y + height + skew)} L {F(x - 12)} {F(y + height)} Z",
+                fills[index % fills.Length]);
+        }
     }
 
     private bool ShouldShowAreaLabel(RandomMapArea area)
     {
         if (!_showLabels) return false;
         if (_map.Kind != RandomMapKind.Village) return true;
-        if (_map.SettlementType is "Ville" or "Cité")
-        {
-            return area.Purpose is RandomMapAreaPurpose.Entrance or RandomMapAreaPurpose.Exit ||
-                   area.Purpose == RandomMapAreaPurpose.Shrine && area.Id % 10 == 0 ||
-                   area.Purpose == RandomMapAreaPurpose.Treasure && area.Id % 14 == 0 ||
-                   area.Purpose == RandomMapAreaPurpose.Chamber && area.Id % 11 == 0;
-        }
-        if (area.Purpose is RandomMapAreaPurpose.Entrance or RandomMapAreaPurpose.Exit or RandomMapAreaPurpose.Shrine) return true;
-        return _map.SettlementType switch
-        {
-            "Bourg" => area.Id % 3 == 0,
-            _ => area.Id % 3 == 0
-        };
+        return area.Id == _selectedAreaId;
     }
 
     private string FeatureTransform(RandomMapFeature feature)
@@ -1557,9 +1633,6 @@
 
     private static string BuildingRoofPath(VillageBuildingGlyph building) =>
         $"M {F(building.X + 5)} {F(building.CenterY)} H {F(building.X + building.Width - 5)} M {F(building.CenterX)} {F(building.Y + 5)} V {F(building.Y + building.Height - 5)}";
-
-    private static string VillageTimberPath(VillageBuildingGlyph building) =>
-        $"M {F(building.X + 6)} {F(building.Y + 6)} L {F(building.X + building.Width - 6)} {F(building.Y + building.Height - 6)} M {F(building.X + building.Width - 6)} {F(building.Y + 6)} L {F(building.X + 6)} {F(building.Y + building.Height - 6)}";
 
     private static string BuildingRotation(VillageBuildingGlyph building) =>
         $"rotate({F(building.Rotation)} {F(building.CenterX)} {F(building.CenterY)})";
@@ -1577,35 +1650,155 @@
                $"L {F(building.X + 2)} {F(building.Y + building.Height - bottomLeft)} Z";
     }
 
-    private string BuildVillageRoadPath()
+    private static string PolygonPath(IReadOnlyList<RandomMapPoint> points)
     {
-        var phase = new Random(_map.Seed).NextDouble() * Math.PI * 2;
-        var points = Enumerable.Range(-1, 9)
-            .Select(index =>
-            {
-                var x = index * 130d;
-                var y = 318 + Math.Sin(x / 145 + phase) * 82 + Math.Sin(x / 62 + phase * 0.7) * 18;
-                return (X: x, Y: y);
-            })
-            .ToList();
+        if (points.Count == 0) return string.Empty;
         var builder = new StringBuilder($"M {F(points[0].X)} {F(points[0].Y)}");
-        for (var index = 1; index < points.Count - 1; index++)
+        foreach (var point in points.Skip(1))
+            builder.Append(" L ").Append(F(point.X)).Append(' ').Append(F(point.Y));
+        return builder.Append(" Z").ToString();
+    }
+
+    private static string SmoothClosedPath(IReadOnlyList<RandomMapPoint> points)
+    {
+        if (points.Count < 3) return PolygonPath(points);
+        var start = Midpoint((points[^1].X, points[^1].Y), (points[0].X, points[0].Y));
+        var builder = new StringBuilder($"M {F(start.X)} {F(start.Y)}");
+        for (var index = 0; index < points.Count; index++)
         {
-            var midpoint = Midpoint(points[index], points[index + 1]);
+            var next = points[(index + 1) % points.Count];
+            var midpoint = Midpoint((points[index].X, points[index].Y), (next.X, next.Y));
             builder.Append(" Q ").Append(F(points[index].X)).Append(' ').Append(F(points[index].Y))
                 .Append(' ').Append(F(midpoint.X)).Append(' ').Append(F(midpoint.Y));
         }
-        return builder.Append(" T ").Append(F(points[^1].X)).Append(' ').Append(F(points[^1].Y)).ToString();
+        return builder.Append(" Z").ToString();
+    }
+
+    private bool ShouldShowDistrictLabel(RandomMapDistrict district)
+    {
+        if (_map.Districts.Count <= 6)
+            return district.Kind is RandomMapDistrictKind.Market or RandomMapDistrictKind.Temple or RandomMapDistrictKind.Green;
+        if (district.Kind is RandomMapDistrictKind.Market or RandomMapDistrictKind.Temple or
+            RandomMapDistrictKind.Military or RandomMapDistrictKind.Noble) return true;
+        return district.Id % 4 == 0;
+    }
+
+    private static string DistrictBlockFill(RandomMapDistrictKind kind) => kind switch
+    {
+        RandomMapDistrictKind.Market => "#d5c28f",
+        RandomMapDistrictKind.Craftsmen => "#b5a68c",
+        RandomMapDistrictKind.Merchant => "#c2b28f",
+        RandomMapDistrictKind.Residential => "#b9b395",
+        RandomMapDistrictKind.Temple => "#b7ad9c",
+        RandomMapDistrictKind.Military => "#aaa691",
+        RandomMapDistrictKind.Noble => "#c4b5a0",
+        RandomMapDistrictKind.Poor => "#aa9c83",
+        RandomMapDistrictKind.Green => "#91a27b",
+        _ => "#b8aa8d"
+    };
+
+    private static bool PointInPolygon(double x, double y, IReadOnlyList<RandomMapPoint> polygon)
+    {
+        var inside = false;
+        for (var index = 0; index < polygon.Count; index++)
+        {
+            var current = polygon[index];
+            var previous = polygon[(index + polygon.Count - 1) % polygon.Count];
+            if ((current.Y > y) == (previous.Y > y)) continue;
+            var crossingX = (previous.X - current.X) * (y - current.Y) / (previous.Y - current.Y) + current.X;
+            if (x < crossingX) inside = !inside;
+        }
+        return inside;
     }
 
     private async Task ExportMap(string format)
+    {
+        await JS.InvokeVoidAsync("wfrp4DungeonMap.export", SvgId, ProjectFileName(), format);
+    }
+
+    private async Task SaveProject()
+    {
+        var project = new RandomDungeonMapProject
+        {
+            Map = _map.Clone(),
+            AreaCount = _areaCount,
+            Loops = _loops,
+            ShowGrid = _showGrid,
+            ShowLabels = _showLabels,
+            ShowFeatures = _showFeatures
+        };
+        var json = RandomDungeonMapProjectSerializer.Serialize(project);
+        await JS.InvokeVoidAsync("wfrp4DungeonMap.downloadText", json, $"{ProjectFileName()}.wfrp-map.json");
+        _projectLoadFailed = false;
+        _projectMessage = "Projet sauvegardé. Vous pourrez le rouvrir pour poursuivre l’édition.";
+    }
+
+    private async Task OpenProject(InputFileChangeEventArgs args)
+    {
+        _projectMessage = null;
+        _projectLoadFailed = false;
+        try
+        {
+            var file = args.File;
+            if (file.Size > RandomDungeonMapProjectSerializer.MaxProjectBytes)
+            {
+                ShowProjectError("Le fichier de projet dépasse la taille maximale de 1 Mio.");
+                return;
+            }
+
+            await using var stream = file.OpenReadStream(RandomDungeonMapProjectSerializer.MaxProjectBytes);
+            using var reader = new StreamReader(stream);
+            var json = await reader.ReadToEndAsync();
+            if (!RandomDungeonMapProjectSerializer.TryDeserialize(json, out var project, out var error) || project is null)
+            {
+                ShowProjectError(error);
+                return;
+            }
+
+            _map = project.Map.Clone();
+            if (_map.Kind == RandomMapKind.Village) ConstrainSettlementPlacesAndCache();
+            _kind = _map.Kind;
+            _seed = _map.Seed;
+            _areaCount = project.AreaCount;
+            _loops = project.Loops;
+            _showGrid = project.ShowGrid;
+            _showLabels = project.ShowLabels;
+            _showFeatures = project.ShowFeatures;
+            _selectedSettlementName = _map.Kind == RandomMapKind.Village &&
+                                      Settlements.Any(settlement => settlement.Name == _map.Name)
+                ? _map.Name
+                : string.Empty;
+            _history.Clear();
+            _selectedAreaId = _map.Areas[0].Id;
+            _selectedFeatureId = null;
+            ClearPassageSelection();
+            _linkSourceId = null;
+            ResetPointerAction();
+            _projectMessage = $"Projet « {_map.Name} » ouvert : {_map.Areas.Count} zones éditables restaurées.";
+        }
+        catch (IOException)
+        {
+            ShowProjectError("Le projet n’a pas pu être lu. Vérifiez le fichier puis réessayez.");
+        }
+        finally
+        {
+            _projectFileInputKey++;
+        }
+    }
+
+    private void ShowProjectError(string error)
+    {
+        _projectLoadFailed = true;
+        _projectMessage = error;
+    }
+
+    private string ProjectFileName()
     {
         var fileName = string.Join('-', _map.Name.ToLowerInvariant()
             .Select(character => char.IsLetterOrDigit(character) ? character : '-'));
         while (fileName.Contains("--", StringComparison.Ordinal)) fileName = fileName.Replace("--", "-", StringComparison.Ordinal);
         fileName = fileName.Trim('-');
-        if (fileName.Length == 0) fileName = "plan";
-        await JS.InvokeVoidAsync("wfrp4DungeonMap.export", SvgId, fileName, format);
+        return fileName.Length == 0 ? "plan" : fileName;
     }
 
     private static bool Intersects(RandomMapArea area, double x, double y, double width, double height) =>
@@ -1626,6 +1819,13 @@
         if (region.Contains("Bretonnie", StringComparison.OrdinalIgnoreCase)) return "#88a46f";
         return "#91a16f";
     }
+
+    private string SettlementLandscapeFill() => CurrentSettlementLandscape switch
+    {
+        RandomMapSettlementLandscape.River => "#879a78",
+        RandomMapSettlementLandscape.Port => "#aa9f76",
+        _ => SettlementTerrainFill(_map.SettlementRegion)
+    };
 
     private static string AreaFill(RandomMapAreaPurpose purpose) => purpose switch
     {
@@ -1662,7 +1862,7 @@
             };
         }
 
-        string[] roofs = ["#a85f49", "#bd7654", "#6f8991", "#8d6d59", "#b18a63", "#79554a"];
+        string[] roofs = ["#8f5d49", "#a76d50", "#6f7b78", "#806454", "#9b7956"];
         return roofs[(int)((uint)building.ShapeSeed % roofs.Length)];
     }
 
@@ -1731,6 +1931,7 @@
         public double CenterY => Y + Height / 2;
     }
 
-    private sealed record VillageTree(double X, double Y, double Scale);
+    private sealed record LandscapePatch(string Path, string Fill);
     private sealed record SettlementTower(double X, double Y, double Radius);
+    private sealed record DistrictLandmarkGlyph(double X, double Y, RandomMapDistrictKind Kind);
 }

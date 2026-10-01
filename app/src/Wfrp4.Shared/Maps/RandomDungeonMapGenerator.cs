@@ -62,7 +62,147 @@ public enum RandomMapSettlementLandscape
     Port
 }
 
+public enum RandomMapSettlementSize
+{
+    Small,
+    Medium,
+    Large
+}
+
+public enum RandomMapSettlementForm
+{
+    Compact,
+    Elongated,
+    Sprawling
+}
+
+public enum RandomMapDistrictKind
+{
+    Market,
+    Craftsmen,
+    Merchant,
+    Residential,
+    Temple,
+    Military,
+    Noble,
+    Poor,
+    Green
+}
+
 public sealed record RandomMapSettlement(string Name, string Type, string Population, string Region);
+
+public enum RandomMapEdge
+{
+    North,
+    East,
+    South,
+    West
+}
+
+public sealed record RandomSettlementGate(double X, double Y, RandomMapEdge Edge);
+public sealed record RandomSettlementDistrictConnection(int FromDistrictId, int ToDistrictId);
+
+public sealed class RandomMapPoint
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+
+    public RandomMapPoint Clone() => new() { X = X, Y = Y };
+}
+
+public static class RandomSettlementMapGeometry
+{
+    private const int MainRoadPointCount = 10;
+    private const double MainRoadMargin = 42;
+
+    public static IReadOnlyList<RandomMapPoint> MainRoadPoints(int seed)
+    {
+        return Enumerable.Range(0, MainRoadPointCount)
+            .Select(index =>
+            {
+                var x = -MainRoadMargin + index *
+                    (RandomDungeonMap.CanvasWidth + MainRoadMargin * 2) / (MainRoadPointCount - 1);
+                return new RandomMapPoint { X = x, Y = MainRoadYAt(seed, x) };
+            })
+            .ToList();
+    }
+
+    public static double MainRoadYAt(int seed, double x)
+    {
+        var phase = new Random(seed).NextDouble() * Math.PI * 2;
+        return 318 + Math.Sin(x / 145 + phase) * 82 + Math.Sin(x / 62 + phase * 0.7) * 18;
+    }
+
+    public static IReadOnlyList<RandomSettlementDistrictConnection> DistrictConnections(RandomDungeonMap map)
+    {
+        if (map.Districts.Count < 2) return [];
+        var market = map.Districts.FirstOrDefault(district => district.Kind == RandomMapDistrictKind.Market) ?? map.Districts[0];
+        var connected = new List<RandomMapDistrict> { market };
+        var remaining = map.Districts
+            .Where(district => district.Id != market.Id)
+            .OrderBy(district => Distance(district.CenterX, district.CenterY, market.CenterX, market.CenterY))
+            .ThenBy(district => district.Id)
+            .ToList();
+        var result = new List<RandomSettlementDistrictConnection>(remaining.Count);
+
+        foreach (var district in remaining)
+        {
+            var parent = connected
+                .OrderBy(candidate => Distance(district.CenterX, district.CenterY, candidate.CenterX, candidate.CenterY))
+                .ThenBy(candidate => candidate.Id)
+                .First();
+            result.Add(new RandomSettlementDistrictConnection(district.Id, parent.Id));
+            connected.Add(district);
+        }
+
+        return result;
+    }
+
+    public static IReadOnlyList<RandomSettlementGate> SettlementGates(RandomDungeonMap map)
+    {
+        if (map.SettlementLayout != RandomMapSettlementLayout.Fortified || map.SettlementBoundary.Count < 4)
+            return [];
+
+        return
+        [
+            GateAt(map.SettlementBoundary.MinBy(point => point.Y)!, RandomMapEdge.North),
+            GateAt(map.SettlementBoundary.MaxBy(point => point.X)!, RandomMapEdge.East),
+            GateAt(map.SettlementBoundary.MaxBy(point => point.Y)!, RandomMapEdge.South),
+            GateAt(map.SettlementBoundary.MinBy(point => point.X)!, RandomMapEdge.West)
+        ];
+    }
+
+    private static RandomSettlementGate GateAt(RandomMapPoint point, RandomMapEdge edge) =>
+        new(point.X, point.Y, edge);
+
+    private static double Distance(double x1, double y1, double x2, double y2)
+    {
+        var x = x1 - x2;
+        var y = y1 - y2;
+        return Math.Sqrt(x * x + y * y);
+    }
+}
+
+public sealed class RandomMapDistrict
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public RandomMapDistrictKind Kind { get; set; }
+    public int ShapeSeed { get; set; }
+    public List<RandomMapPoint> Boundary { get; set; } = [];
+
+    public double CenterX => Boundary.Count == 0 ? 0 : Boundary.Average(point => point.X);
+    public double CenterY => Boundary.Count == 0 ? 0 : Boundary.Average(point => point.Y);
+
+    public RandomMapDistrict Clone() => new()
+    {
+        Id = Id,
+        Name = Name,
+        Kind = Kind,
+        ShapeSeed = ShapeSeed,
+        Boundary = Boundary.Select(point => point.Clone()).ToList()
+    };
+}
 
 public sealed class RandomMapArea
 {
@@ -140,6 +280,16 @@ public sealed class RandomDungeonMap
     public string? SettlementRegion { get; set; }
     public RandomMapSettlementLayout? SettlementLayout { get; set; }
     public RandomMapSettlementLandscape? SettlementLandscape { get; set; }
+    public RandomMapSettlementSize SettlementSize { get; set; } = RandomMapSettlementSize.Medium;
+    public int? SettlementFootprintPercent { get; set; }
+    public int? SettlementDensityPercent { get; set; }
+    public int? SettlementStreetWidthPercent { get; set; }
+    public RandomMapSettlementForm? SettlementForm { get; set; }
+    public bool? SettlementHasRiver { get; set; }
+    public bool? SettlementHasCoast { get; set; }
+    public bool? SettlementHasForest { get; set; }
+    public List<RandomMapPoint> SettlementBoundary { get; set; } = [];
+    public List<RandomMapDistrict> Districts { get; set; } = [];
     public List<RandomMapArea> Areas { get; set; } = [];
     public List<RandomMapPassage> Passages { get; set; } = [];
     public List<RandomMapFeature> Features { get; set; } = [];
@@ -154,6 +304,16 @@ public sealed class RandomDungeonMap
         SettlementRegion = SettlementRegion,
         SettlementLayout = SettlementLayout,
         SettlementLandscape = SettlementLandscape,
+        SettlementSize = SettlementSize,
+        SettlementFootprintPercent = SettlementFootprintPercent,
+        SettlementDensityPercent = SettlementDensityPercent,
+        SettlementStreetWidthPercent = SettlementStreetWidthPercent,
+        SettlementForm = SettlementForm,
+        SettlementHasRiver = SettlementHasRiver,
+        SettlementHasCoast = SettlementHasCoast,
+        SettlementHasForest = SettlementHasForest,
+        SettlementBoundary = SettlementBoundary.Select(point => point.Clone()).ToList(),
+        Districts = Districts.Select(district => district.Clone()).ToList(),
         Areas = Areas.Select(area => area.Clone()).ToList(),
         Passages = Passages.Select(passage => passage.Clone()).ToList(),
         Features = Features.Select(feature => feature.Clone()).ToList()
@@ -225,6 +385,11 @@ public static class RandomDungeonMapGenerator
         var random = new Random(seed);
         settlement = kind == RandomMapKind.Village ? settlement : null;
         RandomMapSettlementLayout? settlementLayout = settlement is null ? null : SettlementLayoutFor(settlement);
+        if (kind == RandomMapKind.Village && settlementLayout is null)
+            settlementLayout = DefaultSettlementLayout(seed);
+        var settlementPlan = kind == RandomMapKind.Village
+            ? GenerateSettlementPlan(areaCount, settlement, settlementLayout!.Value, new Random(seed ^ 0x5a17c9e3))
+            : null;
         var areas = GenerateAreas(kind, areaCount, random, settlement, settlementLayout);
         var passages = ConnectAreas(areas, loops, random);
         var features = GenerateFeatures(kind, areas, random);
@@ -246,6 +411,11 @@ public static class RandomDungeonMapGenerator
             SettlementRegion = settlement?.Region,
             SettlementLayout = settlementLayout,
             SettlementLandscape = kind == RandomMapKind.Village ? RandomMapSettlementLandscape.River : null,
+            SettlementHasRiver = kind == RandomMapKind.Village ? true : null,
+            SettlementHasCoast = kind == RandomMapKind.Village ? false : null,
+            SettlementHasForest = kind == RandomMapKind.Village ? false : null,
+            SettlementBoundary = settlementPlan?.Boundary ?? [],
+            Districts = settlementPlan?.Districts ?? [],
             Areas = areas,
             Passages = passages,
             Features = features
@@ -287,6 +457,196 @@ public static class RandomDungeonMapGenerator
             _ => RandomMapSettlementLayout.Dispersed
         };
     }
+
+    private static RandomMapSettlementLayout DefaultSettlementLayout(int seed) => Math.Abs(seed % 3) switch
+    {
+        0 => RandomMapSettlementLayout.Linear,
+        1 => RandomMapSettlementLayout.Clustered,
+        _ => RandomMapSettlementLayout.Dispersed
+    };
+
+    private static SettlementPlan GenerateSettlementPlan(
+        int areaCount,
+        RandomMapSettlement? settlement,
+        RandomMapSettlementLayout layout,
+        Random random)
+    {
+        var districtCount = settlement?.Type switch
+        {
+            "Cité" => Math.Clamp(areaCount / 2, 12, 16),
+            "Ville" => Math.Clamp(areaCount / 2, 9, 13),
+            "Bourg" => Math.Clamp(areaCount / 2, 6, 9),
+            _ => Math.Clamp(areaCount / 3 + 1, 4, 6)
+        };
+        var boundary = SettlementBoundary(layout, random);
+        var seeds = SettlementSeeds(districtCount, layout, random);
+        var districts = new List<RandomMapDistrict>(districtCount);
+
+        for (var index = 0; index < seeds.Count; index++)
+        {
+            var polygon = boundary.Select(point => point.Clone()).ToList();
+            for (var otherIndex = 0; otherIndex < seeds.Count && polygon.Count > 2; otherIndex++)
+            {
+                if (otherIndex == index) continue;
+                polygon = ClipToNearestHalfPlane(polygon, seeds[index], seeds[otherIndex]);
+            }
+
+            var kind = DistrictKind(index, settlement?.Type);
+            districts.Add(new RandomMapDistrict
+            {
+                Id = index + 1,
+                Name = DistrictName(kind, index),
+                Kind = kind,
+                ShapeSeed = random.Next(1, int.MaxValue),
+                Boundary = polygon
+            });
+        }
+
+        return new SettlementPlan(boundary, districts);
+    }
+
+    private static List<RandomMapPoint> SettlementBoundary(RandomMapSettlementLayout layout, Random random)
+    {
+        var (radiusX, radiusY) = layout switch
+        {
+            RandomMapSettlementLayout.Fortified => (350d, 222d),
+            RandomMapSettlementLayout.Clustered => (365d, 230d),
+            RandomMapSettlementLayout.Dispersed => (420d, 265d),
+            _ => (430d, 238d)
+        };
+        var phase = random.NextDouble() * Math.PI * 2;
+        var points = new List<RandomMapPoint>(18);
+        for (var index = 0; index < 18; index++)
+        {
+            var angle = phase + Math.PI * 2 * index / 18;
+            var radius = 0.93 + random.NextDouble() * 0.09;
+            points.Add(new RandomMapPoint
+            {
+                X = Math.Clamp(480 + Math.Cos(angle) * radiusX * radius, 28, RandomDungeonMap.CanvasWidth - 28),
+                Y = Math.Clamp(320 + Math.Sin(angle) * radiusY * radius, 28, RandomDungeonMap.CanvasHeight - 28)
+            });
+        }
+        return points;
+    }
+
+    private static List<RandomMapPoint> SettlementSeeds(int count, RandomMapSettlementLayout layout, Random random)
+    {
+        var seeds = new List<RandomMapPoint>(count)
+        {
+            new() { X = 480 + Jitter(random, 12), Y = 320 + Jitter(random, 9) }
+        };
+        var phase = random.NextDouble() * Math.PI * 2;
+
+        for (var index = 1; index < count; index++)
+        {
+            RandomMapPoint candidate = new();
+            for (var attempt = 0; attempt < 80; attempt++)
+            {
+                if (layout == RandomMapSettlementLayout.Linear)
+                {
+                    var x = 115 + index * 730d / Math.Max(1, count - 1) + Jitter(random, 38);
+                    candidate = new RandomMapPoint
+                    {
+                        X = x,
+                        Y = VillageRoadY(x, phase) + Jitter(random, 105)
+                    };
+                }
+                else
+                {
+                    var angle = phase + index * 2.399963229728653 + Jitter(random, 0.18);
+                    var radius = layout == RandomMapSettlementLayout.Dispersed
+                        ? 90 + Math.Sqrt(random.NextDouble()) * 265
+                        : 70 + Math.Sqrt(index / (double)Math.Max(1, count - 1)) * 245 + Jitter(random, 24);
+                    candidate = new RandomMapPoint
+                    {
+                        X = 480 + Math.Cos(angle) * radius,
+                        Y = 320 + Math.Sin(angle) * radius * 0.68
+                    };
+                }
+
+                candidate.X = Math.Clamp(candidate.X, 95, 865);
+                candidate.Y = Math.Clamp(candidate.Y, 90, 550);
+                if (seeds.All(seed => Distance(seed, candidate) >= 62)) break;
+            }
+            seeds.Add(candidate);
+        }
+
+        return seeds;
+    }
+
+    private static List<RandomMapPoint> ClipToNearestHalfPlane(
+        IReadOnlyList<RandomMapPoint> polygon,
+        RandomMapPoint seed,
+        RandomMapPoint other)
+    {
+        var a = 2 * (other.X - seed.X);
+        var b = 2 * (other.Y - seed.Y);
+        var c = other.X * other.X + other.Y * other.Y - seed.X * seed.X - seed.Y * seed.Y;
+        var result = new List<RandomMapPoint>();
+
+        for (var index = 0; index < polygon.Count; index++)
+        {
+            var current = polygon[index];
+            var next = polygon[(index + 1) % polygon.Count];
+            var currentValue = a * current.X + b * current.Y - c;
+            var nextValue = a * next.X + b * next.Y - c;
+            var currentInside = currentValue <= 0.0001;
+            var nextInside = nextValue <= 0.0001;
+
+            if (currentInside)
+                result.Add(current.Clone());
+            if (currentInside == nextInside) continue;
+
+            var ratio = currentValue / (currentValue - nextValue);
+            result.Add(new RandomMapPoint
+            {
+                X = current.X + (next.X - current.X) * ratio,
+                Y = current.Y + (next.Y - current.Y) * ratio
+            });
+        }
+
+        return result;
+    }
+
+    private static double Distance(RandomMapPoint left, RandomMapPoint right)
+    {
+        var x = left.X - right.X;
+        var y = left.Y - right.Y;
+        return Math.Sqrt(x * x + y * y);
+    }
+
+    private static RandomMapDistrictKind DistrictKind(int index, string? settlementType)
+    {
+        if (index == 0) return RandomMapDistrictKind.Market;
+        RandomMapDistrictKind[] cityKinds =
+        [
+            RandomMapDistrictKind.Craftsmen, RandomMapDistrictKind.Merchant, RandomMapDistrictKind.Temple,
+            RandomMapDistrictKind.Residential, RandomMapDistrictKind.Military, RandomMapDistrictKind.Poor,
+            RandomMapDistrictKind.Noble, RandomMapDistrictKind.Craftsmen, RandomMapDistrictKind.Residential,
+            RandomMapDistrictKind.Green, RandomMapDistrictKind.Merchant, RandomMapDistrictKind.Poor
+        ];
+        RandomMapDistrictKind[] villageKinds =
+        [
+            RandomMapDistrictKind.Craftsmen, RandomMapDistrictKind.Residential, RandomMapDistrictKind.Temple,
+            RandomMapDistrictKind.Green, RandomMapDistrictKind.Merchant
+        ];
+        var kinds = settlementType is "Ville" or "Cité" ? cityKinds : villageKinds;
+        return kinds[(index - 1) % kinds.Length];
+    }
+
+    private static string DistrictName(RandomMapDistrictKind kind, int index) => kind switch
+    {
+        RandomMapDistrictKind.Market => "Grand marché",
+        RandomMapDistrictKind.Craftsmen => index % 2 == 0 ? "Quartier des forges" : "Quartier des artisans",
+        RandomMapDistrictKind.Merchant => "Quartier marchand",
+        RandomMapDistrictKind.Residential => index % 2 == 0 ? "Maisons basses" : "Quartier des foyers",
+        RandomMapDistrictKind.Temple => "Enclos du temple",
+        RandomMapDistrictKind.Military => "Quartier du guet",
+        RandomMapDistrictKind.Noble => "Haut quartier",
+        RandomMapDistrictKind.Poor => "Faubourg populaire",
+        RandomMapDistrictKind.Green => "Jardins communaux",
+        _ => $"Quartier {index + 1}"
+    };
 
     private static List<RandomMapArea> GenerateAreas(
         RandomMapKind kind,
@@ -823,4 +1183,5 @@ public static class RandomDungeonMapGenerator
     }
 
     private sealed record MapPartition(double X, double Y, double Width, double Height);
+    private sealed record SettlementPlan(List<RandomMapPoint> Boundary, List<RandomMapDistrict> Districts);
 }
