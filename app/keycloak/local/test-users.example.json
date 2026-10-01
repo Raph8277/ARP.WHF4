@@ -1,0 +1,18 @@
+[
+  {
+    "username": "mj-exemple",
+    "email": "mj@example.com",
+    "password": "a-remplacer",
+    "firstName": "MJ",
+    "lastName": "Exemple",
+    "roles": ["wfrp4-joueur", "wfrp4-maitre-jeu"]
+  },
+  {
+    "username": "joueur-exemple",
+    "email": "joueur@example.com",
+    "password": "a-remplacer",
+    "firstName": "Joueur",
+    "lastName": "Exemple",
+    "roles": ["wfrp4-joueur"]
+  }
+]

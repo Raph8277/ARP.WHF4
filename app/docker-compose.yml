@@ -45,6 +45,15 @@ services:
       postgres:
         condition: service_healthy
 
+  # Boîte mail de développement : capte les e-mails Keycloak (réinitialisation de mot de passe)
+  # sans rien envoyer à l'extérieur. Interface : http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: wfrp4-mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
   wfrp4-app:
     build:
       context: .

@@ -1,0 +1,188 @@
+@page "/admin/utilisateurs"
+@attribute [Authorize(Roles = "wfrp4-admin")]
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+
+<PageTitle>Comptes — WFRP4</PageTitle>
+
+<section class="old-world-hero mb-6">
+    <div>
+        <MudText Class="old-world-kicker">Administration</MudText>
+        <MudText Typo="Typo.h2" Class="old-world-hero__title">Comptes et rôles</MudText>
+        <MudText Class="old-world-hero__text">Attribuez les rôles joueur, maître de jeu et administrateur, activez ou désactivez un compte, ou envoyez un lien de réinitialisation du mot de passe.</MudText>
+    </div>
+</section>
+
+<MudPaper Class="old-world-panel pa-4">
+    <div class="d-flex align-center gap-2 mb-4 flex-wrap">
+        <MudTextField T="string" @bind-Value="_recherche" Label="Rechercher (nom, e-mail)" Immediate="false"
+                      OnKeyUp="OnRechercheKey" Style="max-width:360px" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Rechercher">Rechercher</MudButton>
+    </div>
+
+    @if (_chargement)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_erreur is not null)
+    {
+        <MudAlert Severity="Severity.Error">@_erreur</MudAlert>
+    }
+    else if (_utilisateurs.Count == 0)
+    {
+        <MudText>Aucun compte trouvé.</MudText>
+    }
+    else
+    {
+        <div style="overflow-x:auto">
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead>
+                    <tr>
+                        <th>Compte</th>
+                        <th>E-mail</th>
+                        <th>Joueur</th>
+                        <th>MJ</th>
+                        <th>Admin</th>
+                        <th>Actif</th>
+                        <th>Mot de passe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in _utilisateurs)
+                    {
+                        <tr>
+                            <td>@u.NomUtilisateur</td>
+                            <td>@u.Email</td>
+                            <td>@CaseRole(u, RolesApplicatifs.Joueur)</td>
+                            <td>@CaseRole(u, RolesApplicatifs.MaitreJeu)</td>
+                            <td>@CaseRole(u, RolesApplicatifs.Admin)</td>
+                            <td>
+                                <MudSwitch T="bool" Value="u.Actif" Disabled="_occupe" Color="Color.Success"
+                                           ValueChanged="@(v => BasculerActivation(u, v))" />
+                            </td>
+                            <td>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Disabled="_occupe || string.IsNullOrWhiteSpace(u.Email)"
+                                           OnClick="@(() => Reinitialiser(u))">Envoyer le lien</MudButton>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </div>
+
+        <div class="d-flex align-center gap-2 mt-3">
+            <MudButton Disabled="_page == 0 || _occupe" OnClick="PagePrecedente">Précédent</MudButton>
+            <MudText>Page @(_page + 1)</MudText>
+            <MudButton Disabled="!_pageSuivante || _occupe" OnClick="PageSuivante">Suivant</MudButton>
+        </div>
+    }
+</MudPaper>
+
+@code {
+    private const int Taille = 20;
+
+    private List<UtilisateurAdminDto> _utilisateurs = new();
+    private string? _recherche;
+    private string? _erreur;
+    private int _page;
+    private bool _pageSuivante;
+    private bool _chargement = true;
+    private bool _occupe;
+
+    protected override Task OnInitializedAsync() => Charger();
+
+    private async Task Charger()
+    {
+        _chargement = true;
+        _erreur = null;
+        try
+        {
+            var resultat = await Api.GetUtilisateursAdminAsync(_recherche, _page, Taille);
+            _utilisateurs = resultat?.Utilisateurs ?? new();
+            _pageSuivante = resultat?.PageSuivante ?? false;
+        }
+        catch (HttpRequestException)
+        {
+            _erreur = "Impossible de charger les comptes (accès refusé ou service indisponible).";
+        }
+        finally
+        {
+            _chargement = false;
+        }
+    }
+
+    private RenderFragment CaseRole(UtilisateurAdminDto u, string role) => @<MudCheckBox T="bool" Value="u.Roles.Contains(role)"
+        Disabled="_occupe" Color="Color.Primary" ValueChanged="@(v => BasculerRole(u, role, v))" />;
+
+    private async Task BasculerRole(UtilisateurAdminDto u, string role, bool actif)
+    {
+        var roles = u.Roles.ToHashSet();
+        if (actif) roles.Add(role); else roles.Remove(role);
+
+        // Le serveur impose la cohérence (MJ/admin => joueur) ; on recharge pour afficher l'état réel.
+        await Executer(() => Api.ModifierRolesUtilisateurAsync(u.Id, roles), "Rôles mis à jour.");
+    }
+
+    private Task BasculerActivation(UtilisateurAdminDto u, bool actif) =>
+        Executer(() => Api.ModifierActivationUtilisateurAsync(u.Id, actif), actif ? "Compte activé." : "Compte désactivé.");
+
+    private async Task Reinitialiser(UtilisateurAdminDto u)
+    {
+        _occupe = true;
+        try
+        {
+            await Api.ReinitialiserMotDePasseUtilisateurAsync(u.Id);
+            Snackbar.Add($"Lien de réinitialisation envoyé à {u.Email}.", Severity.Success);
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _occupe = false;
+        }
+    }
+
+    private async Task Executer(Func<Task> action, string succes)
+    {
+        _occupe = true;
+        try
+        {
+            await action();
+            Snackbar.Add(succes, Severity.Success);
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _occupe = false;
+            await Charger();
+        }
+    }
+
+    private async Task Rechercher()
+    {
+        _page = 0;
+        await Charger();
+    }
+
+    private async Task OnRechercheKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Rechercher();
+    }
+
+    private async Task PagePrecedente()
+    {
+        _page = Math.Max(0, _page - 1);
+        await Charger();
+    }
+
+    private async Task PageSuivante()
+    {
+        _page++;
+        await Charger();
+    }
+}

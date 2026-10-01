@@ -156,6 +156,31 @@ et/ou le contrôleur directement. La connexion, les politiques HTTP, l'anti-abus
 en hébergement réel, le navigateur et les migrations PostgreSQL ne sont pas
 validés par ces tests.
 
+## Administration des comptes et mot de passe (spec `docs/spec-roles-comptes-mdp.md`)
+
+- Endpoint `api/admin/utilisateurs` (liste, détail, rôles, activation, e-mail de
+  réinitialisation) réservé à la politique `Admin`, via le compte de service Keycloak.
+  Liste blanche des trois rôles `wfrp4-*`, MJ/admin impliquent joueur côté serveur,
+  refus (409) de rétrograder ou désactiver soi-même ou le dernier admin actif,
+  compte de service masqué, erreurs Keycloak traduites en 503 sans corps brut.
+- Page client `/admin/utilisateurs` et lien de menu visibles pour l'admin ; lien
+  « Changer mon mot de passe » vers la console de compte Keycloak.
+- Realm : `resetPasswordAllowed`, protection force brute, locale `fr`, lien valable
+  15 minutes, SMTP Mailpit (service ajouté à `docker-compose.yml`).
+- Comptes de test MJ et joueur : `app/keycloak/provision-local.ps1` lit
+  `app/keycloak/local/test-users.json`, **ignoré par Git** (adresses et mots de passe
+  réels). Le script est idempotent et sert aussi à appliquer les réglages du realm sur
+  un Keycloak déjà initialisé, car l'import n'a lieu qu'à la création.
+- Validé : 14 tests du contrôleur appelé directement avec un service simulé ; la
+  solution compile et ses 128 tests .NET réussissent.
+- **Non validé** : routes HTTP avec vrais jetons (401/403), appels réels à l'API
+  d'administration Keycloak, envoi et consommation du lien e-mail, console de compte
+  Keycloak, page Blazor dans un navigateur. `node` est absent de cette machine :
+  `scripts/harness/verify.cjs` n'a pas été exécuté.
+- Limite connue : un jeton déjà émis garde ses anciens rôles jusqu'à expiration.
+- Hors périmètre : politique de mot de passe de production (le mot de passe de test
+  de 4 caractères n'est accepté que sans politique) et journal d'audit en base.
+
 ## Suite ordonnée
 
 1. **D02** : protéger compteurs XP et écritures monétaires contre les accès

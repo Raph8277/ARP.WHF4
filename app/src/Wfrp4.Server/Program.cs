@@ -87,6 +87,7 @@ builder.Services.AddScoped<PersonnageOwnerFilter>();
 builder.Services.AddHttpClient("KeycloakAdmin")
     .AddHttpMessageHandler<KeycloakBackchannelHandler>();
 builder.Services.AddScoped<KeycloakAdminService>();
+builder.Services.AddScoped<IKeycloakUtilisateursAdmin>(sp => sp.GetRequiredService<KeycloakAdminService>());
 
 builder.Services.AddControllers();
 

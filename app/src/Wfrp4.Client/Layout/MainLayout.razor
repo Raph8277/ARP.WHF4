@@ -4,6 +4,7 @@
 @using Wfrp4.Client.Components
 @inject NavigationManager Nav
 @inject UserThemeService ThemeService
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 <MudLayout Class="old-world-layout">
     <MudAppBar Elevation="@ThemeService.ActivePreset.AppBarElevation" Class="old-world-appbar">
@@ -35,6 +36,9 @@
         <AuthorizeView>
             <Authorized>
                 <MudChip T="string" Class="mr-4 old-world-user-chip" Color="Color.Default">@context.User.Identity?.Name</MudChip>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit"
+                           Class="old-world-header-button mr-2"
+                           Href="@PasswordUrl">Changer mon mot de passe</MudButton>
                 <MudButton Variant="Variant.Text" Color="Color.Inherit"
                            Class="old-world-header-button"
                            OnClick="Logout">Déconnexion</MudButton>
@@ -78,6 +82,10 @@
 @code {
     private bool _drawerOpen = true;
     private bool _themePanelOpen;
+
+    // Le mot de passe n'est jamais manipulé par l'application : on redirige vers la console de compte Keycloak.
+    private string PasswordUrl =>
+        $"{Configuration["Keycloak:Authority"]?.TrimEnd('/')}/account/#/security/signingin";
 
     private string _themeIcon => ThemeService.IsDarkMode
         ? Icons.Material.Filled.LightMode

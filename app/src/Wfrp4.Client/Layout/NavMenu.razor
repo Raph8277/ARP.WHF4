@@ -14,6 +14,11 @@
     <MudNavLink Href="/theme" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Palette" Class="old-world-nav-link">
         Thème
     </MudNavLink>
+    <AuthorizeView Roles="wfrp4-admin">
+        <MudNavLink Href="/admin/utilisateurs" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ManageAccounts" Class="old-world-nav-link">
+            Comptes et rôles
+        </MudNavLink>
+    </AuthorizeView>
     <MudNavLink Href="/admin/pdf-designer" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.DashboardCustomize" Class="old-world-nav-link">
         Designer PDF
     </MudNavLink>

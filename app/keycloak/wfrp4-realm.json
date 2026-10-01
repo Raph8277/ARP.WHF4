@@ -1,6 +1,22 @@
 {
   "realm": "wfrp4",
   "enabled": true,
+  "resetPasswordAllowed": true,
+  "loginWithEmailAllowed": true,
+  "bruteForceProtected": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["fr", "en"],
+  "defaultLocale": "fr",
+  "actionTokenGeneratedByUserLifespan": 900,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@wfrp4.local",
+    "fromDisplayName": "WFRP4",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
   "roles": {
     "realm": [
       { "name": "wfrp4-joueur", "description": "Joueur WFRP4" },

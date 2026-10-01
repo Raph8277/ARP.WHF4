@@ -13,6 +13,29 @@ public class Wfrp4ApiClient
         _http = http;
     }
 
+    // --- Administration des comptes (admin uniquement, appliqué côté serveur) ---
+    public Task<PageUtilisateursAdminDto?> GetUtilisateursAdminAsync(string? recherche, int page, int taille) =>
+        _http.GetFromJsonAsync<PageUtilisateursAdminDto>(
+            $"api/admin/utilisateurs?page={page}&taille={taille}&recherche={Uri.EscapeDataString(recherche ?? string.Empty)}");
+
+    public async Task ModifierRolesUtilisateurAsync(string id, IEnumerable<string> roles)
+    {
+        using var response = await _http.PutAsJsonAsync($"api/admin/utilisateurs/{id}/roles", new ModifierRolesRequest { Roles = roles.ToList() });
+        await EnsureSuccessAsync(response);
+    }
+
+    public async Task ModifierActivationUtilisateurAsync(string id, bool actif)
+    {
+        using var response = await _http.PutAsJsonAsync($"api/admin/utilisateurs/{id}/activation", new ModifierActivationRequest { Actif = actif });
+        await EnsureSuccessAsync(response);
+    }
+
+    public async Task ReinitialiserMotDePasseUtilisateurAsync(string id)
+    {
+        using var response = await _http.PostAsync($"api/admin/utilisateurs/{id}/reinitialisation-mdp", null);
+        await EnsureSuccessAsync(response);
+    }
+
     // --- Personnages ---
     public Task<List<PersonnageSummaryDto>?> GetMesPersonnagesAsync() =>
         _http.GetFromJsonAsync<List<PersonnageSummaryDto>>("api/personnages");
