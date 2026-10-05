@@ -170,6 +170,11 @@ public class PersonnagePartageConfiguration : IEntityTypeConfiguration<Personnag
     {
         builder.Property(p => p.MjKeycloakId).HasMaxLength(100).IsRequired();
         builder.HasIndex(p => new { p.PersonnageId, p.MjKeycloakId }).IsUnique();
+
+        builder.HasOne(p => p.Partie)
+               .WithMany()
+               .HasForeignKey(p => p.PartieId)
+               .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

@@ -2,3 +2,7 @@
 /tmp/skill-validation-deps/
 /tmp/harness-config/
 /tmp/WFRP.regressions-*.log
+
+# Comptes de test locaux (adresses et mots de passe réels, ne jamais versionner)
+app/keycloak/local/*
+!app/keycloak/local/test-users.example.json

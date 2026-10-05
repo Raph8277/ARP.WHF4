@@ -1,0 +1,18 @@
+[
+  {
+    "username": "master",
+    "email": "raphael.leprince.eu@gmail.com",
+    "password": "8277",
+    "firstName": "MJ",
+    "lastName": "Exemple",
+    "roles": ["wfrp4-joueur", "wfrp4-maitre-jeu"]
+  },
+  {
+    "username": "user",
+    "email": "oscarmelvine@gmail.com",
+    "password": "8277",
+    "firstName": "Joueur",
+    "lastName": "Exemple",
+    "roles": ["wfrp4-joueur"]
+  }
+]

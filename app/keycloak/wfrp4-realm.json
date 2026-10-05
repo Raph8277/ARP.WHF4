@@ -1,6 +1,23 @@
 {
   "realm": "wfrp4",
   "enabled": true,
+  "resetPasswordAllowed": true,
+  "loginWithEmailAllowed": true,
+  "bruteForceProtected": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["fr", "en"],
+  "defaultLocale": "fr",
+  "loginTheme": "wfrp4",
+  "actionTokenGeneratedByUserLifespan": 900,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@wfrp4.local",
+    "fromDisplayName": "WFRP4",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
   "roles": {
     "realm": [
       { "name": "wfrp4-joueur", "description": "Joueur WFRP4" },
@@ -106,13 +123,31 @@
         "defaultScope": "email public_profile",
         "syncMode": "IMPORT"
       }
+    },
+    {
+      "alias": "microsoft",
+      "displayName": "Microsoft",
+      "providerId": "microsoft",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "${WFRP4_MS_CLIENT_ID:}",
+        "clientSecret": "${WFRP4_MS_CLIENT_SECRET:}",
+        "defaultScope": "openid profile email",
+        "syncMode": "IMPORT"
+      }
     }
   ],
   "identityProviderMappers": [
     {
       "name": "google-wfrp4-joueur",
       "identityProviderAlias": "google",
-      "identityProviderMapper": "hardcoded-role-idp-mapper",
+      "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
       "config": {
         "syncMode": "INHERIT",
         "role": "wfrp4-joueur"
@@ -121,7 +156,7 @@
     {
       "name": "yahoo-wfrp4-joueur",
       "identityProviderAlias": "yahoo",
-      "identityProviderMapper": "hardcoded-role-idp-mapper",
+      "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
       "config": {
         "syncMode": "INHERIT",
         "role": "wfrp4-joueur"
@@ -130,7 +165,16 @@
     {
       "name": "meta-wfrp4-joueur",
       "identityProviderAlias": "meta",
-      "identityProviderMapper": "hardcoded-role-idp-mapper",
+      "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
+      "config": {
+        "syncMode": "INHERIT",
+        "role": "wfrp4-joueur"
+      }
+    },
+    {
+      "name": "microsoft-wfrp4-joueur",
+      "identityProviderAlias": "microsoft",
+      "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
       "config": {
         "syncMode": "INHERIT",
         "role": "wfrp4-joueur"
@@ -148,22 +192,22 @@
     },
     {
       "id": "11111111-1111-1111-1111-111111111111",
-      "username": "joueur1",
+      "username": "user",
       "enabled": true,
-      "email": "joueur1@wfrp4.local",
+      "email": "oscarmelvine@gmail.com",
       "firstName": "Joueur",
       "lastName": "Un",
-      "credentials": [{ "type": "password", "value": "joueur1", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "8277", "temporary": false }],
       "realmRoles": ["wfrp4-joueur"]
     },
     {
       "id": "22222222-2222-2222-2222-222222222222",
-      "username": "mj1",
+      "username": "master",
       "enabled": true,
-      "email": "mj1@wfrp4.local",
+      "email": "raphael.leprince.eu@gmail.com",
       "firstName": "Maitre",
       "lastName": "Jeu",
-      "credentials": [{ "type": "password", "value": "mj1", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "8277", "temporary": false }],
       "realmRoles": ["wfrp4-joueur", "wfrp4-maitre-jeu"]
     },
     {

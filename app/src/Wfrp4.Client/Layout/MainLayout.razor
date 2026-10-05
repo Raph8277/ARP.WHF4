@@ -1,9 +1,11 @@
 @inherits LayoutComponentBase
+@using System.Security.Claims
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Wfrp4.Client.Theme
 @using Wfrp4.Client.Components
 @inject NavigationManager Nav
 @inject UserThemeService ThemeService
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 <MudLayout Class="old-world-layout">
     <MudAppBar Elevation="@ThemeService.ActivePreset.AppBarElevation" Class="old-world-appbar">
@@ -32,12 +34,25 @@
         <MudIconButton Icon="@(_themeIcon)" Color="Color.Inherit"
                        Class="old-world-header-button mr-2"
                        OnClick="ToggleDarkMode" />
-        <AuthorizeView>
+        <AuthorizeView Context="authState">
             <Authorized>
-                <MudChip T="string" Class="mr-4 old-world-user-chip" Color="Color.Default">@context.User.Identity?.Name</MudChip>
-                <MudButton Variant="Variant.Text" Color="Color.Inherit"
-                           Class="old-world-header-button"
-                           OnClick="Logout">Déconnexion</MudButton>
+                <MudMenu Class="old-world-profile-menu" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <ActivatorContent Context="menuCtx">
+                        <div class="old-world-user-chip old-world-profile-trigger" @onclick="@(e => menuCtx.ToggleAsync(e))">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Small" Class="mr-1" />
+                            <span>@GetLogin(authState.User)</span>
+                        </div>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <div class="px-4 pt-1 pb-2">
+                            <MudText Typo="Typo.subtitle2">@GetLogin(authState.User)</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@authState.User.FindFirst("email")?.Value</MudText>
+                        </div>
+                        <MudDivider />
+                        <MudMenuItem Href="@PasswordUrl" Icon="@Icons.Material.Filled.Lock">Changer mon mot de passe</MudMenuItem>
+                        <MudMenuItem OnClick="Logout" Icon="@Icons.Material.Filled.Logout">Déconnexion</MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
             </Authorized>
             <NotAuthorized>
                 <MudButton Variant="Variant.Text" Color="Color.Inherit"
@@ -79,6 +94,10 @@
     private bool _drawerOpen = true;
     private bool _themePanelOpen;
 
+    // Le mot de passe n'est jamais manipulé par l'application : on redirige vers la console de compte Keycloak.
+    private string PasswordUrl =>
+        $"{Configuration["Keycloak:Authority"]?.TrimEnd('/')}/account/#/security/signingin";
+
     private string _themeIcon => ThemeService.IsDarkMode
         ? Icons.Material.Filled.LightMode
         : Icons.Material.Filled.DarkMode;
@@ -100,4 +119,8 @@
     }
 
     private void Logout() => Nav.NavigateToLogout("authentication/logout", "authentication/logged-out");
+
+    // L'application n'affiche que le nom d'utilisateur et l'e-mail, jamais prénom ni nom.
+    private static string? GetLogin(ClaimsPrincipal user) =>
+        user.FindFirst("preferred_username")?.Value ?? user.Identity?.Name;
 }

@@ -156,6 +156,81 @@ et/ou le contrôleur directement. La connexion, les politiques HTTP, l'anti-abus
 en hébergement réel, le navigateur et les migrations PostgreSQL ne sont pas
 validés par ces tests.
 
+## Administration des comptes et mot de passe (spec `docs/spec-roles-comptes-mdp.md`)
+
+- Endpoint `api/admin/utilisateurs` (liste, détail, rôles, activation, e-mail de
+  réinitialisation) réservé à la politique `Admin`, via le compte de service Keycloak.
+  Liste blanche des trois rôles `wfrp4-*`, MJ/admin impliquent joueur côté serveur,
+  refus (409) de rétrograder ou désactiver soi-même ou le dernier admin actif,
+  compte de service masqué, erreurs Keycloak traduites en 503 sans corps brut.
+- Page client `/admin/utilisateurs` et lien de menu visibles pour l'admin ; lien
+  « Changer mon mot de passe » vers la console de compte Keycloak.
+- Realm : `resetPasswordAllowed`, protection force brute, locale `fr`, lien valable
+  15 minutes, SMTP Mailpit (service ajouté à `docker-compose.yml`).
+- Comptes de test MJ et joueur : `app/keycloak/provision-local.ps1` lit
+  `app/keycloak/local/test-users.json`, **ignoré par Git** (adresses et mots de passe
+  réels). Le script est idempotent et sert aussi à appliquer les réglages du realm sur
+  un Keycloak déjà initialisé, car l'import n'a lieu qu'à la création.
+- Validé : 14 tests du contrôleur appelé directement avec un service simulé ; la
+  solution compile et ses 128 tests .NET réussissent.
+- **Non validé** : routes HTTP avec vrais jetons (401/403), appels réels à l'API
+  d'administration Keycloak, envoi et consommation du lien e-mail, console de compte
+  Keycloak, page Blazor dans un navigateur. `node` est absent de cette machine :
+  `scripts/harness/verify.cjs` n'a pas été exécuté.
+- Limite connue : un jeton déjà émis garde ses anciens rôles jusqu'à expiration.
+- Hors périmètre : politique de mot de passe de production (le mot de passe de test
+  de 4 caractères n'est accepté que sans politique) et journal d'audit en base.
+
+## Gestion des utilisateurs et parties MJ (spec `docs/spec-gestion-utilisateurs-parties.md`)
+
+- Super-administrateurs par configuration (`Administration:SuperAdmins`, initialement
+  `raph8277@gmail.com`) : rôles joueur, MJ et admin ajoutés par `KeycloakClaimsTransformation`
+  seulement si `email_verified = true` ; non modifiables ni désactivables depuis l'administration (409).
+- `GET /api/moi` et `RolesAccountClaimsPrincipalFactory` : le client affiche les menus selon les
+  rôles effectifs (l'id_token ne portait pas `realm_access`, les `AuthorizeView Roles` ne voyaient rien).
+- Administration : filtre par profil, sélecteur de profil hiérarchique avec confirmation,
+  fiche d'activité (`GET /api/admin/utilisateurs/{id}/activite`), e-mail vérifié affiché.
+- Parties : tables `Parties`, `PartieMembres`, colonne `PersonnagePartages.PartieId`
+  (migration SQL `20261004120000_AddParties`, sans designer, comme `AddAventuresSauvegardees`).
+  Gestion réservée au MJ propriétaire ou à l'admin ; membre vérifié auprès de Keycloak ; personnage
+  vérifié comme appartenant au membre ; partage XP créé et retiré avec la partie, partage manuel
+  du joueur jamais modifié. Pages `/mj/parties`, `/mj/parties/{id}`, `/parties`.
+- Décisions produit du 2026-10-04 : partage XP confirmé, pas d'invitation à accepter, le joueur
+  peut proposer son propre personnage (`PUT /api/participations/{partieId}/personnage`), le MJ peut le changer.
+- Validé : 38 nouveaux tests (contrôleurs appelés directement, EF InMemory, Keycloak simulé ;
+  transformation des claims en unitaire), dont le refus de modification d'équipement par le MJ
+  via `PersonnageOwnerFilter` ; `node scripts/harness/verify.cjs` réussi (build Release et tests).
+- **Non validé** : migration sur PostgreSQL dédié (index unique, `ON DELETE SET NULL`), politiques
+  `[Authorize]` en HTTP avec vrais jetons, présence de `email_verified` dans le jeton d'accès du
+  realm, `briefRepresentation` de Keycloak pour la recherche de joueurs, pages dans un navigateur.
+- Limites : filtre par profil borné à 1 000 membres de rôle et paginé en mémoire ; snapshot EF
+  toujours non réconcilié (voir D06/D07) ; un jeton déjà émis garde ses rôles jusqu'à expiration.
+
+## Thème de connexion Keycloak « Vieux Monde »
+
+- Thème `wfrp4` (`app/keycloak/themes/wfrp4/login`) hérité de `keycloak.v2` (Keycloak 26.0.8) :
+  CSS PatternFly surchargé (`wfrp4.css`), textes FR/EN (`messages_*.properties`, apostrophes
+  doublées pour `MessageFormat`), `login.ftl` copié du parent pour ajouter « Créer un compte »
+  vers `${WFRP4_APP_URL}/inscription` quand le client est `wfrp4-blazor` (inscription native désactivée).
+- Monté en lecture seule dans le conteneur ; `loginTheme` dans `wfrp4-realm.json` et
+  `provision-local.ps1`. Appliqué au realm local existant avec `kcadm` (thème et français).
+- Validé (captures headless) : connexion, identifiants invalides, « Mot de passe oublié ? »,
+  confirmation d'envoi, e-mail reçu dans Mailpit, page « Mise à jour du mot de passe » ouverte depuis
+  le lien (non soumise), lien invalide (page d'erreur). Compte utilisé : `testeur2`.
+- Realm local : `resetPasswordAllowed`, protection force brute, lien valable 15 min et SMTP Mailpit
+  appliqués avec `kcadm` (sans relancer `provision-local.ps1`, qui redéfinit les mots de passe de test).
+- Fournisseurs : variables `WFRP4_MS_*` transmises à Keycloak ; `apply-social-idps.sh` crée Microsoft.
+  Microsoft, Meta et Yahoo restent désactivés tant que leurs identifiants OAuth ne sont pas dans `app/.env`.
+- Mise à jour de Keycloak : image figée sur `26.0.8` ; `sh keycloak/themes/check-upstream.sh` (depuis
+  `app/`) compare le `login.ftl` du parent installé à la référence `themes/upstream/`.
+- **Non validé** : pages de liaison d'un compte social (premier login fournisseur), faute de
+  fournisseur de test autre que Google.
+- Corrigé : les mappers de rôle des fournisseurs sociaux utilisaient le type inexistant
+  `hardcoded-role-idp-mapper` ; toute connexion Google échouait (NullPointerException Keycloak,
+  « Erreur inattendue lors de l'authentification avec fournisseur d'identité »). Type remplacé par
+  `oidc-hardcoded-role-idp-mapper` dans `wfrp4-realm.json` et `social-idps/*-role-mapper.json`, et
+  mappers recréés sur le realm local.
+
 ## Suite ordonnée
 
 1. **D02** : protéger compteurs XP et écritures monétaires contre les accès

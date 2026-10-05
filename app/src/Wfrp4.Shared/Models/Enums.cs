@@ -41,3 +41,16 @@ public enum NomStructure
     PrenomDiminutifClan,
     GenerateurEpithete
 }
+
+public enum TypePartie
+{
+    Aventure,
+    Campagne
+}
+
+public enum StatutPartie
+{
+    Preparation,
+    EnCours,
+    Terminee
+}

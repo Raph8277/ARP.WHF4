@@ -1,0 +1,71 @@
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_request.Nom" Label="Nom de la partie" Required="true" MaxLength="120" Counter="120" Immediate="true" Class="mb-2" />
+        <MudTextField @bind-Value="_request.Description" Label="Description (synopsis, notes pour les joueurs)" Lines="4" MaxLength="2000" Counter="2000" Class="mb-2" />
+        <div class="d-flex gap-3">
+            <MudSelect T="TypePartie" @bind-Value="_request.Type" Label="Type">
+                <MudSelectItem Value="TypePartie.Aventure">Aventure</MudSelectItem>
+                <MudSelectItem Value="TypePartie.Campagne">Campagne</MudSelectItem>
+            </MudSelect>
+            <MudSelect T="StatutPartie" @bind-Value="_request.Statut" Label="Statut">
+                <MudSelectItem Value="StatutPartie.Preparation">En préparation</MudSelectItem>
+                <MudSelectItem Value="StatutPartie.EnCours">En cours</MudSelectItem>
+                <MudSelectItem Value="StatutPartie.Terminee">Terminée</MudSelectItem>
+            </MudSelect>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Enregistrer"
+                   Disabled="@(_envoi || (_request.Nom?.Trim().Length ?? 0) < 2)">
+            @(Partie is null ? "Créer" : "Enregistrer")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Partie à modifier ; null pour une création.</summary>
+    [Parameter] public PartieSummaryDto? Partie { get; set; }
+
+    private EnregistrerPartieRequest _request = new();
+    private bool _envoi;
+
+    protected override void OnInitialized()
+    {
+        if (Partie is not null)
+        {
+            _request = new EnregistrerPartieRequest
+            {
+                Nom = Partie.Nom,
+                Description = Partie.Description,
+                Type = Partie.Type,
+                Statut = Partie.Statut,
+            };
+        }
+    }
+
+    private async Task Enregistrer()
+    {
+        _envoi = true;
+        try
+        {
+            var resultat = Partie is null
+                ? await Api.CreerPartieAsync(_request)
+                : await Api.ModifierPartieAsync(Partie.Id, _request);
+            MudDialog.Close(DialogResult.Ok(resultat));
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _envoi = false;
+        }
+    }
+}

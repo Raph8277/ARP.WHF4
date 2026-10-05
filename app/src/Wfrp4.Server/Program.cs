@@ -65,6 +65,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.Configure<SuperAdminsOptions>(builder.Configuration.GetSection(SuperAdminsOptions.Section));
 builder.Services.AddTransient<IClaimsTransformation, KeycloakClaimsTransformation>();
 
 // --- Authorization Policies ---
@@ -81,12 +82,14 @@ builder.Services.AddScoped<SortAccessService>();
 builder.Services.AddScoped<XPService>();
 builder.Services.AddScoped<CharacterSheetPdfService>();
 builder.Services.AddScoped<MjPdfExportService>();
+builder.Services.AddScoped<PartieService>();
 builder.Services.AddScoped<PersonnageOwnerFilter>();
 
 // --- Inscription publique (API Admin Keycloak) ---
 builder.Services.AddHttpClient("KeycloakAdmin")
     .AddHttpMessageHandler<KeycloakBackchannelHandler>();
 builder.Services.AddScoped<KeycloakAdminService>();
+builder.Services.AddScoped<IKeycloakUtilisateursAdmin>(sp => sp.GetRequiredService<KeycloakAdminService>());
 
 builder.Services.AddControllers();
 

@@ -13,6 +13,101 @@ public class Wfrp4ApiClient
         _http = http;
     }
 
+    // --- Administration des comptes (admin uniquement, appliqué côté serveur) ---
+    public Task<PageUtilisateursAdminDto?> GetUtilisateursAdminAsync(string? recherche, string? profil, int page, int taille) =>
+        _http.GetFromJsonAsync<PageUtilisateursAdminDto>(
+            $"api/admin/utilisateurs?page={page}&taille={taille}&recherche={Uri.EscapeDataString(recherche ?? string.Empty)}&profil={Uri.EscapeDataString(profil ?? string.Empty)}");
+
+    public Task<ActiviteUtilisateurDto?> GetActiviteUtilisateurAsync(string id) =>
+        _http.GetFromJsonAsync<ActiviteUtilisateurDto>($"api/admin/utilisateurs/{id}/activite");
+
+    public async Task ModifierRolesUtilisateurAsync(string id, IEnumerable<string> roles)
+    {
+        using var response = await _http.PutAsJsonAsync($"api/admin/utilisateurs/{id}/roles", new ModifierRolesRequest { Roles = roles.ToList() });
+        await EnsureSuccessAsync(response);
+    }
+
+    public async Task ModifierActivationUtilisateurAsync(string id, bool actif)
+    {
+        using var response = await _http.PutAsJsonAsync($"api/admin/utilisateurs/{id}/activation", new ModifierActivationRequest { Actif = actif });
+        await EnsureSuccessAsync(response);
+    }
+
+    public async Task ReinitialiserMotDePasseUtilisateurAsync(string id)
+    {
+        using var response = await _http.PostAsync($"api/admin/utilisateurs/{id}/reinitialisation-mdp", null);
+        await EnsureSuccessAsync(response);
+    }
+
+    // --- Parties (MJ propriétaire ou admin, appliqué côté serveur) ---
+    public Task<List<PartieSummaryDto>?> GetPartiesAsync() =>
+        _http.GetFromJsonAsync<List<PartieSummaryDto>>("api/parties");
+
+    public Task<PartieDetailDto?> GetPartieAsync(int id) =>
+        _http.GetFromJsonAsync<PartieDetailDto>($"api/parties/{id}");
+
+    public async Task<PartieDetailDto?> CreerPartieAsync(EnregistrerPartieRequest request)
+    {
+        using var response = await _http.PostAsJsonAsync("api/parties", request);
+        await EnsureSuccessAsync(response);
+        return await response.Content.ReadFromJsonAsync<PartieDetailDto>();
+    }
+
+    public async Task<PartieDetailDto?> ModifierPartieAsync(int id, EnregistrerPartieRequest request)
+    {
+        using var response = await _http.PutAsJsonAsync($"api/parties/{id}", request);
+        await EnsureSuccessAsync(response);
+        return await response.Content.ReadFromJsonAsync<PartieDetailDto>();
+    }
+
+    public async Task SupprimerPartieAsync(int id)
+    {
+        using var response = await _http.DeleteAsync($"api/parties/{id}");
+        await EnsureSuccessAsync(response);
+    }
+
+    public Task<List<UtilisateurResumeDto>?> RechercherJoueursAsync(string recherche) =>
+        _http.GetFromJsonAsync<List<UtilisateurResumeDto>>($"api/parties/joueurs?recherche={Uri.EscapeDataString(recherche)}");
+
+    public async Task<PartieDetailDto?> AjouterMembrePartieAsync(int partieId, string joueurKeycloakId)
+    {
+        using var response = await _http.PostAsJsonAsync($"api/parties/{partieId}/membres", new AjouterMembreRequest { JoueurKeycloakId = joueurKeycloakId });
+        await EnsureSuccessAsync(response);
+        return await response.Content.ReadFromJsonAsync<PartieDetailDto>();
+    }
+
+    public async Task RetirerMembrePartieAsync(int partieId, int membreId)
+    {
+        using var response = await _http.DeleteAsync($"api/parties/{partieId}/membres/{membreId}");
+        await EnsureSuccessAsync(response);
+    }
+
+    public Task<List<PersonnageSummaryDto>?> GetPersonnagesMembreAsync(int partieId, int membreId) =>
+        _http.GetFromJsonAsync<List<PersonnageSummaryDto>>($"api/parties/{partieId}/membres/{membreId}/personnages");
+
+    public async Task<PartieDetailDto?> ChoisirPersonnageMembreAsync(int partieId, int membreId, int? personnageId)
+    {
+        using var response = await _http.PutAsJsonAsync($"api/parties/{partieId}/membres/{membreId}/personnage", new ChoisirPersonnageRequest { PersonnageId = personnageId });
+        await EnsureSuccessAsync(response);
+        return await response.Content.ReadFromJsonAsync<PartieDetailDto>();
+    }
+
+    public Task<List<ParticipationDto>?> GetParticipationsAsync() =>
+        _http.GetFromJsonAsync<List<ParticipationDto>>("api/participations");
+
+    public async Task<ParticipationDto?> ProposerPersonnageAsync(int partieId, int? personnageId)
+    {
+        using var response = await _http.PutAsJsonAsync($"api/participations/{partieId}/personnage", new ChoisirPersonnageRequest { PersonnageId = personnageId });
+        await EnsureSuccessAsync(response);
+        return await response.Content.ReadFromJsonAsync<ParticipationDto>();
+    }
+
+    public async Task QuitterPartieAsync(int partieId)
+    {
+        using var response = await _http.DeleteAsync($"api/participations/{partieId}");
+        await EnsureSuccessAsync(response);
+    }
+
     // --- Personnages ---
     public Task<List<PersonnageSummaryDto>?> GetMesPersonnagesAsync() =>
         _http.GetFromJsonAsync<List<PersonnageSummaryDto>>("api/personnages");
