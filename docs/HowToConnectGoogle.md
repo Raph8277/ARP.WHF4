@@ -22,7 +22,7 @@ Cette URL ne doit pas etre ouverte directement dans le navigateur. Elle sert uni
 
 ## 1. Creer un client OAuth Google
 
-Dans Google Cloud Console :
+Dans Google Cloud Console (`https://console.cloud.google.com/apis/credentials`) :
 
 1. Ouvrir le projet Google Cloud de l'application.
 2. Aller dans **API et services** > **Identifiants**.
@@ -42,6 +42,8 @@ Google fournit ensuite :
 - un **ID client**
 - un **code secret du client**
 
+Ces deux valeurs restent consultables et regenerables a tout moment sur `https://console.cloud.google.com/apis/credentials`, en cliquant sur le client OAuth cree.
+
 ## 2. Configurer les variables locales
 
 Creer le fichier local `app/.env` a partir de `app/.env.example`.
@@ -55,6 +57,9 @@ WFRP4_YAHOO_CLIENT_SECRET=
 
 WFRP4_META_CLIENT_ID=
 WFRP4_META_CLIENT_SECRET=
+
+WFRP4_MS_CLIENT_ID=
+WFRP4_MS_CLIENT_SECRET=
 ```
 
 Le fichier `app/.env` contient des secrets et doit rester ignore par Git.
@@ -69,7 +74,7 @@ docker cp keycloak/social-idps/. wfrp4-keycloak:/tmp/wfrp4-social-idps
 docker exec wfrp4-keycloak sh /tmp/wfrp4-social-idps/apply-social-idps.sh
 ```
 
-Le script active Google seulement si `WFRP4_GOOGLE_CLIENT_ID` et `WFRP4_GOOGLE_CLIENT_SECRET` sont renseignes. Yahoo et Meta restent desactives tant que leurs variables sont vides.
+Le script active Google seulement si `WFRP4_GOOGLE_CLIENT_ID` et `WFRP4_GOOGLE_CLIENT_SECRET` sont renseignes. Yahoo, Meta et Microsoft restent desactives tant que leurs variables respectives sont vides.
 
 Pour verifier l'etat du provider Google :
 

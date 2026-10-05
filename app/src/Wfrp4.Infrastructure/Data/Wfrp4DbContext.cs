@@ -30,6 +30,8 @@ public class Wfrp4DbContext : DbContext
     public DbSet<TitreBaseReference> TitresBaseReference => Set<TitreBaseReference>();
     public DbSet<TitreQualificatifReference> TitresQualificatifReference => Set<TitreQualificatifReference>();
     public DbSet<AventureSauvegardee> AventuresSauvegardees => Set<AventureSauvegardee>();
+    public DbSet<Partie> Parties => Set<Partie>();
+    public DbSet<PartieMembre> PartieMembres => Set<PartieMembre>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

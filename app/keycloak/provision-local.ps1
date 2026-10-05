@@ -41,6 +41,8 @@ $realmRep.internationalizationEnabled = $true
 $realmRep.supportedLocales = @('fr', 'en')
 $realmRep.defaultLocale = 'fr'
 $realmRep.actionTokenGeneratedByUserLifespan = 900
+# Propriété absente de la représentation tant qu'aucun thème n'est choisi : Add-Member la crée.
+$realmRep | Add-Member -NotePropertyName loginTheme -NotePropertyValue 'wfrp4' -Force
 
 if ($env:WFRP4_SMTP_HOST) {
     $smtp = @{

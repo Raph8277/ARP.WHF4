@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Wfrp4.Infrastructure.Data;
 using Wfrp4.Server.Services;
 using Wfrp4.Shared.DTOs;
 
@@ -17,24 +19,60 @@ public class AdminUtilisateursController : ControllerBase
 {
     private const int TailleMaxPage = 50;
 
+    private const string MessageSuperAdmin =
+        "Ce compte est administrateur par configuration (Administration:SuperAdmins) : son profil et son activation ne se modifient pas ici.";
+
     private readonly IKeycloakUtilisateursAdmin _keycloak;
+    private readonly Wfrp4DbContext _db;
     private readonly ILogger<AdminUtilisateursController> _logger;
 
-    public AdminUtilisateursController(IKeycloakUtilisateursAdmin keycloak, ILogger<AdminUtilisateursController> logger)
+    public AdminUtilisateursController(IKeycloakUtilisateursAdmin keycloak, Wfrp4DbContext db, ILogger<AdminUtilisateursController> logger)
     {
         _keycloak = keycloak;
+        _db = db;
         _logger = logger;
     }
 
     private string? CallerId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
     [HttpGet]
-    public Task<IActionResult> Lister([FromQuery] string? recherche, [FromQuery] int page = 0, [FromQuery] int taille = 20, CancellationToken ct = default) =>
+    public Task<IActionResult> Lister([FromQuery] string? recherche, [FromQuery] string? profil, [FromQuery] int page = 0, [FromQuery] int taille = 20, CancellationToken ct = default) =>
         Executer(async () =>
         {
-            var resultat = await _keycloak.ListerAsync(recherche, Math.Max(page, 0), Math.Clamp(taille, 1, TailleMaxPage), ct);
+            ProfilUtilisateur? filtre = profil?.Trim().ToLowerInvariant() switch
+            {
+                null or "" or "tous" => null,
+                "joueur" => ProfilUtilisateur.Joueur,
+                "mj" => ProfilUtilisateur.MaitreJeu,
+                "admin" => ProfilUtilisateur.Admin,
+                _ => ProfilUtilisateur.Aucun,
+            };
+            if (filtre == ProfilUtilisateur.Aucun)
+                return BadRequest(new { Error = "Profil inconnu (joueur, mj ou admin)." });
+
+            var resultat = await _keycloak.ListerAsync(recherche, filtre, Math.Max(page, 0), Math.Clamp(taille, 1, TailleMaxPage), ct);
             return Ok(resultat);
         });
+
+    /// <summary>Personnages et parties d'un compte, lus dans la base applicative.</summary>
+    [HttpGet("{id}/activite")]
+    public async Task<ActionResult<ActiviteUtilisateurDto>> Activite(string id, CancellationToken ct = default)
+    {
+        return new ActiviteUtilisateurDto
+        {
+            NombrePersonnages = await _db.Personnages.CountAsync(p => p.KeycloakId == id, ct),
+            PartiesMenees = await _db.Parties.AsNoTracking()
+                .Where(p => p.MjKeycloakId == id)
+                .OrderByDescending(p => p.UpdatedAt)
+                .Select(PartieService.VersResume)
+                .ToListAsync(ct),
+            Participations = await _db.PartieMembres.AsNoTracking()
+                .Where(m => m.JoueurKeycloakId == id)
+                .OrderByDescending(m => m.Partie.UpdatedAt)
+                .Select(PartieService.VersParticipation)
+                .ToListAsync(ct),
+        };
+    }
 
     [HttpGet("{id}")]
     public Task<IActionResult> Obtenir(string id, CancellationToken ct = default) =>
@@ -64,6 +102,8 @@ public class AdminUtilisateursController : ControllerBase
             var cible = await _keycloak.ObtenirAsync(id, ct);
             if (cible is null)
                 return NotFound();
+            if (cible.SuperAdmin)
+                return Conflict(new { Error = MessageSuperAdmin });
 
             var perdAdmin = cible.Roles.Contains(RolesApplicatifs.Admin) && !demandes.Contains(RolesApplicatifs.Admin);
             if (perdAdmin)
@@ -92,6 +132,8 @@ public class AdminUtilisateursController : ControllerBase
 
             if (!request.Actif)
             {
+                if (cible.SuperAdmin)
+                    return Conflict(new { Error = MessageSuperAdmin });
                 if (EstMoi(id))
                     return Conflict(new { Error = "Vous ne pouvez pas désactiver votre propre compte." });
                 if (cible.Actif && cible.Roles.Contains(RolesApplicatifs.Admin)

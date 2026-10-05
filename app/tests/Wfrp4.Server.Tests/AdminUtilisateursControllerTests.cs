@@ -17,45 +17,6 @@ public class AdminUtilisateursControllerTests
     private const string AutreAdminId = "99999999-9999-9999-9999-999999999999";
     private const string JoueurId = "11111111-1111-1111-1111-111111111111";
 
-    private sealed class FauxKeycloak : IKeycloakUtilisateursAdmin
-    {
-        public Dictionary<string, UtilisateurAdminDto> Comptes { get; } = new();
-        public List<string> Appels { get; } = new();
-        public bool Panne { get; set; }
-
-        public Task<PageUtilisateursAdminDto> ListerAsync(string? recherche, int page, int taille, CancellationToken ct) =>
-            Task.FromResult(new PageUtilisateursAdminDto { Utilisateurs = Comptes.Values.ToList(), Page = page, Taille = taille });
-
-        public Task<UtilisateurAdminDto?> ObtenirAsync(string id, CancellationToken ct)
-        {
-            if (Panne) throw new KeycloakIndisponibleException("indisponible");
-            return Task.FromResult(Comptes.GetValueOrDefault(id));
-        }
-
-        public Task DefinirRolesAsync(string id, IReadOnlyCollection<string> roles, CancellationToken ct)
-        {
-            Appels.Add($"roles:{id}:{string.Join(",", roles.OrderBy(r => r))}");
-            Comptes[id].Roles = roles.ToList();
-            return Task.CompletedTask;
-        }
-
-        public Task DefinirActivationAsync(string id, bool actif, CancellationToken ct)
-        {
-            Appels.Add($"actif:{id}:{actif}");
-            Comptes[id].Actif = actif;
-            return Task.CompletedTask;
-        }
-
-        public Task EnvoyerReinitialisationMotDePasseAsync(string id, CancellationToken ct)
-        {
-            Appels.Add($"mdp:{id}");
-            return Task.CompletedTask;
-        }
-
-        public Task<int> CompterAdminsActifsAsync(CancellationToken ct) =>
-            Task.FromResult(Comptes.Values.Count(c => c.Actif && c.Roles.Contains(RolesApplicatifs.Admin)));
-    }
-
     private static (AdminUtilisateursController Controller, FauxKeycloak Keycloak) Creer(int nombreAdmins = 2)
     {
         var kc = new FauxKeycloak();
@@ -69,7 +30,7 @@ public class AdminUtilisateursControllerTests
             new Claim(ClaimTypes.NameIdentifier, AdminId),
             new Claim(ClaimTypes.Role, RolesApplicatifs.Admin),
         }, "test");
-        var controller = new AdminUtilisateursController(kc, NullLogger<AdminUtilisateursController>.Instance)
+        var controller = new AdminUtilisateursController(kc, TestDb.Nouvelle(), NullLogger<AdminUtilisateursController>.Instance)
         {
             ControllerContext = new ControllerContext
             {
@@ -224,6 +185,50 @@ public class AdminUtilisateursControllerTests
 
         Assert.IsType<BadRequestObjectResult>(result);
         Assert.Empty(kc.Appels);
+    }
+
+    [Fact]
+    public async Task Super_admin_de_configuration_n_est_ni_retrograde_ni_desactive()
+    {
+        var (controller, kc) = Creer();
+        kc.Comptes[JoueurId].SuperAdmin = true;
+
+        Assert.IsType<ConflictObjectResult>(await controller.ModifierRoles(JoueurId, new ModifierRolesRequest { Roles = { RolesApplicatifs.Joueur } }));
+        Assert.IsType<ConflictObjectResult>(await controller.ModifierActivation(JoueurId, new ModifierActivationRequest { Actif = false }));
+        Assert.Empty(kc.Appels);
+    }
+
+    [Fact]
+    public async Task Promouvoir_MJ_par_profil_complet_ne_donne_pas_admin()
+    {
+        var (controller, kc) = Creer();
+
+        var result = await controller.ModifierRoles(JoueurId, new ModifierRolesRequest { Roles = ProfilsUtilisateur.Roles(ProfilUtilisateur.MaitreJeu) });
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.Equal(ProfilUtilisateur.MaitreJeu, ProfilsUtilisateur.Depuis(kc.Comptes[JoueurId].Roles));
+    }
+
+    [Theory]
+    [InlineData("mj", 0)]
+    [InlineData("joueur", 1)]
+    [InlineData("admin", 2)]
+    [InlineData(null, 3)]
+    public async Task Filtre_par_profil(string? profil, int attendus)
+    {
+        var (controller, _) = Creer();
+
+        var result = Assert.IsType<OkObjectResult>(await controller.Lister(null, profil));
+
+        Assert.Equal(attendus, Assert.IsType<PageUtilisateursAdminDto>(result.Value).Utilisateurs.Count);
+    }
+
+    [Fact]
+    public async Task Profil_inconnu_est_refuse()
+    {
+        var (controller, _) = Creer();
+
+        Assert.IsType<BadRequestObjectResult>(await controller.Lister(null, "superadmin"));
     }
 
     [Fact]

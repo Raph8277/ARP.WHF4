@@ -1,28 +1,39 @@
 <MudNavMenu Class="old-world-nav-menu">
+    @* Sections par rôle : masquer un lien n'est qu'ergonomique, chaque API applique ses propres droits. *@
+    <MudText Typo="Typo.overline" Class="old-world-nav-section">Aventurier</MudText>
     <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard" Class="old-world-nav-link">
-        Mes Personnages
+        Mes personnages
     </MudNavLink>
     <MudNavLink Href="/creation" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PersonAdd" Class="old-world-nav-link">
-        Nouveau Personnage
+        Nouveau personnage
+    </MudNavLink>
+    <MudNavLink Href="/parties" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Groups" Class="old-world-nav-link">
+        Mes parties
     </MudNavLink>
     <MudNavLink Href="/referentiels" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.MenuBook" Class="old-world-nav-link">
         Référentiels
     </MudNavLink>
-    <MudNavLink Href="/mj" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Shield" Class="old-world-nav-link">
-        Atelier MJ
-    </MudNavLink>
-    <MudNavLink Href="/theme" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Palette" Class="old-world-nav-link">
-        Thème
-    </MudNavLink>
+
+    <AuthorizeView Roles="wfrp4-maitre-jeu">
+        <MudText Typo="Typo.overline" Class="old-world-nav-section">Maître de jeu</MudText>
+        <MudNavLink Href="/mj/parties" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.TableRestaurant" Class="old-world-nav-link">
+            Mes tables
+        </MudNavLink>
+        <MudNavLink Href="/mj" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Shield" Class="old-world-nav-link">
+            Atelier MJ
+        </MudNavLink>
+        <MudNavLink Href="/admin/pnj-pdf-designer" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Badge" Class="old-world-nav-link">
+            Fiches PNJ (PDF)
+        </MudNavLink>
+    </AuthorizeView>
+
     <AuthorizeView Roles="wfrp4-admin">
+        <MudText Typo="Typo.overline" Class="old-world-nav-section">Administration</MudText>
         <MudNavLink Href="/admin/utilisateurs" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ManageAccounts" Class="old-world-nav-link">
             Comptes et rôles
         </MudNavLink>
+        <MudNavLink Href="/admin/pdf-designer" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.DashboardCustomize" Class="old-world-nav-link">
+            Mise en page des fiches
+        </MudNavLink>
     </AuthorizeView>
-    <MudNavLink Href="/admin/pdf-designer" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.DashboardCustomize" Class="old-world-nav-link">
-        Designer PDF
-    </MudNavLink>
-    <MudNavLink Href="/admin/pnj-pdf-designer" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Groups" Class="old-world-nav-link">
-        Designer PDF PNJ
-    </MudNavLink>
 </MudNavMenu>

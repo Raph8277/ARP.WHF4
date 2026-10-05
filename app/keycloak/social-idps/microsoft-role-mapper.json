@@ -1,0 +1,9 @@
+{
+  "name": "microsoft-wfrp4-joueur",
+  "identityProviderAlias": "microsoft",
+  "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
+  "config": {
+    "syncMode": "INHERIT",
+    "role": "wfrp4-joueur"
+  }
+}

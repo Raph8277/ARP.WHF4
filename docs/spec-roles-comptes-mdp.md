@@ -11,7 +11,7 @@ Périmètre : Keycloak (realm `wfrp4`), API ASP.NET Core, client Blazor.
 - Politiques définies dans `Program.cs` : `Joueur`, `MaitreJeu`, `Admin`. Les rôles ne sont
   **pas hiérarchiques côté Keycloak** : un MJ doit porter explicitement `wfrp4-joueur`
   (sinon `[Authorize(Policy = "Joueur")]` le refuse).
-- Comptes d'import existants : `joueur1`, `mj1`, `admin` (mot de passe = identifiant).
+- Comptes d'import existants : `user`, `master`, `admin` (mot de passe `user`/`master` : `8277` ; `admin` = identifiant).
 - Inscription : `KeycloakAdminService` crée le compte et lui attribue `wfrp4-joueur` uniquement.
 - Le realm ne définit ni `smtpServer`, ni `resetPasswordAllowed`, ni politique de mot de passe :
   **aucun e-mail ne peut partir aujourd'hui** et « mot de passe oublié » n'est pas proposé.
@@ -41,12 +41,13 @@ Règles :
 
 | Profil | E-mail | Mot de passe | Rôles realm |
 |---|---|---|---|
-| MJ | darkraphious@gmail.com | 8277 | `wfrp4-joueur`, `wfrp4-maitre-jeu` |
+| MJ | raphael.leprince.eu@gmail.com | 8277 | `wfrp4-joueur`, `wfrp4-maitre-jeu` |
 | USER (joueur) | oscarmelvine@gmail.com | 8277 | `wfrp4-joueur` |
 
 Spécificités :
-- `username` proposé : `mj-raphious` et `joueur-oscar` (à confirmer), `emailVerified: true`
-  pour que la récupération par e-mail fonctionne immédiatement.
+- `username` imposé : `user` et `master` ; `mj` est refusé par Keycloak (longueur minimale de
+  username = 3 caractères dans ce realm). `emailVerified: true` pour que la récupération par
+  e-mail fonctionne immédiatement.
 - Les identifiants fixes de l'import existant (`1111…`, `2222…`) sont réutilisés comme modèle ;
   attribuer deux nouveaux UUID fixes (`4444…`, `5555…`).
 - Un mot de passe de 4 caractères n'est accepté que parce que le realm n'a **aucune
@@ -114,7 +115,7 @@ Critères d'acceptation :
    déjà émis reste valide jusqu'à expiration ; durée du jeton d'accès à documenter).
 
 ### 4.2 Critères d'acceptation
-1. Le jeton de `darkraphious@gmail.com` contient `wfrp4-maitre-jeu` et `wfrp4-joueur`, pas `wfrp4-admin`.
+1. Le jeton de `raphael.leprince.eu@gmail.com` contient `wfrp4-maitre-jeu` et `wfrp4-joueur`, pas `wfrp4-admin`.
 2. Le jeton de `oscarmelvine@gmail.com` ne contient que `wfrp4-joueur`.
 3. Joueur → endpoint `MaitreJeu` : 403. MJ → endpoint `Admin` : 403. Admin → les deux : 200.
 4. MJ avec partage XP : octroi d'XP OK, modification de fiche/équipement/sorts : 403.
@@ -156,7 +157,7 @@ e-mail avec lien → page Keycloak « nouveau mot de passe » → retour à l'ap
   alors utiliser un mot de passe conforme.
 
 ### 5.4 Critères d'acceptation
-1. Depuis la page de connexion, demander la réinitialisation pour `darkraphious@gmail.com` :
+1. Depuis la page de connexion, demander la réinitialisation pour `raphael.leprince.eu@gmail.com` :
    un e-mail est reçu (Mailpit en dev) avec un lien valide 15 min, à usage unique.
 2. Le lien consommé ou expiré affiche une erreur Keycloak et ne change rien.
 3. Une adresse inconnue produit le même message qu'une adresse connue et n'envoie rien.

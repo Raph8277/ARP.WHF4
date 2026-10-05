@@ -1,0 +1,97 @@
+@inject Wfrp4ApiClient Api
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Utilisateur.NomUtilisateur · @(Utilisateur.Email ?? "sans e-mail")</MudText>
+        <div class="d-flex gap-1 flex-wrap my-2">
+            @if (Utilisateur.SuperAdmin)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Icon="@Icons.Material.Filled.Lock">Propriétaire (configuration)</MudChip>
+            }
+            @foreach (var role in Utilisateur.Roles)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@LibelleRole(role)</MudChip>
+            }
+            <MudChip T="string" Size="Size.Small" Color="@(Utilisateur.Actif ? Color.Success : Color.Error)">@(Utilisateur.Actif ? "Actif" : "Désactivé")</MudChip>
+        </div>
+
+        @if (_erreur is not null)
+        {
+            <MudAlert Severity="Severity.Error">@_erreur</MudAlert>
+        }
+        else if (_activite is null)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            <MudText Typo="Typo.subtitle2" Class="mt-3">Personnages</MudText>
+            <MudText>@_activite.NombrePersonnages personnage(s) enregistré(s).</MudText>
+
+            <MudText Typo="Typo.subtitle2" Class="mt-3">Parties menées (MJ)</MudText>
+            @if (_activite.PartiesMenees.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Aucune.</MudText>
+            }
+            else
+            {
+                <MudList T="string" Dense="true">
+                    @foreach (var p in _activite.PartiesMenees)
+                    {
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Shield">
+                            @p.Nom — @PartieLibelles.Type(p.Type), @PartieLibelles.Statut(p.Statut).ToLowerInvariant(), @p.NombreMembres joueur(s)
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+
+            <MudText Typo="Typo.subtitle2" Class="mt-3">Participations</MudText>
+            @if (_activite.Participations.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Aucune.</MudText>
+            }
+            else
+            {
+                <MudList T="string" Dense="true">
+                    @foreach (var p in _activite.Participations)
+                    {
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Groups">
+                            @p.PartieNom (MJ : @p.MjNom) — @(p.PersonnageNom ?? "personnage non choisi")
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Close())">Fermer</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public UtilisateurAdminDto Utilisateur { get; set; } = null!;
+
+    private ActiviteUtilisateurDto? _activite;
+    private string? _erreur;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _activite = await Api.GetActiviteUtilisateurAsync(Utilisateur.Id);
+        }
+        catch (HttpRequestException)
+        {
+            _erreur = "Impossible de charger l'activité de ce compte.";
+        }
+    }
+
+    private static string LibelleRole(string role) => role switch
+    {
+        RolesApplicatifs.Admin => "Admin",
+        RolesApplicatifs.MaitreJeu => "MJ",
+        RolesApplicatifs.Joueur => "Joueur",
+        _ => role,
+    };
+}

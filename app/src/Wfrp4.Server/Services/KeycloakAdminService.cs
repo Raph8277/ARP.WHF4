@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Options;
+using Wfrp4.Server.Auth;
 using Wfrp4.Shared.DTOs;
 
 namespace Wfrp4.Server.Services;
@@ -22,16 +24,19 @@ public class KeycloakAdminService : IKeycloakUtilisateursAdmin
     private const int DureeLienReinitialisationSecondes = 900;
 
     private const string RoleJoueur = "wfrp4-joueur";
+    private const int MaxMembresRole = 1000;
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly ILogger<KeycloakAdminService> _logger;
+    private readonly SuperAdminsOptions _superAdmins;
 
-    public KeycloakAdminService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<KeycloakAdminService> logger)
+    public KeycloakAdminService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<KeycloakAdminService> logger, IOptions<SuperAdminsOptions> superAdmins)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
         _logger = logger;
+        _superAdmins = superAdmins.Value;
     }
 
     public async Task CreerUtilisateurAsync(InscriptionRequest request, CancellationToken ct)
@@ -147,14 +152,17 @@ public class KeycloakAdminService : IKeycloakUtilisateursAdmin
 
     // --- Administration des comptes (réservée à l'admin par le contrôleur) ---
 
-    public async Task<PageUtilisateursAdminDto> ListerAsync(string? recherche, int page, int taille, CancellationToken ct)
+    public async Task<PageUtilisateursAdminDto> ListerAsync(string? recherche, ProfilUtilisateur? profil, int page, int taille, CancellationToken ct)
     {
         var (http, baseUrl) = await CreerClientAdminAsync(ct);
 
+        // Le paramètre search de Keycloak porte aussi sur prénom et nom : toute recherche textuelle
+        // passe donc par le filtrage en mémoire, limité au nom d'utilisateur et à l'e-mail.
+        if (profil is not null || !string.IsNullOrWhiteSpace(recherche))
+            return await ListerParProfilAsync(http, baseUrl, recherche, profil, page, taille, ct);
+
         // On demande un élément de plus pour savoir s'il existe une page suivante.
         var url = $"{baseUrl}/users?first={page * taille}&max={taille + 1}&briefRepresentation=false";
-        if (!string.IsNullOrWhiteSpace(recherche))
-            url += $"&search={Uri.EscapeDataString(recherche.Trim())}";
 
         var bruts = await LireAsync<List<KeycloakUserRepresentation>>(http, url, ct) ?? new();
         var pageSuivante = bruts.Count > taille;
@@ -165,6 +173,91 @@ public class KeycloakAdminService : IKeycloakUtilisateursAdmin
 
         return resultat;
     }
+
+    /// <summary>
+    /// Keycloak ne filtre pas par rôle et texte à la fois : on lit les comptes (ou les membres des rôles),
+    /// bornés à <see cref="MaxMembresRole"/>, on calcule le profil le plus élevé puis on pagine en mémoire.
+    /// </summary>
+    private async Task<PageUtilisateursAdminDto> ListerParProfilAsync(
+        HttpClient http, string baseUrl, string? recherche, ProfilUtilisateur? profil, int page, int taille, CancellationToken ct)
+    {
+        IEnumerable<KeycloakUserRepresentation> candidats;
+        if (profil is null)
+        {
+            candidats = await LireAsync<List<KeycloakUserRepresentation>>(
+                http, $"{baseUrl}/users?first=0&max={MaxMembresRole}&briefRepresentation=false", ct) ?? new();
+        }
+        else
+        {
+            var admins = await LireMembresRoleAsync(http, baseUrl, RolesApplicatifs.Admin, ct);
+            var mjs = await LireMembresRoleAsync(http, baseUrl, RolesApplicatifs.MaitreJeu, ct);
+            var adminIds = admins.Select(u => u.Id).ToHashSet();
+            var mjIds = mjs.Select(u => u.Id).ToHashSet();
+
+            candidats = profil switch
+            {
+                ProfilUtilisateur.Admin => admins,
+                ProfilUtilisateur.MaitreJeu => mjs.Where(u => !adminIds.Contains(u.Id)),
+                ProfilUtilisateur.Joueur => (await LireMembresRoleAsync(http, baseUrl, RolesApplicatifs.Joueur, ct))
+                    .Where(u => !adminIds.Contains(u.Id) && !mjIds.Contains(u.Id)),
+                _ => Enumerable.Empty<KeycloakUserRepresentation>(),
+            };
+        }
+
+        if (!string.IsNullOrWhiteSpace(recherche))
+        {
+            var terme = recherche.Trim();
+            candidats = candidats.Where(u => Contient(u.Username, terme) || Contient(u.Email, terme));
+        }
+
+        var tries = candidats.Where(u => !EstCompteService(u)).OrderBy(u => u.Username).ToList();
+        var resultat = new PageUtilisateursAdminDto
+        {
+            Page = page,
+            Taille = taille,
+            PageSuivante = tries.Count > (page + 1) * taille,
+        };
+        foreach (var brut in tries.Skip(page * taille).Take(taille))
+            resultat.Utilisateurs.Add(await VersDtoAsync(http, baseUrl, brut, ct));
+
+        return resultat;
+    }
+
+    public async Task<List<UtilisateurResumeDto>> RechercherJoueursAsync(string? recherche, int max, CancellationToken ct)
+    {
+        var (http, baseUrl) = await CreerClientAdminAsync(ct);
+
+        // Membres actifs du rôle joueur (borné à MaxMembresRole), filtrés en mémoire.
+        IEnumerable<KeycloakUserRepresentation> joueurs = (await LireMembresRoleAsync(http, baseUrl, RolesApplicatifs.Joueur, ct))
+            .Where(u => u.Enabled && !EstCompteService(u));
+
+        if (!string.IsNullOrWhiteSpace(recherche))
+        {
+            var terme = recherche.Trim();
+            joueurs = joueurs.Where(u => Contient(u.Username, terme) || Contient(u.Email, terme));
+        }
+
+        return joueurs
+            .OrderBy(u => u.Username, StringComparer.OrdinalIgnoreCase)
+            .Take(max)
+            .Select(u => new UtilisateurResumeDto
+            {
+                Id = u.Id!,
+                NomUtilisateur = u.Username ?? string.Empty,
+                Email = u.Email,
+            })
+            .ToList();
+    }
+
+    private async Task<List<KeycloakUserRepresentation>> LireMembresRoleAsync(HttpClient http, string baseUrl, string role, CancellationToken ct) =>
+        await LireAsync<List<KeycloakUserRepresentation>>(
+            http, $"{baseUrl}/roles/{role}/users?first=0&max={MaxMembresRole}&briefRepresentation=false", ct) ?? new();
+
+    private static bool Contient(string? valeur, string terme) =>
+        valeur?.Contains(terme, StringComparison.OrdinalIgnoreCase) == true;
+
+    private bool EstSuperAdmin(KeycloakUserRepresentation u) =>
+        _superAdmins.EstSuperAdmin(u.Email, u.EmailVerified);
 
     public async Task<UtilisateurAdminDto?> ObtenirAsync(string id, CancellationToken ct)
     {
@@ -272,10 +365,10 @@ public class KeycloakAdminService : IKeycloakUtilisateursAdmin
             Id = u.Id!,
             NomUtilisateur = u.Username ?? string.Empty,
             Email = u.Email,
-            Prenom = u.FirstName,
-            Nom = u.LastName,
+            EmailVerifie = u.EmailVerified,
             Actif = u.Enabled,
             Roles = roles.Select(r => r.Name!).OrderBy(n => n).ToList(),
+            SuperAdmin = EstSuperAdmin(u),
         };
     }
 
@@ -327,8 +420,7 @@ public class KeycloakAdminService : IKeycloakUtilisateursAdmin
         public string? Id { get; set; }
         public string? Username { get; set; }
         public string? Email { get; set; }
-        public string? FirstName { get; set; }
-        public string? LastName { get; set; }
         public bool Enabled { get; set; }
+        public bool EmailVerified { get; set; }
     }
 }

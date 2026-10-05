@@ -133,6 +133,16 @@ body {
     border: 1px solid var(--old-world-border-subtle, rgba(202, 169, 111, 0.22));
 }
 
+.old-world-profile-trigger {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 16px;
+    cursor: pointer;
+    font-size: 0.8125rem;
+}
+
 .old-world-drawer {
     border-right: 1px solid var(--mud-palette-lines-default);
 }
@@ -158,6 +168,19 @@ body {
 
 .old-world-nav-menu {
     gap: 0.35rem;
+}
+
+.old-world-nav-section {
+    display: block;
+    padding: 0.9rem 0.9rem 0.35rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.old-world-nav-section:first-child {
+    padding-top: 0;
 }
 
 .old-world-nav-link {

@@ -18,6 +18,7 @@ is_configured() {
 GOOGLE_ENABLED="$(is_configured "${WFRP4_GOOGLE_CLIENT_ID:-}" "${WFRP4_GOOGLE_CLIENT_SECRET:-}")"
 YAHOO_ENABLED="$(is_configured "${WFRP4_YAHOO_CLIENT_ID:-}" "${WFRP4_YAHOO_CLIENT_SECRET:-}")"
 META_ENABLED="$(is_configured "${WFRP4_META_CLIENT_ID:-}" "${WFRP4_META_CLIENT_SECRET:-}")"
+MS_ENABLED="$(is_configured "${WFRP4_MS_CLIENT_ID:-}" "${WFRP4_MS_CLIENT_SECRET:-}")"
 
 "$KC" config credentials \
   --server http://localhost:8080 \
@@ -105,9 +106,26 @@ upsert_provider meta \
   -s 'config.defaultScope=email public_profile' \
   -s config.syncMode=IMPORT
 
+upsert_provider microsoft \
+  -s alias=microsoft \
+  -s displayName=Microsoft \
+  -s providerId=microsoft \
+  -s enabled="$MS_ENABLED" \
+  -s trustEmail=true \
+  -s storeToken=false \
+  -s addReadTokenRoleOnCreate=false \
+  -s authenticateByDefault=false \
+  -s linkOnly=false \
+  -s 'firstBrokerLoginFlowAlias=first broker login' \
+  -s "config.clientId=${WFRP4_MS_CLIENT_ID:-}" \
+  -s "config.clientSecret=${WFRP4_MS_CLIENT_SECRET:-}" \
+  -s 'config.defaultScope=openid profile email' \
+  -s config.syncMode=IMPORT
+
 create_mapper_if_missing google google-wfrp4-joueur /tmp/wfrp4-social-idps/google-role-mapper.json
 create_mapper_if_missing yahoo yahoo-wfrp4-joueur /tmp/wfrp4-social-idps/yahoo-role-mapper.json
 create_mapper_if_missing meta meta-wfrp4-joueur /tmp/wfrp4-social-idps/meta-role-mapper.json
+create_mapper_if_missing microsoft microsoft-wfrp4-joueur /tmp/wfrp4-social-idps/microsoft-role-mapper.json
 
 "$KC" get identity-provider/instances -r "$REALM"
 
@@ -121,4 +139,8 @@ fi
 
 if [ "$META_ENABLED" = false ]; then
   echo "Meta disabled: WFRP4_META_CLIENT_ID and/or WFRP4_META_CLIENT_SECRET are missing."
+fi
+
+if [ "$MS_ENABLED" = false ]; then
+  echo "Microsoft disabled: WFRP4_MS_CLIENT_ID and/or WFRP4_MS_CLIENT_SECRET are missing."
 fi

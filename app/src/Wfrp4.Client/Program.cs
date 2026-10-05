@@ -25,10 +25,16 @@ builder.Services.AddOidcAuthentication(options =>
     options.ProviderOptions.DefaultScopes.Add("openid");
     options.ProviderOptions.DefaultScopes.Add("profile");
     options.ProviderOptions.DefaultScopes.Add("email");
-});
+})
+    .AddAccountClaimsPrincipalFactory<RolesAccountClaimsPrincipalFactory>();
 
 // --- HTTP Client with auth handler ---
 builder.Services.AddScoped<ApiAuthorizationMessageHandler>();
+
+// Rôles effectifs pour l'affichage (l'id_token ne porte pas realm_access).
+builder.Services.AddHttpClient(RolesAccountClaimsPrincipalFactory.ClientHttp,
+    client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
+    .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
 
 builder.Services.AddHttpClient<Wfrp4ApiClient>(
     client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))

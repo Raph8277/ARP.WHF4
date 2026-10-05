@@ -1,0 +1,257 @@
+/* Thème de connexion WFRP4 « Vieux Monde sombre ».
+   Surcharge le thème keycloak.v2 (PatternFly 5) : variables globales puis composants de la page de
+   connexion. Toujours sombre, que le navigateur soit en mode clair ou sombre. */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap");
+
+:root,
+:root.pf-v5-theme-dark {
+    --wfrp4-bg: #0f0d0b;
+    --wfrp4-panel: rgba(28, 24, 20, 0.94);
+    --wfrp4-input: rgba(12, 10, 8, 0.75);
+    --wfrp4-border: rgba(194, 161, 110, 0.28);
+    --wfrp4-border-strong: rgba(201, 168, 76, 0.65);
+    --wfrp4-gold: #c9a84c;
+    --wfrp4-blood: #a3362a;
+    --wfrp4-blood-dark: #7d2419;
+    --wfrp4-text: #ece4d6;
+    --wfrp4-muted: #b8ab95;
+    --wfrp4-heading: "Cormorant Garamond", Georgia, serif;
+    --wfrp4-body: "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+
+    --pf-v5-global--FontFamily--text: var(--wfrp4-body);
+    --pf-v5-global--FontFamily--heading: var(--wfrp4-heading);
+    --pf-v5-global--BackgroundColor--100: var(--wfrp4-panel);
+    --pf-v5-global--BackgroundColor--200: var(--wfrp4-bg);
+    --pf-v5-global--Color--100: var(--wfrp4-text);
+    --pf-v5-global--Color--200: var(--wfrp4-muted);
+    --pf-v5-global--BorderColor--100: var(--wfrp4-border);
+    --pf-v5-global--primary-color--100: var(--wfrp4-blood);
+    --pf-v5-global--primary-color--200: var(--wfrp4-blood-dark);
+    --pf-v5-global--link--Color: var(--wfrp4-gold);
+    --pf-v5-global--link--Color--hover: #e2c56b;
+    --pf-v5-global--active-color--100: var(--wfrp4-gold);
+    color-scheme: dark;
+}
+
+html,
+body#keycloak-bg {
+    min-height: 100%;
+    background-color: var(--wfrp4-bg);
+    background-image:
+        radial-gradient(ellipse at 50% -10%, rgba(201, 168, 76, 0.16), transparent 55%),
+        radial-gradient(ellipse at 15% 110%, rgba(139, 45, 31, 0.22), transparent 50%),
+        linear-gradient(180deg, #15110d 0%, var(--wfrp4-bg) 100%);
+    background-attachment: fixed;
+    color: var(--wfrp4-text);
+    font-family: var(--wfrp4-body);
+}
+
+.pf-v5-c-login {
+    --pf-v5-c-login--BackgroundColor: transparent;
+    background: transparent;
+}
+
+/* --- En-tête : titre de l'application au-dessus de la carte --- */
+#kc-header {
+    text-align: center;
+}
+
+#kc-header-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 2rem 1rem 1.25rem;
+    color: var(--wfrp4-text);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.wfrp4-kicker {
+    font-family: var(--wfrp4-body);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--wfrp4-gold);
+}
+
+.wfrp4-brand {
+    font-family: var(--wfrp4-heading);
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--wfrp4-text);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+/* --- Carte de connexion --- */
+.pf-v5-c-login__main {
+    --pf-v5-c-login__main--BackgroundColor: var(--wfrp4-panel);
+    background: var(--wfrp4-panel);
+    border: 1px solid var(--wfrp4-border);
+    border-top: 3px solid var(--wfrp4-gold);
+    border-radius: 2px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+#kc-page-title {
+    font-family: var(--wfrp4-heading);
+    font-weight: 600;
+    font-size: 1.9rem;
+    color: var(--wfrp4-text);
+}
+
+.pf-v5-c-form__label,
+.pf-v5-c-form__label-text,
+.pf-v5-c-check__label {
+    color: var(--wfrp4-muted);
+    font-weight: 500;
+}
+
+/* Champs de saisie */
+.pf-v5-c-form-control {
+    --pf-v5-c-form-control--BackgroundColor: var(--wfrp4-input);
+    --pf-v5-c-form-control--before--BorderColor: var(--wfrp4-border);
+    --pf-v5-c-form-control--after--BorderBottomColor: var(--wfrp4-border);
+    --pf-v5-c-form-control--hover--after--BorderBottomColor: var(--wfrp4-gold);
+    --pf-v5-c-form-control--focus--after--BorderBottomColor: var(--wfrp4-gold);
+    --pf-v5-c-form-control--Color: var(--wfrp4-text);
+    background-color: var(--wfrp4-input);
+    color: var(--wfrp4-text);
+}
+
+.pf-v5-c-form-control > input,
+.pf-v5-c-form-control > select {
+    color: var(--wfrp4-text);
+    background: transparent;
+}
+
+.pf-v5-c-form-control:focus-within {
+    box-shadow: 0 0 0 1px var(--wfrp4-border-strong);
+}
+
+/* Bouton principal : rouge sang, capitales */
+.pf-v5-c-button.pf-m-primary {
+    --pf-v5-c-button--m-primary--BackgroundColor: var(--wfrp4-blood);
+    --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--wfrp4-blood-dark);
+    --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--wfrp4-blood-dark);
+    --pf-v5-c-button--m-primary--active--BackgroundColor: var(--wfrp4-blood-dark);
+    --pf-v5-c-button--m-primary--Color: #fff4e6;
+    border: 1px solid rgba(201, 168, 76, 0.35);
+    border-radius: 2px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding-block: 0.7rem;
+}
+
+.pf-v5-c-button.pf-m-control {
+    --pf-v5-c-button--m-control--BackgroundColor: var(--wfrp4-input);
+    --pf-v5-c-button--m-control--Color: var(--wfrp4-muted);
+}
+
+a,
+.pf-v5-c-button.pf-m-link {
+    color: var(--wfrp4-gold);
+}
+
+a:hover {
+    color: #e2c56b;
+}
+
+/* Bandeau « ou » et fournisseurs sociaux */
+.pf-v5-c-login__main-footer-band {
+    border-top: 1px solid var(--wfrp4-border);
+    color: var(--wfrp4-muted);
+    background: transparent;
+}
+
+.pf-v5-c-login__main-footer-links-item-link {
+    border: 1px solid var(--wfrp4-border);
+    background: rgba(12, 10, 8, 0.55);
+    color: var(--wfrp4-text);
+    border-radius: 2px;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.pf-v5-c-login__main-footer-links-item-link:hover,
+.pf-v5-c-login__main-footer-links-item-link:focus {
+    border-color: var(--wfrp4-gold);
+    background: rgba(201, 168, 76, 0.08);
+}
+
+.pf-v5-c-login__main-footer-links-item-link svg {
+    fill: var(--wfrp4-text);
+}
+
+/* Messages d'erreur et d'information */
+.pf-v5-c-alert {
+    background: rgba(12, 10, 8, 0.75);
+    border-top-color: var(--wfrp4-blood);
+    color: var(--wfrp4-text);
+}
+
+.pf-v5-c-alert__title,
+.kc-feedback-text {
+    color: var(--wfrp4-text);
+}
+
+.pf-v5-c-helper-text__item.pf-m-error,
+.pf-v5-c-helper-text__item-text.pf-m-error {
+    color: #f0a08f;
+}
+
+.wfrp4-brand sup {
+    font-size: 0.5em;
+    vertical-align: 0.75em;
+    line-height: 0;
+}
+
+/* Boutons sociaux : vraie cible cliquable, pas seulement l'icône */
+#kc-social-providers ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+}
+
+#kc-social-providers .pf-v5-c-login__main-footer-links-item-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.25rem;
+    min-height: 2.75rem;
+    padding: 0.6rem 1.1rem;
+}
+
+#kc-social-providers .pf-v5-c-login__main-footer-links-item-link svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* Bouton secondaire (« Retour à la connexion ») : or sur fond sombre, lisible */
+.pf-v5-c-button.pf-m-secondary {
+    --pf-v5-c-button--m-secondary--Color: var(--wfrp4-gold);
+    --pf-v5-c-button--m-secondary--hover--Color: #e2c56b;
+    --pf-v5-c-button--m-secondary--BackgroundColor: transparent;
+    --pf-v5-c-button--m-secondary--after--BorderColor: var(--wfrp4-border-strong);
+    --pf-v5-c-button--m-secondary--hover--after--BorderColor: var(--wfrp4-gold);
+    border-radius: 2px;
+}
+
+/* Le titre tient sur une ligne tant que la largeur le permet */
+.pf-v5-c-login__header {
+    max-width: none;
+}
+
+@media (min-width: 640px) {
+    .wfrp4-brand {
+        white-space: nowrap;
+    }
+}
+
+#login-select-toggle {
+    background: var(--wfrp4-input);
+    color: var(--wfrp4-text);
+}

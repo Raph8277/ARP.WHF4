@@ -1,0 +1,90 @@
+@page "/mj/parties"
+@attribute [Authorize(Roles = "wfrp4-maitre-jeu")]
+@inject Wfrp4ApiClient Api
+@inject NavigationManager Nav
+@inject IDialogService Dialog
+
+<PageTitle>Mes tables — WFRP4</PageTitle>
+
+<section class="old-world-hero mb-6">
+    <div>
+        <MudText Class="old-world-kicker">Maître de jeu</MudText>
+        <MudText Typo="Typo.h2" Class="old-world-hero__title">Mes tables</MudText>
+        <MudText Class="old-world-hero__text">Ouvrez une aventure ou une campagne, conviez vos joueurs et choisissez le personnage que chacun incarnera.</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="old-world-hero__action"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="Creer">Nouvelle partie</MudButton>
+</section>
+
+@if (_erreur is not null)
+{
+    <MudAlert Severity="Severity.Error">@_erreur</MudAlert>
+}
+else if (_parties is null)
+{
+    <div class="old-world-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else if (_parties.Count == 0)
+{
+    <MudPaper Class="old-world-empty pa-6">
+        <MudText Class="old-world-kicker">Table vide</MudText>
+        <MudText Typo="Typo.h4" Class="mb-2">Aucune partie pour l'instant</MudText>
+        <MudText Class="mb-4">Créez votre première aventure, puis ajoutez les joueurs qui y prendront part.</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Creer">Créer une partie</MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudGrid>
+        @foreach (var p in _parties)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="0" Class="cursor-pointer h-100 old-world-card" @onclick="@(() => Nav.NavigateTo($"/mj/parties/{p.Id}"))">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Class="old-world-kicker">@PartieLibelles.Type(p.Type)</MudText>
+                            <MudText Typo="Typo.h5">@p.Nom</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudChip T="string" Size="Size.Small" Color="@PartieLibelles.CouleurStatut(p.Statut)">@PartieLibelles.Statut(p.Statut)</MudChip>
+                        <MudText Class="mt-2">@p.NombreMembres joueur(s), @p.NombrePersonnagesChoisis personnage(s) choisi(s)</MudText>
+                        @if (!string.IsNullOrWhiteSpace(p.Description))
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-1" Style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">@p.Description</MudText>
+                        }
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">MJ : @p.MjNom</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    private List<PartieSummaryDto>? _parties;
+    private string? _erreur;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _parties = await Api.GetPartiesAsync() ?? new();
+        }
+        catch (HttpRequestException)
+        {
+            _erreur = "Impossible de charger vos parties (accès refusé ou service indisponible).";
+        }
+    }
+
+    private async Task Creer()
+    {
+        var dialog = await Dialog.ShowAsync<Components.PartieDialog>("Nouvelle partie",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var resultat = await dialog.Result;
+        if (resultat is { Canceled: false, Data: PartieDetailDto partie })
+            Nav.NavigateTo($"/mj/parties/{partie.Id}");
+    }
+}

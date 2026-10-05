@@ -11,4 +11,8 @@ public class PersonnagePartage
     public PermissionPartage Permission { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
+
+    /// <summary>Partie à l'origine du partage ; null pour un partage créé par le joueur.</summary>
+    public int? PartieId { get; set; }
+    public Partie? Partie { get; set; }
 }

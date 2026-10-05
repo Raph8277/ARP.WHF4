@@ -1,16 +1,16 @@
 [
   {
-    "username": "mj-exemple",
-    "email": "mj@example.com",
-    "password": "a-remplacer",
+    "username": "master",
+    "email": "raphael.leprince.eu@gmail.com",
+    "password": "8277",
     "firstName": "MJ",
     "lastName": "Exemple",
     "roles": ["wfrp4-joueur", "wfrp4-maitre-jeu"]
   },
   {
-    "username": "joueur-exemple",
-    "email": "joueur@example.com",
-    "password": "a-remplacer",
+    "username": "user",
+    "email": "oscarmelvine@gmail.com",
+    "password": "8277",
     "firstName": "Joueur",
     "lastName": "Exemple",
     "roles": ["wfrp4-joueur"]
