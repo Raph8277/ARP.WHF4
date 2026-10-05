@@ -1,0 +1,18 @@
+{
+  "alias": "google",
+  "displayName": "Google",
+  "providerId": "google",
+  "enabled": true,
+  "trustEmail": true,
+  "storeToken": false,
+  "addReadTokenRoleOnCreate": false,
+  "authenticateByDefault": false,
+  "linkOnly": false,
+  "firstBrokerLoginFlowAlias": "first broker login",
+  "config": {
+    "clientId": "${WFRP4_GOOGLE_CLIENT_ID:}",
+    "clientSecret": "${WFRP4_GOOGLE_CLIENT_SECRET:}",
+    "defaultScope": "openid profile email",
+    "syncMode": "IMPORT"
+  }
+}

@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_app_docker_postgres_init_keycloak_sql", "label": "init-keycloak.sql", "file_type": "code", "source_file": "app/docker/postgres/init-keycloak.sql", "source_location": null}], "edges": []}

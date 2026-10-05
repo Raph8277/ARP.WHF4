@@ -1,0 +1,340 @@
+@using Wfrp4.Shared.DTOs
+
+<MudPaper Class="career-card pa-4" Outlined="true">
+    <div class="career-card__header">
+        <div>
+            <MudText Class="old-world-kicker">@Carriere.ClasseNom · @Carriere.Code</MudText>
+            <MudText Typo="Typo.h4">@Carriere.Nom</MudText>
+        </div>
+        <MudChip T="string" Size="Size.Small" Color="@EligibilityColor" Icon="@EligibilityIcon">
+            @EligibilityLabel
+        </MudChip>
+    </div>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Class="my-3">
+        <strong>Progression :</strong> pour achever un niveau, il faut atteindre @(ActiveLevel * 5) Avances
+        dans ses caractéristiques de carrière et dans 8 compétences accessibles, puis posséder au moins
+        un Talent du niveau. Passer au niveau suivant coûte normalement 100 XP.
+    </MudAlert>
+
+    @if (Personnage != null && CurrentLevel != null)
+    {
+        <section class="career-advancement mb-3">
+            <div class="career-advancement__heading">
+                <div>
+                    <MudText Class="old-world-kicker">Avancement de carrière</MudText>
+                    <MudText Typo="Typo.h5">
+                        @if (NextLevel != null)
+                        {
+                            <text>Vers @NextLevel.Intitule</text>
+                        }
+                        else
+                        {
+                            <text>Sommet de carrière atteint</text>
+                        }
+                    </MudText>
+                </div>
+                <MudChip T="string" Color="@(RequirementsMet ? Color.Success : Color.Warning)" Size="Size.Small"
+                         Icon="@(RequirementsMet ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.PendingActions)">
+                    @(RequirementsMet ? "Prérequis remplis" : "Progression en cours")
+                </MudChip>
+            </div>
+
+            @if (NextLevel != null)
+            {
+                <div class="career-advancement__checks">
+                    <div class="career-check @(SkillsMet ? "career-check--met" : "")">
+                        <MudIcon Icon="@(SkillsMet ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.School)" />
+                        <div>
+                            <strong>@SkillsMetCount / @RequiredSkillCount compétences</strong>
+                            <span>Au moins @RequiredAdvances Avances dans chacune</span>
+                        </div>
+                    </div>
+                    <div class="career-check @(TalentMet ? "career-check--met" : "")">
+                        <MudIcon Icon="@(TalentMet ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.AutoAwesome)" />
+                        <div>
+                            <strong>@TalentStatus</strong>
+                            <span>@TalentDetail</span>
+                        </div>
+                    </div>
+                    <div class="career-check @(CharacteristicsMet ? "career-check--met" : "")">
+                        <MudIcon Icon="@(CharacteristicsMet ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.TrendingUp)" />
+                        <div>
+                            <strong>@CharacteristicStatus</strong>
+                            <span>@CharacteristicDetail</span>
+                        </div>
+                    </div>
+                    <div class="career-check @(HasEnoughXp ? "career-check--met" : "")">
+                        <MudIcon Icon="@(HasEnoughXp ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Paid)" />
+                        <div>
+                            <strong>@Personnage.XpRestant XP disponibles</strong>
+                            <span>Coût du passage : 100 XP</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if (MissingSkills.Count > 0)
+                {
+                    <MudText Typo="Typo.caption" Class="mt-2">
+                        <strong>Compétences à poursuivre :</strong> @string.Join(", ", MissingSkills)
+                    </MudText>
+                }
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3"
+                           StartIcon="@Icons.Material.Filled.ArrowUpward"
+                           Disabled="@(!AllowAdvancement || IsSubmitting || !CanAdvance)"
+                           OnClick="() => OnAdvance.InvokeAsync(NextLevel.Id)">
+                    @(IsSubmitting ? "Validation…" : $"Dépenser 100 XP et devenir {NextLevel.Intitule}")
+                </MudButton>
+            }
+
+            @if (CanRollback)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Class="mt-3 ml-2"
+                           StartIcon="@Icons.Material.Filled.Undo"
+                           Disabled="@(!AllowAdvancement || IsSubmitting)"
+                           OnClick="() => OnRollback.InvokeAsync()">
+                    Revenir à @PreviousCareerEntry!.Intitule et récupérer @RollbackRefund XP
+                </MudButton>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+                    <strong>Retour arrière indisponible :</strong> aucune carrière précédente n’est enregistrée.
+                    Pour quitter ce premier niveau, choisissez une autre carrière ci-dessous.
+                </MudAlert>
+            }
+        </section>
+    }
+
+    <div class="career-path">
+        @foreach (var niveau in Carriere.Niveaux.OrderBy(n => n.Niveau))
+        {
+            var estActif = niveau.Niveau == ActiveLevel;
+            <details class="career-path__level @(estActif ? "career-path__level--active" : "")" open="@estActif">
+                <summary>
+                    <span class="career-path__number">@niveau.Niveau</span>
+                    <span class="career-path__title">
+                        <strong>@niveau.Intitule</strong>
+                        <small>@(niveau.Niveau * 5) Avances requises</small>
+                    </span>
+                    <StatutBadge Tier="@niveau.Statut" Rang="@niveau.StatutNumerique" />
+                    @if (estActif)
+                    {
+                        <span class="career-path__current">Actuel</span>
+                    }
+                </summary>
+
+                <div class="career-path__content">
+                    <CareerRequirement Title="Compétences" Icon="@Icons.Material.Filled.School"
+                                       Values="@ResolveNames(niveau.CompetenceCodes, CompetenceNames)"
+                                       EmptyText="Compétences détaillées non renseignées pour ce niveau." />
+                    <CareerRequirement Title="Talents" Icon="@Icons.Material.Filled.AutoAwesome"
+                                       Values="@ResolveNames(niveau.TalentCodes, TalentNames)"
+                                       EmptyText="Talents détaillés non renseignés pour ce niveau." />
+                    <CareerRequirement Title="Dotations et signes extérieurs" Icon="@Icons.Material.Filled.Inventory2"
+                                       Values="@niveau.Dotations"
+                                       EmptyText="Aucune dotation particulière renseignée." />
+                </div>
+            </details>
+        }
+    </div>
+
+    @if (Carriere.EspecesAutorisees.Count > 0)
+    {
+        <MudText Typo="Typo.caption" Class="mt-3">
+            <strong>Prérequis d’espèce :</strong> @string.Join(", ", Carriere.EspecesAutorisees)
+        </MudText>
+    }
+
+
+    @if (Personnage != null && AllCareers.Count > 0)
+    {
+        <MudExpansionPanels Class="mt-4">
+            <MudExpansionPanel Text="Changer de carrière" Expanded="true">
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    Une nouvelle carrière débute normalement au niveau 1. Quitter un niveau complété coûte 100 XP,
+                    un niveau incomplet 200 XP, avec 100 XP supplémentaires pour changer de classe.
+                </MudAlert>
+                <MudAutocomplete T="CarriereDto" Label="Rechercher une carrière accessible"
+                                 Value="_selectedCareer" ValueChanged="OnCareerSelected"
+                                 SearchFunc="SearchCareers" ToStringFunc="DisplayCareer"
+                                 Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                 Placeholder="Nom, classe ou intitulé du premier niveau…"
+                                 Clearable="true" ResetValueOnEmptyText="true" CoerceText="false" MaxItems="40" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                    @AvailableCareers.Count carrières proposées pour cette espèce ; celles de la classe @Carriere.ClasseNom sont affichées en premier.
+                </MudText>
+
+                @if (_selectedCareer != null)
+                {
+                    var entree = _selectedCareer.Niveaux.OrderBy(n => n.Niveau).FirstOrDefault();
+                    <MudPaper Class="career-change-preview pa-3 mt-3" Outlined="true">
+                        <div class="d-flex flex-wrap align-center justify-space-between gap-2">
+                            <div>
+                                <MudText Typo="Typo.h6">@_selectedCareer.Nom</MudText>
+                                <MudText Typo="Typo.caption">
+                                    @_selectedCareer.ClasseNom · entrée comme <strong>@(entree?.Intitule ?? "niveau 1")</strong>
+                                </MudText>
+                            </div>
+                            @if (entree != null)
+                            {
+                                <StatutBadge Tier="@entree.Statut" Rang="@entree.StatutNumerique" />
+                            }
+                        </div>
+                        <MudText Typo="Typo.body2" Class="mt-2">
+                            Niveau actuel @(LevelComplete ? "complété" : "incomplet") :
+                            <strong>@ChangeCost XP</strong> seront dépensés.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3"
+                                   StartIcon="@Icons.Material.Filled.WorkHistory"
+                                   Disabled="@(!AllowAdvancement || IsSubmitting || entree == null || !CanChangeCareer)"
+                                   OnClick="() => OnChangeCareer.InvokeAsync(entree!.Id)">
+                            @(IsSubmitting ? "Validation…" : $"Dépenser {ChangeCost} XP et changer de carrière")
+                        </MudButton>
+                    </MudPaper>
+                }
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public CarriereDto Carriere { get; set; } = null!;
+    [Parameter] public int ActiveLevel { get; set; } = 1;
+    [Parameter] public string? EspeceCode { get; set; }
+    [Parameter] public IReadOnlyDictionary<string, string> CompetenceNames { get; set; } = new Dictionary<string, string>();
+    [Parameter] public IReadOnlyDictionary<string, string> TalentNames { get; set; } = new Dictionary<string, string>();
+    [Parameter] public PersonnageDetailDto? Personnage { get; set; }
+    [Parameter] public bool AllowAdvancement { get; set; }
+    [Parameter] public bool IsSubmitting { get; set; }
+    [Parameter] public EventCallback<int> OnAdvance { get; set; }
+    [Parameter] public IReadOnlyList<CarriereDto> AllCareers { get; set; } = [];
+    [Parameter] public EventCallback<int> OnChangeCareer { get; set; }
+    [Parameter] public EventCallback OnRollback { get; set; }
+
+    private CarriereDto? _selectedCareer;
+
+    private NiveauCarriereDto? CurrentLevel => Carriere.Niveaux.FirstOrDefault(n => n.Niveau == ActiveLevel);
+    private NiveauCarriereDto? NextLevel => Carriere.Niveaux.FirstOrDefault(n => n.Niveau == ActiveLevel + 1);
+    private int RequiredAdvances => ActiveLevel * 5;
+    private HashSet<string> AvailableSkillCodes => Carriere.Niveaux
+        .Where(n => n.Niveau <= ActiveLevel)
+        .SelectMany(n => n.CompetenceCodes)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private int RequiredSkillCount => Math.Min(8, AvailableSkillCodes.Count);
+    private int SkillsMetCount => Personnage?.Competences
+        .Count(c => AvailableSkillCodes.Contains(c.CompetenceCode) && c.Avances >= RequiredAdvances) ?? 0;
+    private bool SkillsMet => RequiredSkillCount > 0 && SkillsMetCount >= RequiredSkillCount;
+    private HashSet<string> CurrentTalentCodes => CurrentLevel?.TalentCodes.ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+    private bool HasTalentData => CurrentTalentCodes.Count > 0;
+    private bool TalentMet => !HasTalentData
+        || Personnage?.Talents.Any(t => t.Fois > 0 && CurrentTalentCodes.Contains(t.TalentCode)) == true;
+    private string TalentStatus => !HasTalentData ? "Contrôle manuel" : TalentMet ? "Talent acquis" : "Talent manquant";
+    private string TalentDetail => HasTalentData ? "Un Talent du niveau actuel" : "Talents non renseignés pour ce niveau";
+    private bool HasCharacteristicData => CurrentLevel?.CaracteristiqueCodes.Count > 0;
+    private bool CharacteristicsMet => !HasCharacteristicData || CurrentLevel!.CaracteristiqueCodes.All(code =>
+        Personnage?.Caracteristiques.Any(c => string.Equals(c.Code, code, StringComparison.OrdinalIgnoreCase)
+                                              && c.Avances >= RequiredAdvances) == true);
+    private string CharacteristicStatus => HasCharacteristicData
+        ? CharacteristicsMet ? "Caractéristiques validées" : "Caractéristiques à poursuivre"
+        : "Contrôle manuel";
+    private string CharacteristicDetail => HasCharacteristicData
+        ? $"{RequiredAdvances} Avances dans le schéma du niveau"
+        : "Schéma non renseigné dans le référentiel";
+    private bool HasEnoughXp => Personnage?.XpRestant >= 100;
+    private bool RequirementsMet => NextLevel != null && SkillsMet && TalentMet && CharacteristicsMet;
+    private bool LevelComplete => SkillsMet && TalentMet && CharacteristicsMet;
+    private bool CanAdvance => RequirementsMet && HasEnoughXp;
+    private List<string> MissingSkills => Personnage == null
+        ? []
+        : AvailableSkillCodes
+            .Where(code => !Personnage.Competences.Any(c =>
+                string.Equals(c.CompetenceCode, code, StringComparison.OrdinalIgnoreCase) && c.Avances >= RequiredAdvances))
+            .Select(code => CompetenceNames.TryGetValue(code, out var name) ? name : Humanize(code))
+            .OrderBy(name => name)
+            .ToList();
+    private PersonnageCarriereDto? PreviousCareerEntry
+    {
+        get
+        {
+            var current = Personnage?.Carrieres.FirstOrDefault(c => c.EstCourante);
+            return Personnage?.Carrieres
+                .Where(c => !c.EstCourante && (current == null || c.DateEntree <= current.DateEntree))
+                .OrderByDescending(c => c.DateEntree)
+                .FirstOrDefault();
+        }
+    }
+    private bool CanRollback => PreviousCareerEntry is not null && RollbackRefund > 0;
+    private int RollbackRefund => -(Personnage?.HistoriqueXP
+        .Where(h => h.Type == Wfrp4.Shared.Models.TypeXP.Carriere && h.Montant < 0)
+        .OrderByDescending(h => h.CreatedAt)
+        .FirstOrDefault()?.Montant ?? 0);
+
+    private List<CarriereDto> AvailableCareers => AllCareers
+        .Where(c => c.Id != Carriere.Id)
+        .Where(c => c.EspecesAutorisees.Count == 0
+                    || (!string.IsNullOrWhiteSpace(EspeceCode) && c.EspecesAutorisees.Contains(EspeceCode)))
+        .OrderByDescending(c => c.ClasseId == Carriere.ClasseId)
+        .ThenBy(c => c.ClasseNom)
+        .ThenBy(c => c.Nom)
+        .ToList();
+    private int ChangeCost => _selectedCareer == null
+        ? 0
+        : (LevelComplete ? 100 : 200) + (_selectedCareer.ClasseId == Carriere.ClasseId ? 0 : 100);
+    private bool CanChangeCareer => _selectedCareer != null && Personnage?.XpRestant >= ChangeCost;
+
+    private void OnCareerSelected(CarriereDto? career) => _selectedCareer = career;
+
+    private Task<IEnumerable<CarriereDto>> SearchCareers(string? search, CancellationToken ct)
+    {
+        var source = AvailableCareers.AsEnumerable();
+        if (string.IsNullOrWhiteSpace(search)) return Task.FromResult(source.Take(40));
+        var terms = Normalize(search).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return Task.FromResult(source.Where(c =>
+        {
+            var titles = string.Join(' ', c.Niveaux.Select(n => n.Intitule));
+            var text = Normalize($"{c.Nom} {c.Code} {c.ClasseNom} {titles}");
+            return terms.All(text.Contains);
+        }).Take(40));
+    }
+
+    private static string DisplayCareer(CarriereDto? career)
+    {
+        if (career == null) return string.Empty;
+        var firstTitle = career.Niveaux.OrderBy(n => n.Niveau).FirstOrDefault()?.Intitule ?? "niveau 1";
+        return $"{career.Nom} — {career.ClasseNom} · {firstTitle}";
+    }
+
+    private static string Normalize(string value)
+    {
+        var decomposed = value.ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        return string.Concat(decomposed.Where(c =>
+            System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark));
+    }
+
+    private bool IsEligible => Carriere.EspecesAutorisees.Count == 0
+        || (!string.IsNullOrWhiteSpace(EspeceCode) && Carriere.EspecesAutorisees.Contains(EspeceCode));
+
+    private Color EligibilityColor => string.IsNullOrWhiteSpace(EspeceCode)
+        ? Color.Default
+        : IsEligible ? Color.Success : Color.Error;
+
+    private string EligibilityIcon => string.IsNullOrWhiteSpace(EspeceCode)
+        ? Icons.Material.Filled.Info
+        : IsEligible ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Lock;
+
+    private string EligibilityLabel => Carriere.EspecesAutorisees.Count == 0
+        ? "Toutes les espèces"
+        : string.IsNullOrWhiteSpace(EspeceCode)
+            ? "Espèces restreintes"
+            : IsEligible ? "Prérequis remplis" : "Espèce non autorisée";
+
+    private static IReadOnlyList<string> ResolveNames(
+        IEnumerable<string> codes,
+        IReadOnlyDictionary<string, string> names) =>
+        codes.Select(code => names.TryGetValue(code, out var name) ? name : Humanize(code)).ToList();
+
+    private static string Humanize(string code) =>
+        System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(code.Replace('_', ' ').ToLowerInvariant());
+}

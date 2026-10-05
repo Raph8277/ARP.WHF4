@@ -1,0 +1,257 @@
+{
+  "_meta": {
+    "title": "WFRP4 - Vieux Monde - Régions et Villes",
+    "description": "Jeu de données destiné à alimenter une application de génération de personnages et de scénarios WFRP4. Contient des régions, villes majeures, tags thématiques et accroches de scénarios pour usage personnel.",
+    "usage": "Chaque région possède des coordonnées x/y indicatives (échelle libre, à recalibrer selon l'image de carte utilisée) pour un positionnement visuel sur une carte du Vieux Monde.",
+    "avertissement": "Univers et noms propres © Games Workshop / Cubicle 7. Données compilées pour usage personnel uniquement, ne pas redistribuer publiquement."
+  },
+  "regions": [
+    {
+      "region": "Reikland",
+      "type": "province",
+      "parent_region": "Empire",
+      "major_cities": ["Altdorf", "Ubersreik", "Delberz", "Grissenwald"],
+      "map_coordinates": {"x": 1200, "y": 3400},
+      "tags": ["urbain", "fleuve", "politique", "corruption_chaos_faible"],
+      "scenario_hooks": [
+        "Contrebande le long du Reik",
+        "Corruption politique à Altdorf",
+        "Disparitions mystérieuses dans les bas-quartiers d'Ubersreik"
+      ]
+    },
+    {
+      "region": "Middenland",
+      "type": "province",
+      "parent_region": "Empire",
+      "major_cities": ["Middenheim", "Carroburg", "Wolfenburg"],
+      "map_coordinates": {"x": 1400, "y": 2600},
+      "tags": ["montagne", "forêt", "culte_Ulric", "vieille_noblesse"],
+      "scenario_hooks": [
+        "Rites interdits dans les forêts du Nord",
+        "Rivalité entre cultes à Middenheim",
+        "Loups mutants aux abords de la ville"
+      ]
+    },
+    {
+      "region": "Talabecland",
+      "type": "province",
+      "parent_region": "Empire",
+      "major_cities": ["Talabheim"],
+      "map_coordinates": {"x": 1900, "y": 2900},
+      "tags": ["forêt_dense", "isolement", "bureaucratie"],
+      "scenario_hooks": [
+        "Créatures sylvestres corrompues par le Chaos",
+        "Conspiration bureaucratique à Talabheim"
+      ]
+    },
+    {
+      "region": "Nordland",
+      "type": "province",
+      "parent_region": "Empire",
+      "major_cities": ["Salkalten", "Marienburg (frontalier)"],
+      "map_coordinates": {"x": 1000, "y": 2400},
+      "tags": ["côtier", "commerce", "piraterie"],
+      "scenario_hooks": [
+        "Contrebande maritime",
+        "Attaques de pirates norses sur la côte"
+      ]
+    },
+    {
+      "region": "Ostland",
+      "type": "province",
+      "parent_region": "Empire",
+      "major_cities": ["Wolfenburg", "Bergsburg"],
+      "map_coordinates": {"x": 1700, "y": 2300},
+      "tags": ["frontière_nord", "invasions_chaos", "militaire"],
+      "scenario_hooks": [
+        "Incursions de Maraudeurs du Chaos",
+        "Village isolé coupé du monde après une tempête"
+      ]
+    },
+    {
+      "region": "Hochland",
+      "type": "province",
+      "parent_region": "Empire",
+      "major_cities": ["Hergig"],
+      "map_coordinates": {"x": 1600, "y": 3100},
+      "tags": ["chasse", "rural", "artisanat_armes"],
+      "scenario_hooks": [
+        "Chasse à une bête légendaire",
+        "Trafic d'armes de précision Hochland"
+      ]
+    },
+    {
+      "region": "Stirland",
+      "type": "province",
+      "parent_region": "Empire",
+      "major_cities": ["Wurtbad"],
+      "map_coordinates": {"x": 1500, "y": 3900},
+      "tags": ["marais", "pauvreté", "banditisme"],
+      "scenario_hooks": [
+        "Bandits de grand chemin dans les marais",
+        "Épidémie mystérieuse dans un village reculé"
+      ]
+    },
+    {
+      "region": "Sylvanie",
+      "type": "province",
+      "parent_region": "Empire",
+      "major_cities": ["Waldenhof", "Sylvania (comtés divers)"],
+      "map_coordinates": {"x": 1900, "y": 3700},
+      "tags": ["morts_vivants", "malédiction", "isolement", "horreur"],
+      "scenario_hooks": [
+        "Village terrorisé par des morts-vivants",
+        "Enquête sur une lignée de Comtes Vampires",
+        "Rituel nécromantique à stopper"
+      ]
+    },
+    {
+      "region": "Averland",
+      "type": "province",
+      "parent_region": "Empire",
+      "major_cities": ["Averheim"],
+      "map_coordinates": {"x": 1500, "y": 4300},
+      "tags": ["agricole", "noblesse_ambitieuse", "élections"],
+      "scenario_hooks": [
+        "Intrigue politique autour de la succession électorale",
+        "Sabotage de récoltes"
+      ]
+    },
+    {
+      "region": "Wissenland",
+      "type": "province",
+      "parent_region": "Empire",
+      "major_cities": ["Nuln"],
+      "map_coordinates": {"x": 1300, "y": 4200},
+      "tags": ["ingénierie", "artillerie", "savoir", "collèges_magie"],
+      "scenario_hooks": [
+        "Vol de plans d'artillerie à Nuln",
+        "Expérience magique ayant mal tourné dans un collège"
+      ]
+    },
+    {
+      "region": "Empire des World's Edge Mountains",
+      "type": "chaîne_montagneuse",
+      "parent_region": "Frontière Est de l'Empire",
+      "major_cities": ["Karak Kadrin", "Karak Azgal (ruines)"],
+      "map_coordinates": {"x": 2400, "y": 3300},
+      "tags": ["nains", "orcs_gobelins", "mines", "défensif"],
+      "scenario_hooks": [
+        "Escorte de caravane naine attaquée par des Orcs",
+        "Exploration d'une hold naine oubliée"
+      ]
+    },
+    {
+      "region": "Bretonnie",
+      "type": "royaume",
+      "parent_region": null,
+      "major_cities": ["Couronne", "Bordeleaux", "Quenelles"],
+      "map_coordinates": {"x": 600, "y": 3600},
+      "tags": ["chevalerie", "féodalisme", "religion_Dame_du_Lac", "paysannerie_pauvre"],
+      "scenario_hooks": [
+        "Quête chevaleresque pour un noble breton",
+        "Tension entre paysans et seigneurs locaux",
+        "Créature maléfique rôdant près d'une chapelle isolée"
+      ]
+    },
+    {
+      "region": "Tilée",
+      "type": "cité-états",
+      "parent_region": null,
+      "major_cities": ["Miragliano", "Remas", "Tobaro", "Sartosa"],
+      "map_coordinates": {"x": 1300, "y": 5200},
+      "tags": ["commerce", "intrigue", "mercenaires", "piraterie", "renaissance"],
+      "scenario_hooks": [
+        "Guerre de factions marchandes",
+        "Complot d'assassinat entre cités rivales",
+        "Chasse au trésor pirate près de Sartosa"
+      ]
+    },
+    {
+      "region": "Estalie",
+      "type": "royaumes",
+      "parent_region": null,
+      "major_cities": ["Bilbali", "Magritta"],
+      "map_coordinates": {"x": 700, "y": 5000},
+      "tags": ["religion_Myrmidia", "commerce_maritime", "duels"],
+      "scenario_hooks": [
+        "Duel d'honneur à régler",
+        "Corsaires estaliens en maraude"
+      ]
+    },
+    {
+      "region": "Kislev",
+      "type": "royaume",
+      "parent_region": null,
+      "major_cities": ["Kislev (ville)", "Praag", "Erengrad"],
+      "map_coordinates": {"x": 2600, "y": 1800},
+      "tags": ["steppe", "hiver_rigoureux", "invasions_chaos", "chamanisme"],
+      "scenario_hooks": [
+        "Défense d'un avant-poste contre le Chaos",
+        "Rumeurs de sorcellerie dans la toundra",
+        "Caravane bloquée par une tempête de neige"
+      ]
+    },
+    {
+      "region": "Marienburg",
+      "type": "cité-état_indépendante",
+      "parent_region": null,
+      "major_cities": ["Marienburg"],
+      "map_coordinates": {"x": 900, "y": 2500},
+      "tags": ["commerce", "guildes", "corruption", "port_majeur"],
+      "scenario_hooks": [
+        "Guerre des guildes marchandes",
+        "Contrebande via le port franc",
+        "Enquête sur une disparition dans les docks"
+      ]
+    },
+    {
+      "region": "Athel Loren",
+      "type": "forêt_magique",
+      "parent_region": "Bretonnie (frontière)",
+      "major_cities": [],
+      "map_coordinates": {"x": 500, "y": 3300},
+      "tags": ["elfes_sylvains", "magie_sauvage", "danger_mortel_pour_intrus"],
+      "scenario_hooks": [
+        "Intrusion accidentelle dans la forêt interdite",
+        "Pacte à négocier avec les Elfes Sylvains"
+      ]
+    },
+    {
+      "region": "Terres Arides (Badlands)",
+      "type": "région_sauvage",
+      "parent_region": null,
+      "major_cities": ["Blackfire Pass (zone)"],
+      "map_coordinates": {"x": 1900, "y": 4700},
+      "tags": ["orcs_gobelins", "banditisme", "ruines_anciennes"],
+      "scenario_hooks": [
+        "Traversée dangereuse d'un col infesté d'Orcs",
+        "Exploration de ruines pré-humaines"
+      ]
+    },
+    {
+      "region": "Norsca",
+      "type": "terres_barbares",
+      "parent_region": null,
+      "major_cities": [],
+      "map_coordinates": {"x": 1600, "y": 900},
+      "tags": ["chaos", "raids_maritimes", "tribus_guerrières"],
+      "scenario_hooks": [
+        "Raid norse sur un village côtier",
+        "Culte du Chaos infiltré près d'un port"
+      ]
+    },
+    {
+      "region": "Terres du Chaos (Chaos Wastes)",
+      "type": "région_corrompue",
+      "parent_region": null,
+      "major_cities": [],
+      "map_coordinates": {"x": 2200, "y": 300},
+      "tags": ["chaos_extrême", "mutation", "hostile_mortel"],
+      "scenario_hooks": [
+        "Expédition suicidaire vers le Nord",
+        "Artefact corrompu ramené par erreur d'une expédition"
+      ]
+    }
+  ]
+}

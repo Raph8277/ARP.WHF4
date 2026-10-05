@@ -1,0 +1,49 @@
+@using MudBlazor.Utilities
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <span class="color-dialog-preview" style="background-color:@_hexValue"></span>
+            <MudText Typo="Typo.h6">@Label</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudColorPicker PickerVariant="PickerVariant.Static"
+                        Value="@_color" ValueChanged="OnColorChanged"
+                        ColorPickerView="ColorPickerView.Spectrum"
+                        ShowAlpha="false"
+                        ShowToolbar="true"
+                        ShowInputs="true"
+                        ShowPreview="true"
+                        Style="width:100%;" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Valider</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string InitialColor { get; set; } = "#000000";
+
+    private MudColor _color = new("#000000");
+    private string _hexValue = "#000000";
+
+    protected override void OnInitialized()
+    {
+        try { _color = new MudColor(InitialColor); }
+        catch { _color = new MudColor("#000000"); }
+        _hexValue = _color.ToString(MudColorOutputFormats.Hex);
+    }
+
+    private void OnColorChanged(MudColor color)
+    {
+        _color = color;
+        _hexValue = color.ToString(MudColorOutputFormats.Hex);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_hexValue));
+}

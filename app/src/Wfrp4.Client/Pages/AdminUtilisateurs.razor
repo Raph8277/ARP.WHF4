@@ -1,0 +1,300 @@
+@page "/admin/utilisateurs"
+@attribute [Authorize(Roles = "wfrp4-admin")]
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+
+<PageTitle>Comptes — WFRP4</PageTitle>
+
+<section class="old-world-hero mb-6">
+    <div>
+        <MudText Class="old-world-kicker">Administration</MudText>
+        <MudText Typo="Typo.h2" Class="old-world-hero__title">Comptes et rôles</MudText>
+        <MudText Class="old-world-hero__text">Tout nouveau compte est joueur. Promouvez un joueur maître de jeu pour qu'il puisse mener ses parties, activez ou suspendez un compte, envoyez un lien de réinitialisation du mot de passe.</MudText>
+    </div>
+</section>
+
+<MudPaper Class="old-world-panel pa-4">
+    <div class="d-flex align-end gap-3 mb-4 flex-wrap">
+        <MudTextField T="string" @bind-Value="_recherche" Label="Rechercher (nom d'utilisateur, e-mail)" Immediate="false"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      OnKeyUp="OnRechercheKey" Style="max-width:340px" Clearable="true" OnClearButtonClick="Rechercher" />
+        <MudSelect T="string" Value="_profil" ValueChanged="FiltrerProfil" Label="Profil" Dense="true" Style="max-width:200px">
+            <MudSelectItem Value="@("")">Tous les comptes</MudSelectItem>
+            <MudSelectItem Value="@("joueur")">Joueurs</MudSelectItem>
+            <MudSelectItem Value="@("mj")">Maîtres de jeu</MudSelectItem>
+            <MudSelectItem Value="@("admin")">Administrateurs</MudSelectItem>
+        </MudSelect>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Rechercher" Disabled="_chargement">Rechercher</MudButton>
+    </div>
+
+    @if (_chargement)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+    }
+
+    @if (_erreur is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-2">
+            @_erreur
+            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="Charger" Class="ml-2">Réessayer</MudButton>
+        </MudAlert>
+    }
+    else if (!_chargement && _utilisateurs.Count == 0)
+    {
+        <MudText Class="pa-4">Aucun compte ne correspond à ces critères.</MudText>
+    }
+    else if (_utilisateurs.Count > 0)
+    {
+        <div style="overflow-x:auto">
+            <MudSimpleTable Dense="true" Hover="true" Class="old-world-table">
+                <thead>
+                    <tr>
+                        <th>Compte</th>
+                        <th>E-mail</th>
+                        <th style="min-width:190px">Profil</th>
+                        <th>Actif</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in _utilisateurs)
+                    {
+                        var profil = ProfilAffiche(u);
+                        <tr @key="@((u.Id, _version))">
+                            <td>
+                                <div class="d-flex align-center gap-2">
+                                    <MudAvatar Size="Size.Small" Color="@CouleurProfil(profil)">@Initiales(u)</MudAvatar>
+                                    <MudText Typo="Typo.body2"><strong>@u.NomUtilisateur</strong></MudText>
+                                </div>
+                            </td>
+                            <td>
+                                @if (string.IsNullOrWhiteSpace(u.Email))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">—</MudText>
+                                }
+                                else
+                                {
+                                    <span>@u.Email</span>
+                                    @if (u.EmailVerifie)
+                                    {
+                                        <MudTooltip Text="Adresse vérifiée">
+                                            <MudIcon Icon="@Icons.Material.Filled.Verified" Size="Size.Small" Color="Color.Success" Class="ml-1" Style="vertical-align:middle" />
+                                        </MudTooltip>
+                                    }
+                                }
+                            </td>
+                            <td>
+                                @if (u.SuperAdmin)
+                                {
+                                    <MudTooltip Text="Administrateur déclaré dans la configuration du serveur : non modifiable ici.">
+                                        <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Icon="@Icons.Material.Filled.Lock">Propriétaire</MudChip>
+                                    </MudTooltip>
+                                }
+                                else
+                                {
+                                    <MudSelect T="ProfilUtilisateur" Value="profil" Dense="true" Disabled="_occupe" Margin="Margin.Dense"
+                                               aria-label="@($"Profil de {u.NomUtilisateur}")"
+                                               ValueChanged="@(p => ChangerProfil(u, p))">
+                                        <MudSelectItem Value="ProfilUtilisateur.Joueur">Joueur</MudSelectItem>
+                                        <MudSelectItem Value="ProfilUtilisateur.MaitreJeu">Maître de jeu</MudSelectItem>
+                                        <MudSelectItem Value="ProfilUtilisateur.Admin">Administrateur</MudSelectItem>
+                                    </MudSelect>
+                                }
+                            </td>
+                            <td>
+                                <MudSwitch T="bool" Value="u.Actif" Disabled="@(_occupe || u.SuperAdmin)" Color="Color.Success"
+                                           AriaLabel="@($"Compte {u.NomUtilisateur} actif")"
+                                           ValueChanged="@(v => BasculerActivation(u, v))" />
+                            </td>
+                            <td class="text-right">
+                                <MudTooltip Text="Fiche du compte">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small" aria-label="@($"Fiche de {u.NomUtilisateur}")"
+                                                   OnClick="@(() => OuvrirFiche(u))" />
+                                </MudTooltip>
+                                <MudTooltip Text="@(string.IsNullOrWhiteSpace(u.Email) ? "Aucune adresse e-mail" : "Envoyer un lien de réinitialisation du mot de passe")">
+                                    <MudIconButton Icon="@Icons.Material.Filled.LockReset" Size="Size.Small"
+                                                   aria-label="@($"Réinitialiser le mot de passe de {u.NomUtilisateur}")"
+                                                   Disabled="@(_occupe || string.IsNullOrWhiteSpace(u.Email))"
+                                                   OnClick="@(() => Reinitialiser(u))" />
+                                </MudTooltip>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </div>
+
+        <div class="d-flex align-center gap-2 mt-3">
+            <MudButton Disabled="_page == 0 || _occupe || _chargement" OnClick="PagePrecedente" StartIcon="@Icons.Material.Filled.ChevronLeft">Précédent</MudButton>
+            <MudText>Page @(_page + 1)</MudText>
+            <MudButton Disabled="!_pageSuivante || _occupe || _chargement" OnClick="PageSuivante" EndIcon="@Icons.Material.Filled.ChevronRight">Suivant</MudButton>
+        </div>
+    }
+</MudPaper>
+
+@code {
+    private const int Taille = 20;
+
+    private List<UtilisateurAdminDto> _utilisateurs = new();
+    private string? _recherche;
+    private string _profil = string.Empty;
+    private string? _erreur;
+    private int _page;
+    private bool _pageSuivante;
+    private bool _chargement = true;
+    private bool _occupe;
+    private int _version;
+
+    protected override Task OnInitializedAsync() => Charger();
+
+    private async Task Charger()
+    {
+        _chargement = true;
+        _erreur = null;
+        try
+        {
+            var resultat = await Api.GetUtilisateursAdminAsync(_recherche, _profil, _page, Taille);
+            _utilisateurs = resultat?.Utilisateurs ?? new();
+            _version++;
+            _pageSuivante = resultat?.PageSuivante ?? false;
+        }
+        catch (HttpRequestException)
+        {
+            _erreur = "Impossible de charger les comptes (accès refusé ou service indisponible).";
+        }
+        finally
+        {
+            _chargement = false;
+        }
+    }
+
+    private static ProfilUtilisateur ProfilAffiche(UtilisateurAdminDto u) =>
+        u.SuperAdmin ? ProfilUtilisateur.Admin : ProfilsUtilisateur.Depuis(u.Roles);
+
+    private static Color CouleurProfil(ProfilUtilisateur p) => p switch
+    {
+        ProfilUtilisateur.Admin => Color.Secondary,
+        ProfilUtilisateur.MaitreJeu => Color.Primary,
+        ProfilUtilisateur.Joueur => Color.Default,
+        _ => Color.Warning,
+    };
+
+    // L'application n'affiche que le nom d'utilisateur et l'e-mail, jamais prénom ni nom.
+    private static string NomComplet(UtilisateurAdminDto u) => u.NomUtilisateur;
+
+    private static string Initiales(UtilisateurAdminDto u) =>
+        string.Concat(u.NomUtilisateur.Where(char.IsLetterOrDigit).Take(2)).ToUpperInvariant();
+
+    private async Task ChangerProfil(UtilisateurAdminDto u, ProfilUtilisateur nouveau)
+    {
+        var actuel = ProfilsUtilisateur.Depuis(u.Roles);
+        if (nouveau == actuel)
+            return;
+
+        // Promotion admin ou rétrogradation : action sensible, on confirme.
+        if (nouveau == ProfilUtilisateur.Admin || nouveau < actuel)
+        {
+            var ok = await Dialog.ShowMessageBoxAsync(
+                "Changer le profil",
+                $"Passer {NomComplet(u)} de « {ProfilsUtilisateur.Libelle(actuel)} » à « {ProfilsUtilisateur.Libelle(nouveau)} » ?"
+                    + (nouveau < actuel && actuel >= ProfilUtilisateur.MaitreJeu ? " Ses parties restent enregistrées mais il ne pourra plus les gérer." : string.Empty),
+                yesText: "Confirmer", cancelText: "Annuler");
+            if (ok != true)
+            {
+                // Le sélecteur a déjà changé visuellement : on recharge l'état réel.
+                await Charger();
+                return;
+            }
+        }
+
+        await Executer(() => Api.ModifierRolesUtilisateurAsync(u.Id, ProfilsUtilisateur.Roles(nouveau)),
+            $"{NomComplet(u)} est maintenant {ProfilsUtilisateur.Libelle(nouveau).ToLowerInvariant()}.");
+    }
+
+    private async Task BasculerActivation(UtilisateurAdminDto u, bool actif)
+    {
+        if (!actif)
+        {
+            var ok = await Dialog.ShowMessageBoxAsync("Désactiver le compte",
+                $"{NomComplet(u)} ne pourra plus se connecter. Continuer ?", yesText: "Désactiver", cancelText: "Annuler");
+            if (ok != true)
+                return;
+        }
+
+        await Executer(() => Api.ModifierActivationUtilisateurAsync(u.Id, actif), actif ? "Compte activé." : "Compte désactivé.");
+    }
+
+    private async Task OuvrirFiche(UtilisateurAdminDto u)
+    {
+        var parametres = new DialogParameters<Components.UtilisateurFicheDialog> { { d => d.Utilisateur, u } };
+        await Dialog.ShowAsync<Components.UtilisateurFicheDialog>(NomComplet(u),
+            parametres, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+    }
+
+    private async Task Reinitialiser(UtilisateurAdminDto u)
+    {
+        _occupe = true;
+        try
+        {
+            await Api.ReinitialiserMotDePasseUtilisateurAsync(u.Id);
+            Snackbar.Add($"Lien de réinitialisation envoyé à {u.Email}.", Severity.Success);
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _occupe = false;
+        }
+    }
+
+    private async Task Executer(Func<Task> action, string succes)
+    {
+        _occupe = true;
+        try
+        {
+            await action();
+            Snackbar.Add(succes, Severity.Success);
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _occupe = false;
+            await Charger();
+        }
+    }
+
+    private async Task FiltrerProfil(string profil)
+    {
+        _profil = profil;
+        await Rechercher();
+    }
+
+    private async Task Rechercher()
+    {
+        _page = 0;
+        await Charger();
+    }
+
+    private async Task OnRechercheKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Rechercher();
+    }
+
+    private async Task PagePrecedente()
+    {
+        _page = Math.Max(0, _page - 1);
+        await Charger();
+    }
+
+    private async Task PageSuivante()
+    {
+        _page++;
+        await Charger();
+    }
+}

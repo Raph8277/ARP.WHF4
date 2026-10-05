@@ -1,0 +1,113 @@
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        Gérer les partages
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" Class="mb-4" />
+        }
+        else if (_partages?.Count > 0)
+        {
+            <div class="mb-4 d-flex flex-column gap-2">
+                @foreach (var partage in _partages)
+                {
+                    <MudPaper Class="pa-3">
+                        <div class="d-flex flex-grow-1 align-center justify-space-between gap-4">
+                            <div>
+                                <MudText Typo="Typo.body1">@partage.MjKeycloakId</MudText>
+                                <MudText Typo="Typo.caption">@partage.Permission</MudText>
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => SupprimerPartage(partage.Id)" />
+                        </div>
+                    </MudPaper>
+                }
+            </div>
+        }
+
+        <MudTextField @bind-Value="_mjKeycloakId" Label="ID Keycloak du MJ" Required="true" Class="mb-2" />
+        <MudSelect T="PermissionPartage" @bind-Value="_permission" Label="Permission">
+            <MudSelectItem T="PermissionPartage" Value="PermissionPartage.Lecture">Lecture seule</MudSelectItem>
+            <MudSelectItem T="PermissionPartage" Value="PermissionPartage.XP">Lecture + Octroyer XP</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirmer" Disabled="_submitting">
+            Partager
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public int PersonnageId { get; set; }
+
+    private string _mjKeycloakId = "";
+    private PermissionPartage _permission = PermissionPartage.Lecture;
+    private bool _submitting;
+    private bool _loading = true;
+    private List<PartageDto> _partages = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ChargerPartages();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task ChargerPartages()
+    {
+        _loading = true;
+        _partages = await Api.GetPartagesAsync(PersonnageId) ?? [];
+        _loading = false;
+    }
+
+    private async Task Confirmer()
+    {
+        if (string.IsNullOrWhiteSpace(_mjKeycloakId))
+        {
+            Snackbar.Add("L'ID du MJ est obligatoire.", Severity.Warning);
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await Api.CreerPartageAsync(PersonnageId, new PartageRequest
+            {
+                MjKeycloakId = _mjKeycloakId,
+                Permission = _permission,
+            });
+            Snackbar.Add("Personnage partagé !", Severity.Success);
+            _mjKeycloakId = "";
+            await ChargerPartages();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private async Task SupprimerPartage(int partageId)
+    {
+        try
+        {
+            await Api.SupprimerPartageAsync(PersonnageId, partageId);
+            Snackbar.Add("Partage supprimé.", Severity.Success);
+            await ChargerPartages();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+    }
+}

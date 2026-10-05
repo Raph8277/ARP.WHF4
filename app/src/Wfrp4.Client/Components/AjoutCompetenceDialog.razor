@@ -1,0 +1,188 @@
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>Ajouter une compétence</TitleContent>
+    <DialogContent>
+        @if (_competences == null)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        }
+        else
+        {
+            <MudSelect T="int?" Label="Compétence" @bind-Value="_selectedId" Required="true">
+                @foreach (var c in _competencesDisponibles)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Nom (@c.Caracteristique)</MudSelectItem>
+                }
+            </MudSelect>
+            @if (_competencesDisponibles.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">Toutes les compétences sont déjà acquises.</MudAlert>
+            }
+            <div class="d-flex align-center gap-2 mt-3">
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               Size="Size.Small"
+                               OnClick="RetirerPoint"
+                               Disabled="@(_submitting || _nombrePoints <= MinAjustement)" />
+                <MudNumericField T="int"
+                                 Value="_nombrePoints"
+                                 ValueChanged="ChangerNombrePoints"
+                                 Label="Ajustement"
+                                 Min="@MinAjustement"
+                                 Max="50"
+                                 Immediate="true"
+                                 Style="max-width:180px" />
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               Size="Size.Small"
+                               Color="Color.Primary"
+                               OnClick="AjouterPoint"
+                               Disabled="@(_submitting || _nombrePoints >= 50)" />
+            </div>
+            <MudPaper Class="pa-3 mt-3" Outlined="true">
+                <MudText Typo="Typo.subtitle2">XP disponibles : <strong>@XpDisponible</strong></MudText>
+                <MudText Typo="Typo.subtitle2">Avances gratuites restantes : <strong>@AvancesGratuitesDisponibles</strong></MudText>
+                <MudText Typo="Typo.subtitle2">Impact XP : <strong>@FormatImpactXp(CoutXp)</strong></MudText>
+                <MudText Typo="Typo.body2" Color="@(_xpSuffisante ? Color.Secondary : Color.Error)">
+                    Après confirmation : @(XpDisponible - CoutXp) XP
+                </MudText>
+            </MudPaper>
+            @if (!_xpSuffisante)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    Le solde XP sera négatif après validation.
+                </MudAlert>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirmer" Disabled="@(_submitting || _selectedId == null)">
+            Ajouter
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int PersonnageId { get; set; }
+    [Parameter] public List<int> CompetencesExistantes { get; set; } = [];
+    [Parameter] public int XpDisponible { get; set; }
+    [Parameter] public int AvancesGratuitesDisponibles { get; set; }
+
+    private List<Wfrp4.Shared.DTOs.CompetenceDto>? _competences;
+    private List<Wfrp4.Shared.DTOs.CompetenceDto> _competencesDisponibles = [];
+    private int? _selectedId;
+    private int _nombrePoints;
+    private bool _submitting;
+    private const int MinAjustement = -50;
+    private int CoutXp => CalculerCoutCompetenceAvecGratuit(0, _nombrePoints);
+    private bool _xpSuffisante => CoutXp <= 0 || XpDisponible >= CoutXp;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _competences = await Api.GetCompetencesAsync() ?? [];
+        _competencesDisponibles = _competences
+            .Where(c => !CompetencesExistantes.Contains(c.Id))
+            .OrderBy(c => c.Nom)
+            .ToList();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void AjouterPoint() => ChangerNombrePoints(_nombrePoints + 1);
+
+    private void RetirerPoint() => ChangerNombrePoints(_nombrePoints - 1);
+
+    private void ChangerNombrePoints(int value)
+    {
+        _nombrePoints = Math.Clamp(value, MinAjustement, 50);
+    }
+
+    private async Task Confirmer()
+    {
+        if (_selectedId == null) return;
+
+        _submitting = true;
+        try
+        {
+            await Api.AjouterCompetenceAsync(PersonnageId, new Wfrp4.Shared.DTOs.AjoutCompetenceRequest
+            {
+                CompetenceId = _selectedId.Value,
+                NombrePoints = _nombrePoints,
+            });
+            Snackbar.Add(MessageConfirmation(), Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private static int CalculerCoutCompetenceTotal(int avancesActuelles, int nombrePoints)
+    {
+        var total = 0;
+        if (nombrePoints >= 0)
+        {
+            for (var i = 0; i < nombrePoints; i++)
+                total += CalculerCoutCompetence(avancesActuelles + i);
+        }
+        else
+        {
+            for (var i = 0; i < -nombrePoints; i++)
+                total -= CalculerCoutCompetence(avancesActuelles - 1 - i);
+        }
+        return total;
+    }
+
+    private int CalculerCoutCompetenceAvecGratuit(int avancesActuelles, int nombrePoints)
+    {
+        if (nombrePoints <= 0)
+            return CalculerCoutCompetenceTotal(avancesActuelles, nombrePoints);
+
+        var gratuits = Math.Min(nombrePoints, AvancesGratuitesDisponibles);
+        return CalculerCoutCompetenceTotal(avancesActuelles + gratuits, nombrePoints - gratuits);
+    }
+
+    private static int CalculerCoutCompetence(int avancesActuelles)
+    {
+        var couts = new (int MaxAvances, int CoutCompetence)[]
+        {
+            (5, 10),
+            (10, 15),
+            (15, 20),
+            (20, 30),
+            (25, 40),
+            (30, 60),
+            (35, 80),
+            (40, 110),
+            (45, 140),
+            (50, 180),
+        };
+
+        return couts.First(c => avancesActuelles < c.MaxAvances).CoutCompetence;
+    }
+
+    private static string FormatImpactXp(int cout)
+    {
+        if (cout < 0)
+            return $"+{-cout} XP";
+        if (cout > 0)
+            return $"-{cout} XP";
+        return "0 XP";
+    }
+
+    private string MessageConfirmation()
+    {
+        if (_nombrePoints == 0)
+            return "Compétence ajoutée.";
+        if (_nombrePoints > 0)
+            return $"Compétence ajoutée avec {_nombrePoints} avance(s).";
+        return $"Compétence ajoutée avec correction de {-_nombrePoints} avance(s).";
+    }
+}

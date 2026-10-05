@@ -1,0 +1,293 @@
+@page "/mj/parties/{Id:int}"
+@attribute [Authorize(Roles = "wfrp4-maitre-jeu")]
+@inject Wfrp4ApiClient Api
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+
+<PageTitle>@(_partie?.Nom ?? "Partie") — WFRP4</PageTitle>
+
+@if (_erreur is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_erreur</MudAlert>
+    <MudButton Href="/mj/parties" StartIcon="@Icons.Material.Filled.ArrowBack">Retour à mes tables</MudButton>
+}
+else if (_partie is null)
+{
+    <div class="old-world-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else
+{
+    <section class="old-world-hero mb-6">
+        <div>
+            <MudText Class="old-world-kicker">@PartieLibelles.Type(_partie.Type) · MJ : @_partie.MjNom</MudText>
+            <MudText Typo="Typo.h2" Class="old-world-hero__title">@_partie.Nom</MudText>
+            <MudChip T="string" Size="Size.Small" Color="@PartieLibelles.CouleurStatut(_partie.Statut)">@PartieLibelles.Statut(_partie.Statut)</MudChip>
+            @if (!string.IsNullOrWhiteSpace(_partie.Description))
+            {
+                <MudText Class="old-world-hero__text" Style="white-space:pre-line">@_partie.Description</MudText>
+            }
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit" OnClick="Modifier" Disabled="_occupe">Modifier</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="Supprimer" Disabled="_occupe">Supprimer</MudButton>
+        </div>
+    </section>
+
+    <MudPaper Class="old-world-panel pa-4 mb-4">
+        <MudText Typo="Typo.h5" Class="mb-2">Ajouter un joueur</MudText>
+        <div class="d-flex align-end gap-3 flex-wrap">
+            <MudAutocomplete T="UtilisateurResumeDto" @bind-Value="_joueurSelectionne"
+                             Label="Choisir un joueur (ou filtrer par nom d'utilisateur, e-mail)" SearchFunc="RechercherJoueurs"
+                             ToStringFunc="@(j => j is null ? string.Empty : Libelle(j))"
+                             MinCharacters="0" MaxItems="null" OpenOnFocus="true" DebounceInterval="300" ShowProgressIndicator="true"
+                             ResetValueOnEmptyText="true" CoerceText="false" Clearable="true"
+                             Style="min-width:320px" Disabled="@(_occupe || _partie.Membres.Count >= MaxMembres)">
+                <ItemTemplate Context="joueur">
+                    <div>
+                        <MudText Typo="Typo.body1">@Libelle(joueur)</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@(joueur.Email ?? "sans e-mail")</MudText>
+                    </div>
+                </ItemTemplate>
+            </MudAutocomplete>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
+                       Disabled="@(_occupe || _joueurSelectionne is null)" OnClick="AjouterJoueur">Ajouter</MudButton>
+        </div>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+            Seuls les comptes joueurs actifs apparaissent. @_partie.Membres.Count / @MaxMembres joueurs.
+        </MudText>
+    </MudPaper>
+
+    <MudPaper Class="old-world-panel pa-4">
+        <MudText Typo="Typo.h5" Class="mb-2">Joueurs et personnages</MudText>
+        @if (_partie.Membres.Count == 0)
+        {
+            <MudText Class="mud-text-secondary">Aucun joueur pour l'instant.</MudText>
+        }
+        else
+        {
+            <div style="overflow-x:auto">
+                <MudSimpleTable Dense="true" Hover="true" Class="old-world-table">
+                    <thead>
+                        <tr>
+                            <th>Joueur</th>
+                            <th style="min-width:260px">Personnage</th>
+                            <th>Profil</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in _partie.Membres)
+                        {
+                            var personnages = _personnagesParMembre.GetValueOrDefault(m.Id);
+                            <tr @key="@((m.Id, _version))">
+                                <td>
+                                    <div class="d-flex align-center gap-2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                                        <span>@m.JoueurNom</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (personnages is null)
+                                    {
+                                        <MudProgressLinear Indeterminate="true" Size="Size.Small" />
+                                    }
+                                    else if (personnages.Count == 0 && m.PersonnageId is null)
+                                    {
+                                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Ce joueur n'a aucun personnage actif.</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudSelect T="int?" Value="m.PersonnageId" Dense="true" Margin="Margin.Dense" Disabled="_occupe"
+                                                   Placeholder="Choisir un personnage" aria-label="@($"Personnage de {m.JoueurNom}")"
+                                                   ValueChanged="@(v => ChoisirPersonnage(m, v))">
+                                            <MudSelectItem T="int?" Value="null">— Aucun —</MudSelectItem>
+                                            @foreach (var p in personnages)
+                                            {
+                                                <MudSelectItem T="int?" Value="@p.Id">@p.Nom (@p.EspeceNom, @(p.CarriereCouranteIntitule ?? "sans carrière"))</MudSelectItem>
+                                            }
+                                            @if (m.PersonnageId is { } choisi && personnages.All(p => p.Id != choisi))
+                                            {
+                                                <MudSelectItem T="int?" Value="@m.PersonnageId">@m.PersonnageNom (inactif)</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    }
+                                </td>
+                                <td>
+                                    @if (m.PersonnageId is not null)
+                                    {
+                                        <MudText Typo="Typo.body2">@m.PersonnageEspece · @(m.PersonnageCarriere ?? "—")</MudText>
+                                    }
+                                </td>
+                                <td class="text-right">
+                                    @if (m.PersonnageId is { } pid)
+                                    {
+                                        <MudTooltip Text="Ouvrir la fiche (lecture et octroi d'XP)">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Description" Size="Size.Small"
+                                                           aria-label="@($"Fiche de {m.PersonnageNom}")" Href="@($"/personnage/{pid}")" />
+                                        </MudTooltip>
+                                    }
+                                    <MudTooltip Text="Retirer de la partie">
+                                        <MudIconButton Icon="@Icons.Material.Filled.PersonRemove" Size="Size.Small" Color="Color.Error"
+                                                       aria-label="@($"Retirer {m.JoueurNom}")" Disabled="_occupe" OnClick="@(() => RetirerJoueur(m))" />
+                                    </MudTooltip>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+                Choisir un personnage vous donne un partage « XP » sur sa fiche : lecture et octroi d'XP, sans droit de modification. Le joueur le voit et peut le révoquer.
+            </MudText>
+        }
+    </MudPaper>
+}
+
+@code {
+    private const int MaxMembres = 12;
+
+    [Parameter] public int Id { get; set; }
+
+    private PartieDetailDto? _partie;
+    private readonly Dictionary<int, List<PersonnageSummaryDto>> _personnagesParMembre = new();
+    private UtilisateurResumeDto? _joueurSelectionne;
+    private string? _erreur;
+    private bool _occupe;
+    private int _version;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            await Afficher(await Api.GetPartieAsync(Id));
+        }
+        catch (HttpRequestException ex)
+        {
+            _erreur = ex.StatusCode switch
+            {
+                System.Net.HttpStatusCode.NotFound => "Cette partie n'existe pas.",
+                System.Net.HttpStatusCode.Forbidden => "Cette partie est menée par un autre MJ.",
+                _ => "Impossible de charger la partie.",
+            };
+        }
+    }
+
+    private async Task Afficher(PartieDetailDto? partie)
+    {
+        _partie = partie;
+        _version++;
+        if (partie is null)
+            return;
+
+        // Charge les personnages des nouveaux membres seulement.
+        var manquants = partie.Membres.Where(m => !_personnagesParMembre.ContainsKey(m.Id)).ToList();
+        await Task.WhenAll(manquants.Select(async m =>
+        {
+            try
+            {
+                _personnagesParMembre[m.Id] = await Api.GetPersonnagesMembreAsync(partie.Id, m.Id) ?? new();
+            }
+            catch (HttpRequestException)
+            {
+                _personnagesParMembre[m.Id] = new();
+            }
+        }));
+    }
+
+    private static string Libelle(UtilisateurResumeDto j) => j.NomUtilisateur;
+
+    private async Task<IEnumerable<UtilisateurResumeDto>> RechercherJoueurs(string? texte, CancellationToken ct)
+    {
+        if (_partie is null)
+            return Array.Empty<UtilisateurResumeDto>();
+        try
+        {
+            // Texte vide : tous les joueurs actifs ; sinon filtre côté serveur (e-mail compris, jamais affiché).
+            var resultats = await Api.RechercherJoueursAsync(texte?.Trim() ?? string.Empty) ?? new();
+            var deja = _partie.Membres.Select(m => m.JoueurKeycloakId).ToHashSet();
+            return resultats.Where(r => !deja.Contains(r.Id));
+        }
+        catch (HttpRequestException)
+        {
+            return Array.Empty<UtilisateurResumeDto>();
+        }
+    }
+
+    private Task AjouterJoueur() => Executer(async () =>
+    {
+        await Afficher(await Api.AjouterMembrePartieAsync(Id, _joueurSelectionne!.Id));
+        _joueurSelectionne = null;
+    }, "Joueur ajouté. Choisissez maintenant son personnage.");
+
+    private Task ChoisirPersonnage(PartieMembreDto membre, int? personnageId) => Executer(
+        async () => await Afficher(await Api.ChoisirPersonnageMembreAsync(Id, membre.Id, personnageId)),
+        personnageId is null ? "Personnage retiré." : "Personnage choisi.",
+        rechargerSiErreur: true);
+
+    private async Task RetirerJoueur(PartieMembreDto membre)
+    {
+        var ok = await Dialog.ShowMessageBoxAsync("Retirer le joueur",
+            $"Retirer {membre.JoueurNom} de la partie ? Le partage créé par la partie sur son personnage sera supprimé.",
+            yesText: "Retirer", cancelText: "Annuler");
+        if (ok != true)
+            return;
+
+        await Executer(async () =>
+        {
+            await Api.RetirerMembrePartieAsync(Id, membre.Id);
+            _personnagesParMembre.Remove(membre.Id);
+            await Afficher(await Api.GetPartieAsync(Id));
+        }, "Joueur retiré.");
+    }
+
+    private async Task Modifier()
+    {
+        var parametres = new DialogParameters<Components.PartieDialog> { { d => d.Partie, _partie } };
+        var dialog = await Dialog.ShowAsync<Components.PartieDialog>("Modifier la partie", parametres,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var resultat = await dialog.Result;
+        if (resultat is { Canceled: false, Data: PartieDetailDto partie })
+            await Afficher(partie);
+    }
+
+    private async Task Supprimer()
+    {
+        var ok = await Dialog.ShowMessageBoxAsync("Supprimer la partie",
+            $"Supprimer définitivement « {_partie!.Nom} » ? Les personnages restent intacts ; les partages créés par la partie sont retirés.",
+            yesText: "Supprimer", cancelText: "Annuler");
+        if (ok != true)
+            return;
+
+        await Executer(async () =>
+        {
+            await Api.SupprimerPartieAsync(Id);
+            Nav.NavigateTo("/mj/parties");
+        }, "Partie supprimée.");
+    }
+
+    private async Task Executer(Func<Task> action, string succes, bool rechargerSiErreur = false)
+    {
+        _occupe = true;
+        try
+        {
+            await action();
+            Snackbar.Add(succes, Severity.Success);
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            if (rechargerSiErreur)
+            {
+                try { await Afficher(await Api.GetPartieAsync(Id)); }
+                catch (HttpRequestException) { /* l'erreur est déjà signalée */ }
+            }
+        }
+        finally
+        {
+            _occupe = false;
+        }
+    }
+}

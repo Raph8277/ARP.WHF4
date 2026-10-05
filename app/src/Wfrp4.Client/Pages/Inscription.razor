@@ -1,0 +1,80 @@
+@page "/inscription"
+@attribute [AllowAnonymous]
+@inject InscriptionApiClient Api
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Inscription — WFRP4</PageTitle>
+
+<section class="old-world-hero old-world-hero--creation mb-6">
+    <div>
+        <MudText Class="old-world-kicker">Registre du Reikland</MudText>
+        <MudText Typo="Typo.h2" Class="old-world-hero__title">Créer un compte</MudText>
+        <MudText Class="old-world-hero__text">Rejoignez la campagne : créez votre compte joueur pour donner vie à vos personnages.</MudText>
+    </div>
+</section>
+
+<MudPaper Class="old-world-panel pa-6 mx-auto" MaxWidth="MaxWidth.Small">
+    <EditForm Model="_request" OnValidSubmit="Inscrire">
+        <DataAnnotationsValidator />
+
+        <MudTextField @bind-Value="_request.NomUtilisateur" For="@(() => _request.NomUtilisateur)"
+                      Label="Nom d'utilisateur" Required="true" Class="mb-2" />
+        <MudTextField @bind-Value="_request.Email" For="@(() => _request.Email)"
+                      Label="Email" Required="true" InputType="InputType.Email" Class="mb-2" />
+        <MudTextField @bind-Value="_request.MotDePasse" For="@(() => _request.MotDePasse)"
+                      Label="Mot de passe" Required="true" InputType="InputType.Password" Class="mb-2" />
+        <MudTextField @bind-Value="_request.ConfirmationMotDePasse" For="@(() => _request.ConfirmationMotDePasse)"
+                      Label="Confirmation du mot de passe" Required="true" InputType="InputType.Password" Class="mb-2" />
+        <MudTextField @bind-Value="_request.Prenom" Label="Prénom" Class="mb-2" />
+        <MudTextField @bind-Value="_request.Nom" Label="Nom" Class="mb-4" />
+
+        @if (!string.IsNullOrWhiteSpace(_erreur))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_erreur</MudAlert>
+        }
+
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="_submitting" FullWidth="true">
+            @if (_submitting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Créer un compte
+        </MudButton>
+
+        <MudText Typo="Typo.body2" Class="mt-4">
+            Déjà inscrit ? <MudLink Href="authentication/login">Connectez-vous</MudLink>
+        </MudText>
+    </EditForm>
+</MudPaper>
+
+@code {
+    private readonly InscriptionRequest _request = new();
+    private bool _submitting;
+    private string? _erreur;
+
+    private async Task Inscrire()
+    {
+        _erreur = null;
+        _submitting = true;
+        try
+        {
+            var (success, erreur) = await Api.InscrireAsync(_request);
+            if (success)
+            {
+                Snackbar.Add("Compte créé avec succès. Vous pouvez maintenant vous connecter.", Severity.Success);
+                Nav.NavigateTo("authentication/login");
+            }
+            else
+            {
+                _erreur = erreur;
+                Snackbar.Add(erreur ?? "La création du compte a échoué.", Severity.Error);
+            }
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

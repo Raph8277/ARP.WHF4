@@ -1,0 +1,1937 @@
+@using System.Globalization
+@using System.Text
+@using Wfrp4.Shared.Maps
+@inject IJSRuntime JS
+
+<div class="dungeon-editor">
+    <div class="dungeon-editor__heading">
+        <div>
+            <MudText Class="old-world-kicker mb-1">Plans tactiques</MudText>
+            <MudText Typo="Typo.h4" Style="font-family:var(--wfrp4-font-heading)">Cartographe du Vieux Monde</MudText>
+            <MudText Typo="Typo.body2">Générez un donjon, une grotte, une auberge ou un village, puis façonnez ses espaces, détails et chemins.</MudText>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Casino" OnClick="GenerateMap">
+                Générer
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.AutoAwesome" OnClick="GenerateSurprise">
+                Surprise
+            </MudButton>
+        </div>
+    </div>
+
+    <MudPaper Class="dungeon-editor__settings pa-3" Elevation="0">
+        <MudSelect T="RandomMapKind" Value="_kind" ValueChanged="OnKindChanged" Label="Type de plan" Margin="Margin.Dense">
+            <MudSelectItem T="RandomMapKind" Value="RandomMapKind.Dungeon">Donjon</MudSelectItem>
+            <MudSelectItem T="RandomMapKind" Value="RandomMapKind.Cave">Grotte</MudSelectItem>
+            <MudSelectItem T="RandomMapKind" Value="RandomMapKind.Inn">Auberge</MudSelectItem>
+            <MudSelectItem T="RandomMapKind" Value="RandomMapKind.Village">Village / ville</MudSelectItem>
+        </MudSelect>
+        <div>
+            <MudNumericField T="int" @bind-Value="_seed" Label="Numéro de génération" Min="1" Max="2147483646" Margin="Margin.Dense" />
+            <p class="dungeon-editor__seed-help">Même numéro et mêmes réglages : même carte. Surprise choisit un nouveau numéro.</p>
+        </div>
+        <MudNumericField T="int" @bind-Value="_areaCount" Label="@(_kind == RandomMapKind.Village ? "Lieux importants" : "Zones")" Min="4" Max="30" Margin="Margin.Dense" />
+        @if (_kind != RandomMapKind.Village)
+        {
+        <MudSelect T="int" @bind-Value="_loops" Label="Connexions" Margin="Margin.Dense">
+            <MudSelectItem T="int" Value="0">Linéaire</MudSelectItem>
+            <MudSelectItem T="int" Value="2">Ramifié</MudSelectItem>
+            <MudSelectItem T="int" Value="4">Complexe</MudSelectItem>
+            <MudSelectItem T="int" Value="6">Labyrinthique</MudSelectItem>
+        </MudSelect>
+        }
+        <MudCheckBox T="bool" @bind-Value="_showGrid" Label="Grille" />
+        <MudCheckBox T="bool" @bind-Value="_showLabels" Label="Noms" />
+        <MudCheckBox T="bool" Value="_showFeatures" ValueChanged="OnShowFeaturesChanged" Label="@(_kind == RandomMapKind.Village ? "Lieux et détails" : "Détails")" />
+    </MudPaper>
+
+    @if (_kind == RandomMapKind.Village)
+    {
+        <MudPaper Class="dungeon-editor__settlement pa-3" Elevation="0">
+            @if (Settlements.Count > 0)
+            {
+                <MudSelect T="string" Value="_selectedSettlementName" ValueChanged="OnSettlementChanged"
+                           Label="Localité existante" Margin="Margin.Dense">
+                    <MudSelectItem T="string" Value="@string.Empty">Village aléatoire</MudSelectItem>
+                    @foreach (var settlement in Settlements)
+                    {
+                        <MudSelectItem T="string" Value="settlement.Name">
+                            @settlement.Name — @settlement.Type
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            <div class="dungeon-editor__settlement-control">
+                <MudText Typo="Typo.body2">Emprise — @CurrentFootprintPercent%</MudText>
+                <MudSlider T="int" Value="CurrentFootprintPercent" ValueChanged="UpdateFootprint"
+                           Min="65" Max="160" Step="5" ValueLabel="true" Immediate="false"
+                           aria-label="Taille de l’agglomération, en pourcentage" />
+                <MudText Typo="Typo.caption">Ajustez la surface occupée par la ville.</MudText>
+            </div>
+            <div class="dungeon-editor__settlement-control">
+                <MudText Typo="Typo.body2">Densité bâtie — @CurrentDensityPercent%</MudText>
+                <MudSlider T="int" Value="CurrentDensityPercent" ValueChanged="UpdateDensity"
+                           Min="65" Max="140" Step="5" ValueLabel="true" Immediate="false"
+                           aria-label="Densité des bâtiments" />
+                <MudText Typo="Typo.caption">Plus dense : davantage de pâtés de maisons.</MudText>
+            </div>
+            <MudSelect T="RandomMapSettlementForm" Value="CurrentSettlementForm" ValueChanged="UpdateSettlementForm"
+                       Label="Forme de la ville" Margin="Margin.Dense">
+                <MudSelectItem T="RandomMapSettlementForm" Value="RandomMapSettlementForm.Compact">Compacte</MudSelectItem>
+                <MudSelectItem T="RandomMapSettlementForm" Value="RandomMapSettlementForm.Elongated">Étirée</MudSelectItem>
+                <MudSelectItem T="RandomMapSettlementForm" Value="RandomMapSettlementForm.Sprawling">Étalée</MudSelectItem>
+            </MudSelect>
+            <div class="dungeon-editor__settlement-control">
+                <MudText Typo="Typo.body2">Largeur des rues — @CurrentStreetWidthPercent%</MudText>
+                <MudSlider T="int" Value="CurrentStreetWidthPercent" ValueChanged="UpdateStreetWidth"
+                           Min="60" Max="150" Step="5" ValueLabel="true" Immediate="false"
+                           aria-label="Largeur des rues" />
+                <MudText Typo="Typo.caption">Des rues plus larges dégagent les pâtés.</MudText>
+            </div>
+            <MudText Typo="Typo.caption">Environnement — vous pouvez combiner plusieurs éléments.</MudText>
+            <MudCheckBox T="bool" Value="CurrentHasRiver" ValueChanged="SetHasRiver" Label="Rivière" />
+            <MudCheckBox T="bool" Value="CurrentHasCoast" ValueChanged="SetHasCoast" Label="Côte" />
+            <MudCheckBox T="bool" Value="CurrentHasForest" ValueChanged="SetHasForest" Label="Bois et forêt" />
+            @if (SelectedSettlement is not null)
+            {
+                <div class="dungeon-editor__settlement-info">
+                    <MudText Typo="Typo.subtitle1" Style="font-family:var(--wfrp4-font-heading)">@SelectedSettlement.Name</MudText>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@SelectedSettlement.Type</MudChip>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@SelectedSettlement.Population</MudChip>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@SettlementLayoutLabel</MudChip>
+                    <MudText Typo="Typo.caption">@SelectedSettlement.Region — @(_areaCount) lieux structurants représentés</MudText>
+                </div>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption">La taille, la densité, la forme et le paysage se règlent indépendamment du référentiel.</MudText>
+            }
+        </MudPaper>
+    }
+
+    <div class="dungeon-editor__workspace">
+        <section class="dungeon-editor__canvas-panel" aria-label="Aperçu du plan">
+            <div class="dungeon-editor__canvas-toolbar">
+                <MudTextField T="string" Value="_map.Name" ValueChanged="UpdateMapName" Label="Nom de la carte" Margin="Margin.Dense" />
+                <div class="d-flex flex-wrap gap-1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Undo" Disabled="@(_history.Count == 0)" OnClick="Undo" aria-label="Annuler la dernière modification" />
+                    <MudIconButton Icon="@Icons.Material.Filled.AddBox" OnClick="AddArea" Disabled="@(_map.Areas.Count >= 30)" aria-label="Ajouter une zone" />
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveProject">Sauvegarder</MudButton>
+                    <label class="dungeon-editor__open-project">
+                        <InputFile @key="_projectFileInputKey" OnChange="OpenProject" accept=".json,application/json"
+                                   aria-label="Ouvrir un projet de carte JSON" />
+                        <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Small" />
+                        <span>Ouvrir</span>
+                    </label>
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="@(() => ExportMap("svg"))">SVG</MudButton>
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Image" OnClick="@(() => ExportMap("png"))">PNG</MudButton>
+                </div>
+            </div>
+
+            @if (_projectMessage is not null)
+            {
+                <MudAlert Severity="@(_projectLoadFailed ? Severity.Error : Severity.Success)" Dense="true" Class="mb-2">
+                    @_projectMessage
+                </MudAlert>
+            }
+
+            @if (_linkSourceId is not null)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                    Cliquez sur une seconde zone pour créer un passage. <MudLink OnClick="CancelLink">Annuler</MudLink>
+                </MudAlert>
+            }
+
+            <div class="dungeon-editor__canvas-wrap">
+                <svg id="@SvgId" class="@CanvasClass" viewBox="0 0 960 640" role="img"
+                     aria-label="@($"Plan aléatoire : {_map.Name}")" @onclick="ClearSelection"
+                     @onmousemove="OnCanvasMouseMove" @onmouseup="EndPointerAction" @onmouseleave="EndPointerAction">
+                    <defs>
+                        <pattern id="dungeon-small-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#80745f" stroke-width="0.65" opacity="0.34" />
+                        </pattern>
+                        <pattern id="dungeon-large-grid" width="100" height="100" patternUnits="userSpaceOnUse">
+                            <rect width="100" height="100" fill="url(#dungeon-small-grid)" />
+                            <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#5d5242" stroke-width="1.2" opacity="0.38" />
+                        </pattern>
+                        <pattern id="village-fields" width="120" height="90" patternUnits="userSpaceOnUse" patternTransform="rotate(-7)">
+                            <path d="M 0 18 H 120 M 0 36 H 120 M 0 54 H 120 M 0 72 H 120" fill="none" stroke="#65734d" stroke-width="1.5" opacity="0.3" />
+                            <path d="M 20 0 V 90 M 80 0 V 90" fill="none" stroke="#c6b27a" stroke-width="1" opacity="0.22" />
+                        </pattern>
+                        <pattern id="village-river-meadow" width="150" height="100" patternUnits="userSpaceOnUse">
+                            <path d="M -20 25 Q 32 2 82 28 T 170 24 M -18 73 Q 34 48 88 75 T 170 70"
+                                  fill="none" stroke="#55776a" stroke-width="2" opacity="0.3" />
+                            <circle cx="24" cy="54" r="2.5" fill="#365f52" opacity="0.3" />
+                            <circle cx="118" cy="45" r="2" fill="#365f52" opacity="0.24" />
+                        </pattern>
+                        <pattern id="village-coast-ground" width="110" height="84" patternUnits="userSpaceOnUse" patternTransform="rotate(5)">
+                            <path d="M 0 18 Q 28 8 55 18 T 110 18 M 0 58 Q 28 48 55 58 T 110 58"
+                                  fill="none" stroke="#b19b69" stroke-width="1.6" opacity="0.34" />
+                            <circle cx="18" cy="38" r="1.8" fill="#765f3e" opacity="0.24" />
+                            <circle cx="79" cy="73" r="1.6" fill="#765f3e" opacity="0.2" />
+                        </pattern>
+                        <pattern id="inn-planks" width="34" height="34" patternUnits="userSpaceOnUse">
+                            <path d="M 0 8 H 34 M 0 25 H 34 M 12 8 V 25 M 27 0 V 8 M 24 25 V 34" fill="none" stroke="#725238" stroke-width="1" opacity="0.28" />
+                        </pattern>
+                        <pattern id="dungeon-masonry" width="72" height="44" patternUnits="userSpaceOnUse">
+                            <path d="M 0 2 H 72 M 0 23 H 72 M 0 43 H 72 M 17 2 V 23 M 55 2 V 23 M 35 23 V 43 M 68 23 V 43"
+                                  fill="none" stroke="#403a32" stroke-width="1.4" opacity="0.38" />
+                            <path d="M 3 7 L 12 5 M 43 29 L 51 32 M 61 15 L 67 12" stroke="#a69a83" stroke-width="1" opacity="0.22" />
+                        </pattern>
+                        <linearGradient id="harbor-water" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#63a9b5" />
+                            <stop offset="55%" stop-color="#3d8799" />
+                            <stop offset="100%" stop-color="#285f75" />
+                        </linearGradient>
+                        <filter id="dungeon-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.45" />
+                        </filter>
+                        <filter id="village-grain" x="-5%" y="-5%" width="110%" height="110%">
+                            <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="@(_map.Seed % 97)" result="noise" />
+                            <feColorMatrix in="noise" type="saturate" values="0" result="grain" />
+                            <feBlend in="SourceGraphic" in2="grain" mode="soft-light" />
+                        </filter>
+                    </defs>
+
+                    <rect width="960" height="640" fill="@CanvasFill" />
+                    @if (_map.Kind == RandomMapKind.Dungeon)
+                    {
+                        <rect width="960" height="640" fill="url(#dungeon-masonry)" opacity="0.78" />
+                        <path d="@DungeonCrackPath(0)" fill="none" stroke="#29251f" stroke-width="3" opacity="0.48" />
+                        <path d="@DungeonCrackPath(1)" fill="none" stroke="#29251f" stroke-width="2" opacity="0.42" />
+                        <path d="@DungeonCrackPath(2)" fill="none" stroke="#29251f" stroke-width="2.5" opacity="0.38" />
+                    }
+                    else if (_map.Kind == RandomMapKind.Village)
+                    {
+                        @((MarkupString)UrbanAtlasSvg)
+                    }
+                    else if (_map.Kind == RandomMapKind.Inn)
+                    {
+                        <path d="M 72 45 L 892 54 L 882 593 L 68 584 Z" fill="#8c6a49" stroke="#2d2118" stroke-width="12" filter="url(#dungeon-shadow)" />
+                        <path d="M 83 59 L 879 66 L 870 579 L 82 570 Z" fill="url(#inn-planks)" stroke="#b69365" stroke-width="3" />
+                    }
+                    @if (_showGrid)
+                    {
+                        <rect width="960" height="640" fill="url(#dungeon-large-grid)" />
+                    }
+
+                    @if (_map.Kind != RandomMapKind.Village)
+                    {
+                        @foreach (var passage in _map.Passages)
+                        {
+                            var from = AreaById(passage.FromAreaId);
+                            var to = AreaById(passage.ToAreaId);
+                            if (from is not null && to is not null)
+                            {
+                                var path = PassagePath(from, to, passage);
+                                var passageSelected = IsSelectedPassage(passage);
+                                @if (passageSelected)
+                                {
+                                    <path d="@path" fill="none" stroke="#e2bf5b" stroke-width="@PassageSelectionWidth" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+                                }
+                                <path d="@path" fill="none" stroke="@PassageBorderColor" stroke-width="@PassageBorderWidth" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="@path" fill="none" stroke="@PassageFill" stroke-width="@PassageInnerWidth"
+                                      stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="@(passage.Secret ? "8 7" : null)" />
+                                <path d="@path" fill="none" stroke="transparent" stroke-width="34" pointer-events="stroke"
+                                      class="dungeon-editor__passage-hit" @onclick="@(() => SelectPassage(passage))" @onclick:stopPropagation="true" />
+                            }
+                        }
+                    }
+                    else if (SelectedPassage is { } selectedVillagePassage)
+                    {
+                        var from = AreaById(selectedVillagePassage.FromAreaId);
+                        var to = AreaById(selectedVillagePassage.ToAreaId);
+                        if (from is not null && to is not null)
+                        {
+                            <path d="@PassagePath(from, to, selectedVillagePassage)" fill="none" stroke="#e2bf5b"
+                                  stroke-width="7" stroke-linecap="round" stroke-dasharray="7 5" opacity="0.9" pointer-events="none" />
+                        }
+                    }
+
+                    @foreach (var area in _map.Areas.Where(area => _map.Kind != RandomMapKind.Village || _showFeatures || area.Id == _selectedAreaId))
+                    {
+                        var selected = area.Id == _selectedAreaId;
+                        <g class="dungeon-editor__area" @onclick="@(() => SelectArea(area.Id))" @onclick:stopPropagation="true"
+                           @onmousedown="@((MouseEventArgs args) => StartAreaDrag(area.Id, args))" @onmousedown:stopPropagation="true">
+                            @if (_map.Kind == RandomMapKind.Dungeon)
+                            {
+                                <path d="@DungeonRoomPath(area)" fill="@DungeonRoomFill(area.Purpose)"
+                                      stroke="@(selected ? "#e2bf5b" : "#1f1b17")" stroke-width="@(selected ? 7 : 5)"
+                                      stroke-linejoin="round" filter="url(#dungeon-shadow)" />
+                                <path d="@DungeonInnerWallPath(area)" fill="none" stroke="#d0c3a7" stroke-width="1.5"
+                                      stroke-dasharray="10 4" opacity="0.45" pointer-events="none" />
+                                <path d="@DungeonRoomCrackPath(area)" fill="none" stroke="#554b3e" stroke-width="2"
+                                      opacity="0.58" pointer-events="none" />
+                            }
+                            else if (_map.Kind == RandomMapKind.Village)
+                            {
+                                <title>@area.Name</title>
+                                <circle cx="@F(area.CenterX)" cy="@F(area.CenterY)" r="@(selected ? 9 : 5)"
+                                        fill="@(selected ? "#e2bf5b" : "#eee5d2")" stroke="#61574a" stroke-width="1.5" />
+                            }
+                            else if (_map.Kind != RandomMapKind.Cave)
+                            {
+                                <rect x="@F(area.X)" y="@F(area.Y)" width="@F(area.Width)" height="@F(area.Height)" rx="3"
+                                      fill="@AreaFill(area.Purpose)" stroke="@(selected ? "#e2bf5b" : "#211b16")"
+                                      stroke-width="@(selected ? 6 : 4)" filter="url(#dungeon-shadow)" />
+                                <rect x="@F(area.X + 8)" y="@F(area.Y + 8)" width="@F(Math.Max(1, area.Width - 16))" height="@F(Math.Max(1, area.Height - 16))"
+                                      fill="none" stroke="#7c6c55" stroke-width="1.2" opacity="0.62" pointer-events="none" />
+                            }
+                            else
+                            {
+                                <path d="@CavePath(area)" fill="@AreaFill(area.Purpose)" stroke="@(selected ? "#e2bf5b" : "#211b16")"
+                                      stroke-width="@(selected ? 6 : 4)" filter="url(#dungeon-shadow)" />
+                            }
+
+                            <foreignObject x="@F(area.CenterX - 70)" y="@F(area.CenterY - 25)" width="140" height="62" pointer-events="none">
+                                <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:140px;height:62px;text-align:center;color:#16120e;font-family:Cormorant Garamond,Georgia,serif;font-size:13px;font-weight:700;line-height:1.05">
+                                    @if (_map.Kind is RandomMapKind.Dungeon or RandomMapKind.Cave)
+                                    {
+                                        <span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border:1.5px solid #f1e4c8;border-radius:50%;background:@PurposeColor(area.Purpose);color:#fff;font-family:Inter,sans-serif;font-size:12px">@area.Id</span>
+                                    }
+                                    @if (ShouldShowAreaLabel(area))
+                                    {
+                                        <span style="margin-top:3px;padding:2px 5px;border-radius:3px;background:rgba(239,222,185,.82);box-shadow:0 1px 2px rgba(30,20,12,.28)">@ShortName(area.Name)</span>
+                                    }
+                                </div>
+                            </foreignObject>
+                            @if (selected && _linkSourceId is null)
+                            {
+                                <rect x="@F(area.X + area.Width - 8)" y="@F(area.Y + area.Height - 8)" width="18" height="18" rx="3"
+                                      class="dungeon-editor__resize-handle" fill="#e2bf5b" stroke="#211b16" stroke-width="3"
+                                      @onmousedown="@((MouseEventArgs args) => StartAreaResize(area.Id, args))" @onmousedown:stopPropagation="true"
+                                      @onclick:stopPropagation="true" />
+                            }
+                        </g>
+                    }
+
+                    @if (_showFeatures)
+                    {
+                        @foreach (var feature in _map.Features)
+                        {
+                            var featureSelected = feature.Id == _selectedFeatureId;
+                            <g transform="@FeatureTransform(feature)" class="dungeon-editor__feature"
+                           role="button" aria-label="@FeatureLabel(feature.Kind)"
+                           @onmousedown="@((MouseEventArgs args) => StartFeatureDrag(feature.Id, args))" @onmousedown:stopPropagation="true"
+                           @onclick="@(() => SelectFeature(feature.Id))" @onclick:stopPropagation="true">
+                            @if (featureSelected)
+                            {
+                                <circle r="20" fill="none" stroke="#e2bf5b" stroke-width="4" stroke-dasharray="5 3" />
+                            }
+                            <circle r="14" fill="#f1e4c8" stroke="#211b16" stroke-width="2.5" />
+                            @switch (feature.Kind)
+                            {
+                                case RandomMapFeatureKind.Chest:
+                                    <rect x="-8" y="-5" width="16" height="11" rx="2" fill="#8a532b" stroke="#2d1b10" stroke-width="2" />
+                                    <path d="M -8 -4 Q 0 -11 8 -4 M 0 -4 V 6" fill="none" stroke="#e2bf5b" stroke-width="2" />
+                                    break;
+                                case RandomMapFeatureKind.Npc:
+                                    <circle cy="-5" r="4" fill="#6d3e32" />
+                                    <path d="M -7 8 Q 0 -1 7 8" fill="#355f6b" stroke="#211b16" stroke-width="1.5" />
+                                    break;
+                                case RandomMapFeatureKind.Light:
+                                    <circle r="5" fill="#ffd45c" />
+                                    <path d="M 0 -11 V -7 M 0 7 V 11 M -11 0 H -7 M 7 0 H 11 M -8 -8 L -5 -5 M 5 5 L 8 8 M 8 -8 L 5 -5 M -5 5 L -8 8" stroke="#c46e22" stroke-width="2" />
+                                    break;
+                                case RandomMapFeatureKind.Well:
+                                    <circle r="9" fill="#5e6d6f" stroke="#29231d" stroke-width="2" />
+                                    <circle r="5" fill="#4f8795" stroke="#b6c9c7" stroke-width="1.5" />
+                                    break;
+                                case RandomMapFeatureKind.Trap:
+                                    <path d="M 0 -9 L 10 8 H -10 Z" fill="#a63228" stroke="#32140f" stroke-width="2" />
+                                    <path d="M 0 -4 V 3 M 0 6 V 7" stroke="#fff" stroke-width="2" />
+                                    break;
+                                case RandomMapFeatureKind.Altar:
+                                    <rect x="-9" y="-6" width="18" height="12" fill="#77706a" stroke="#25211e" stroke-width="2" />
+                                    <path d="M 0 -10 V 5 M -5 -5 H 5" stroke="#e7d9ba" stroke-width="2" />
+                                    break;
+                                case RandomMapFeatureKind.Stairs:
+                                    <path d="M -9 8 H 9 M -7 3 H 9 M -5 -2 H 9 M -3 -7 H 9" stroke="#41372c" stroke-width="2.5" />
+                                    break;
+                                case RandomMapFeatureKind.Campfire:
+                                    <path d="M -8 8 L 8 -3 M -8 -3 L 8 8" stroke="#493021" stroke-width="3" />
+                                    <path d="M 0 5 C -8 0 -3 -9 1 -11 C 0 -5 9 -2 4 5 Z" fill="#e06a27" stroke="#8d2d18" stroke-width="1.5" />
+                                    break;
+                                case RandomMapFeatureKind.Table:
+                                    <rect x="-9" y="-6" width="18" height="12" rx="2" fill="#815432" stroke="#2d1b10" stroke-width="2" />
+                                    <circle cx="-5" cy="0" r="1.5" fill="#e2bf5b" /><circle cx="5" cy="0" r="1.5" fill="#e2bf5b" />
+                                    break;
+                                case RandomMapFeatureKind.Bed:
+                                    <rect x="-8" y="-10" width="16" height="20" rx="2" fill="#8b4c45" stroke="#2d1b10" stroke-width="2" />
+                                    <rect x="-6" y="-8" width="12" height="5" rx="1" fill="#eadfca" />
+                                    break;
+                                case RandomMapFeatureKind.Barrel:
+                                    <ellipse cx="0" cy="-7" rx="7" ry="3" fill="#9a6737" stroke="#2d1b10" stroke-width="1.5" />
+                                    <path d="M -7 -7 V 7 Q 0 11 7 7 V -7 M -7 1 H 7" fill="#9a6737" stroke="#2d1b10" stroke-width="1.5" />
+                                    break;
+                                case RandomMapFeatureKind.Forge:
+                                    <path d="M -9 8 V -4 H 4 L 9 1 V 8 Z" fill="#55504a" stroke="#211b16" stroke-width="2" />
+                                    <path d="M -3 4 C -7 0 -2 -7 1 -9 C 1 -4 7 -1 4 4 Z" fill="#e06a27" />
+                                    break;
+                                case RandomMapFeatureKind.Tree:
+                                    <circle cy="-3" r="9" fill="#547348" stroke="#263b22" stroke-width="2" />
+                                    <path d="M 0 4 V 11" stroke="#6b432a" stroke-width="3" />
+                                    break;
+                                case RandomMapFeatureKind.Wagon:
+                                    <rect x="-9" y="-6" width="18" height="11" fill="#8b5b32" stroke="#2d1b10" stroke-width="2" />
+                                    <circle cx="-6" cy="7" r="3" fill="#453426" /><circle cx="6" cy="7" r="3" fill="#453426" />
+                                    break;
+                                case RandomMapFeatureKind.Brazier:
+                                    <path d="M -8 0 H 8 L 5 7 H -5 Z" fill="#4e4640" stroke="#211b16" stroke-width="2" />
+                                    <path d="M 0 1 C -7 -3 -2 -10 1 -12 C 1 -7 7 -4 4 1 Z" fill="#e47a2d" stroke="#8d2d18" stroke-width="1.2" />
+                                    break;
+                                case RandomMapFeatureKind.Sarcophagus:
+                                    <path d="M -6 -10 H 6 L 9 -6 V 8 L 5 11 H -5 L -9 8 V -6 Z" fill="#777169" stroke="#29231d" stroke-width="2" />
+                                    <path d="M 0 -6 V 7 M -4 -1 H 4" stroke="#c6bda9" stroke-width="1.5" />
+                                    break;
+                                case RandomMapFeatureKind.Rubble:
+                                    <path d="M -10 7 L -6 -2 L -1 1 L 2 -8 L 8 -4 L 10 7 Z" fill="#6c655b" stroke="#302b25" stroke-width="1.5" />
+                                    <circle cx="-7" cy="7" r="3" fill="#8a8275" /><circle cx="7" cy="6" r="2.5" fill="#8a8275" />
+                                    break;
+                                case RandomMapFeatureKind.Statue:
+                                    <rect x="-8" y="7" width="16" height="4" fill="#5c5750" />
+                                    <circle cy="-7" r="4" fill="#777169" />
+                                    <path d="M -6 6 Q 0 -3 6 6 Z" fill="#777169" stroke="#29231d" stroke-width="1.5" />
+                                    break;
+                            }
+                            </g>
+                        }
+                    }
+                </svg>
+            </div>
+
+            <div class="dungeon-editor__legend">
+                @if (_map.Kind == RandomMapKind.Village)
+                {
+                    <span><i style="background:#e9e1cf"></i>Rues</span>
+                    <span><i style="background:#7d798e"></i>Bâtiments</span>
+                    <span><i style="background:#939e7b"></i>Jardins</span>
+                    @if (ShowRiver)
+                    {
+                        <span><i style="background:#6f969b"></i>Rivière</span>
+                    }
+                    @if (ShowHarbor)
+                    {
+                        <span><i style="background:#3d8799"></i>Côte</span>
+                    }
+                    @if (CurrentHasForest)
+                    {
+                        <span><i style="background:#aab394"></i>Forêt</span>
+                    }
+                }
+                else
+                {
+                    @foreach (var purpose in Enum.GetValues<RandomMapAreaPurpose>())
+                    {
+                        <span><i style="@($"background:{PurposeColor(purpose)}")"></i>@PurposeLabel(purpose)</span>
+                    }
+                    <span><b class="dungeon-editor__secret-line"></b>Passage secret</span>
+                }
+            </div>
+            <div class="dungeon-editor__generation-actions" role="group" aria-label="Génération du plan">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.AutoAwesome" OnClick="GenerateSurprise">
+                    Surprise
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Casino" OnClick="GenerateMap">
+                    Générer
+                </MudButton>
+            </div>
+        </section>
+
+        <aside class="dungeon-editor__inspector">
+            @if (SelectedPassage is not null)
+            {
+                var passage = SelectedPassage;
+                var from = AreaById(passage.FromAreaId);
+                var to = AreaById(passage.ToAreaId);
+                <MudText Class="old-world-kicker">Passage</MudText>
+                <MudText Typo="Typo.h5" Class="mb-3" Style="font-family:var(--wfrp4-font-heading)">
+                    @(from?.Name ?? "Zone inconnue") → @(to?.Name ?? "Zone inconnue")
+                </MudText>
+                <MudSelect T="RandomMapPassageRouting" Value="passage.Routing" ValueChanged="UpdatePassageRouting"
+                           Label="Tracé" Margin="Margin.Dense" Class="mb-2">
+                    <MudSelectItem T="RandomMapPassageRouting" Value="RandomMapPassageRouting.Direct">Direct</MudSelectItem>
+                    <MudSelectItem T="RandomMapPassageRouting" Value="RandomMapPassageRouting.HorizontalFirst">Angle horizontal</MudSelectItem>
+                    <MudSelectItem T="RandomMapPassageRouting" Value="RandomMapPassageRouting.VerticalFirst">Angle vertical</MudSelectItem>
+                </MudSelect>
+                <MudCheckBox T="bool" Value="passage.Secret" ValueChanged="UpdateSelectedPassageSecret" Label="Passage secret" Class="mb-3" />
+                <MudText Typo="Typo.body2" Class="mb-3">Cliquez sur un autre passage pour le modifier, ou sur une pièce pour revenir à son contenu.</MudText>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.LinkOff"
+                           OnClick="DeleteSelectedPassage">Supprimer ce passage</MudButton>
+            }
+            else if (SelectedFeature is not null)
+            {
+                var feature = SelectedFeature;
+                var owner = AreaById(feature.AreaId);
+                <MudText Class="old-world-kicker">Détail de carte</MudText>
+                <MudText Typo="Typo.h5" Class="mb-3" Style="font-family:var(--wfrp4-font-heading)">@FeatureLabel(feature.Kind)</MudText>
+                <MudSelect T="RandomMapFeatureKind" Value="feature.Kind" ValueChanged="UpdateFeatureKind"
+                           Label="Type de détail" Margin="Margin.Dense" Class="mb-2">
+                    @foreach (var kind in Enum.GetValues<RandomMapFeatureKind>())
+                    {
+                        <MudSelectItem T="RandomMapFeatureKind" Value="kind">@FeatureLabel(kind)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudText Typo="Typo.body2" Class="mb-3">Dans : @(owner?.Name ?? "zone inconnue"). Faites glisser l’icône pour la placer précisément.</MudText>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteSelectedFeature">Supprimer ce détail</MudButton>
+            }
+            else if (SelectedArea is null)
+            {
+                <div class="dungeon-editor__empty">
+                    <MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="Size.Large" />
+                    <MudText Typo="Typo.h6">Sélectionnez un élément</MudText>
+                    <MudText Typo="Typo.body2">@(_map.Kind == RandomMapKind.Village
+                        ? "Activez Lieux et détails pour afficher et déplacer vos repères. Les maisons et les rues composent le fond de carte."
+                        : "Pièce, détail ou passage : chaque élément peut être modifié directement.")</MudText>
+                </div>
+            }
+            else
+            {
+                var selected = SelectedArea;
+                <MudText Class="old-world-kicker">Zone @selected.Id</MudText>
+                <MudText Typo="Typo.h5" Class="mb-3" Style="font-family:var(--wfrp4-font-heading)">@selected.Name</MudText>
+
+                <MudTextField T="string" Value="selected.Name" ValueChanged="UpdateAreaName" Label="Nom" Margin="Margin.Dense" Class="mb-2" />
+                <MudSelect T="RandomMapAreaPurpose" Value="selected.Purpose" ValueChanged="UpdateAreaPurpose" Label="Fonction" Margin="Margin.Dense" Class="mb-3">
+                    @foreach (var purpose in Enum.GetValues<RandomMapAreaPurpose>())
+                    {
+                        <MudSelectItem T="RandomMapAreaPurpose" Value="purpose">@PurposeLabel(purpose)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    Faites glisser la pièce pour la déplacer. Utilisez sa poignée dorée pour la redimensionner.
+                </MudAlert>
+
+                <MudText Typo="Typo.subtitle2" Class="mb-1">Déplacer</MudText>
+                <div class="dungeon-editor__nudge mb-3">
+                    <span></span>
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" OnClick="@(() => MoveSelected(0, -20))" aria-label="Déplacer vers le haut" />
+                    <span></span>
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => MoveSelected(-20, 0))" aria-label="Déplacer vers la gauche" />
+                    <MudIconButton Icon="@Icons.Material.Filled.CenterFocusStrong" OnClick="CenterSelected" aria-label="Centrer la zone" />
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowForward" OnClick="@(() => MoveSelected(20, 0))" aria-label="Déplacer vers la droite" />
+                    <span></span>
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" OnClick="@(() => MoveSelected(0, 20))" aria-label="Déplacer vers le bas" />
+                    <span></span>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Link" OnClick="BeginLink">Relier</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteSelected" Disabled="@(_map.Areas.Count <= 4)">Supprimer</MudButton>
+                </div>
+
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Détails</MudText>
+                <div class="dungeon-editor__add-feature mb-2">
+                    <MudSelect T="RandomMapFeatureKind" @bind-Value="_newFeatureKind" Label="Nouveau détail" Margin="Margin.Dense">
+                        @foreach (var kind in Enum.GetValues<RandomMapFeatureKind>())
+                        {
+                            <MudSelectItem T="RandomMapFeatureKind" Value="kind">@FeatureLabel(kind)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudIconButton Icon="@Icons.Material.Filled.AddCircle" Color="Color.Primary" OnClick="AddFeature" aria-label="Ajouter ce détail" />
+                </div>
+                @if (!FeaturesForSelectedArea.Any())
+                {
+                    <MudText Typo="Typo.caption" Class="mb-3">Aucun détail dans cette zone.</MudText>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        @foreach (var feature in FeaturesForSelectedArea)
+                        {
+                            <div class="dungeon-editor__feature-row">
+                                <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => SelectFeature(feature.Id))">
+                                    @FeatureLabel(feature.Kind)
+                                </MudButton>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                               OnClick="@(() => RemoveFeature(feature))" aria-label="Supprimer le détail" />
+                            </div>
+                        }
+                    </div>
+                }
+
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Passages</MudText>
+                @if (!SelectedPassages.Any())
+                {
+                    <MudText Typo="Typo.caption">Cette zone est isolée.</MudText>
+                }
+                else
+                {
+                    @foreach (var passage in SelectedPassages)
+                    {
+                        var other = OtherArea(passage);
+                        <div class="dungeon-editor__passage-row">
+                            <div>
+                                <MudLink OnClick="@(() => SelectPassage(passage))">Vers @(other?.Name ?? "zone inconnue")</MudLink>
+                                <MudText Typo="Typo.caption">@(passage.Secret ? "Passage secret" : "Passage visible")</MudText>
+                            </div>
+                            <MudIconButton Icon="@(passage.Secret ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                           Size="Size.Small" OnClick="@(() => ToggleSecret(passage))" aria-label="Basculer passage secret" />
+                            <MudIconButton Icon="@Icons.Material.Filled.LinkOff" Color="Color.Error" Size="Size.Small"
+                                           OnClick="@(() => RemovePassage(passage))" aria-label="Supprimer le passage" />
+                        </div>
+                    }
+                }
+            }
+        </aside>
+    </div>
+</div>
+
+@code {
+    private string? _atlasKey;
+    private string? _atlasPlanKey;
+    private SettlementAtlas.Plan? _atlasPlan;
+    private string _atlasSvg = string.Empty;
+    private string SettlementPlanKey => $"{_map.Seed}|{_map.SettlementType}|{CurrentFootprintPercent}|{CurrentDensityPercent}|{CurrentSettlementForm}|{CurrentStreetWidthPercent}|{CurrentHasRiver}|{CurrentHasCoast}|{CurrentHasForest}";
+    private SettlementAtlas.Plan CurrentAtlasPlan
+    {
+        get
+        {
+            var key = SettlementPlanKey;
+            if (_atlasPlan is null || key != _atlasPlanKey)
+            {
+                _atlasPlan = SettlementAtlas.Generate(_map);
+                _atlasPlanKey = key;
+            }
+            return _atlasPlan;
+        }
+    }
+    private string UrbanAtlasSvg
+    {
+        get
+        {
+            var key = $"{SettlementPlanKey}|{_map.Name}|{_showLabels}";
+            if (key != _atlasKey)
+            {
+                _atlasSvg = SettlementAtlas.Render(CurrentAtlasPlan, _map.Name, _showLabels);
+                _atlasKey = key;
+            }
+            return _atlasSvg;
+        }
+    }
+    private const string SvgId = "wfrp4-random-dungeon-map";
+    [Parameter] public IReadOnlyList<RandomMapSettlement> Settlements { get; set; } = [];
+
+    private readonly Stack<RandomDungeonMap> _history = new();
+    private RandomMapKind _kind = RandomMapKind.Dungeon;
+    private int _seed = 1789;
+    private int _areaCount = 14;
+    private int _loops = 2;
+    private int _projectFileInputKey;
+    private bool _showGrid;
+    private bool _showLabels = true;
+    private bool _showFeatures = true;
+    private int? _selectedAreaId;
+    private int? _selectedFeatureId;
+    private int? _selectedPassageFromId;
+    private int? _selectedPassageToId;
+    private int? _linkSourceId;
+    private string _selectedSettlementName = string.Empty;
+    private RandomMapFeatureKind _newFeatureKind = RandomMapFeatureKind.Chest;
+    private PointerAction _pointerAction;
+    private int _pointerTargetId;
+    private double _lastClientX;
+    private double _lastClientY;
+    private double _svgScaleX = 1;
+    private double _svgScaleY = 1;
+    private bool _pointerChanged;
+    private bool _projectLoadFailed;
+    private string? _projectMessage;
+    private RandomDungeonMap? _pointerSnapshot;
+    private RandomDungeonMap _map = RandomDungeonMapGenerator.Generate(RandomMapKind.Dungeon, 14, 2, 1789);
+
+    private RandomMapArea? SelectedArea => _selectedAreaId is null ? null : AreaById(_selectedAreaId.Value);
+    private RandomMapFeature? SelectedFeature => _selectedFeatureId is null
+        ? null
+        : _map.Features.FirstOrDefault(feature => feature.Id == _selectedFeatureId.Value);
+    private RandomMapPassage? SelectedPassage => _selectedPassageFromId is null || _selectedPassageToId is null
+        ? null
+        : _map.Passages.FirstOrDefault(passage => passage.FromAreaId == _selectedPassageFromId && passage.ToAreaId == _selectedPassageToId);
+    private RandomMapSettlement? SelectedSettlement => string.IsNullOrWhiteSpace(_selectedSettlementName)
+        ? null
+        : Settlements.FirstOrDefault(settlement => settlement.Name == _selectedSettlementName);
+    private IEnumerable<RandomMapPassage> SelectedPassages => _selectedAreaId is null
+        ? []
+        : _map.Passages.Where(passage => passage.FromAreaId == _selectedAreaId || passage.ToAreaId == _selectedAreaId);
+    private IEnumerable<RandomMapFeature> FeaturesForSelectedArea => _selectedAreaId is null
+        ? []
+        : _map.Features.Where(feature => feature.AreaId == _selectedAreaId);
+    private string CanvasFill => _map.Kind switch
+    {
+        RandomMapKind.Cave => "#9e9277",
+        RandomMapKind.Inn => "#b99b75",
+        RandomMapKind.Village => SettlementLandscapeFill(),
+        _ => "#756d5f"
+    };
+    private string PassageFill => _map.Kind switch
+    {
+        RandomMapKind.Cave => "#776b55",
+        RandomMapKind.Village => "#c2aa78",
+        RandomMapKind.Inn => "#a7835d",
+        _ => "#8f8370"
+    };
+    private string PassageBorderColor => _map.Kind == RandomMapKind.Village ? "#8c7653" : "#241e18";
+    private int PassageSelectionWidth => _map.Kind switch
+    {
+        RandomMapKind.Cave => 34,
+        RandomMapKind.Village => _map.SettlementLayout == RandomMapSettlementLayout.Fortified ? 13 : 20,
+        RandomMapKind.Inn => 16,
+        _ => 28
+    };
+    private int PassageBorderWidth => _map.Kind switch
+    {
+        RandomMapKind.Cave => 24,
+        RandomMapKind.Village => _map.SettlementLayout == RandomMapSettlementLayout.Fortified ? 6 : 9,
+        RandomMapKind.Inn => 9,
+        _ => 18
+    };
+    private int PassageInnerWidth => _map.Kind switch
+    {
+        RandomMapKind.Cave => 14,
+        RandomMapKind.Village => _map.SettlementLayout == RandomMapSettlementLayout.Fortified ? 3 : 5,
+        RandomMapKind.Inn => 5,
+        _ => 10
+    };
+    private RandomMapSettlementLandscape CurrentSettlementLandscape =>
+        _map.SettlementLandscape ?? RandomMapSettlementLandscape.River;
+    private bool CurrentHasRiver => _map.SettlementHasRiver ?? CurrentSettlementLandscape == RandomMapSettlementLandscape.River;
+    private bool CurrentHasCoast => _map.SettlementHasCoast ?? CurrentSettlementLandscape == RandomMapSettlementLandscape.Port;
+    private bool CurrentHasForest => _map.SettlementHasForest ?? false;
+    private int CurrentFootprintPercent => _map.SettlementFootprintPercent ?? _map.SettlementSize switch
+    {
+        RandomMapSettlementSize.Small => 78,
+        RandomMapSettlementSize.Large => 130,
+        _ => 100
+    };
+    private int CurrentDensityPercent => _map.SettlementDensityPercent ?? 100;
+    private int CurrentStreetWidthPercent => _map.SettlementStreetWidthPercent ?? 100;
+    private RandomMapSettlementForm CurrentSettlementForm => _map.SettlementForm ?? _map.SettlementLayout switch
+    {
+        RandomMapSettlementLayout.Linear => RandomMapSettlementForm.Elongated,
+        RandomMapSettlementLayout.Dispersed => RandomMapSettlementForm.Sprawling,
+        _ => RandomMapSettlementForm.Compact
+    };
+    private bool ShowRiver => CurrentHasRiver;
+    private bool ShowHarbor => CurrentHasCoast;
+    private string SettlementGroundPattern => CurrentSettlementLandscape switch
+    {
+        RandomMapSettlementLandscape.River => "url(#village-river-meadow)",
+        RandomMapSettlementLandscape.Port => "url(#village-coast-ground)",
+        _ => "url(#village-fields)"
+    };
+    private string HarborWaterPath => "M 575 640 C 568 565 590 486 652 451 C 728 407 817 402 960 443 L 960 640 Z";
+    private string HarborShorePath => "M 578 634 C 575 557 598 493 658 459 C 732 417 817 414 957 451";
+    private IReadOnlyList<string> SettlementApproachPaths => BuildSettlementApproachPaths();
+    private IReadOnlyList<RandomSettlementGate> SettlementGates => RandomSettlementMapGeometry.SettlementGates(_map);
+    private IReadOnlyList<DistrictLandmarkGlyph> DistrictLandmarks => BuildDistrictLandmarks();
+    private IReadOnlyList<string> HarborDocks =>
+    [
+        "M 650 511 L 713 540", "M 704 465 L 748 516", "M 787 437 L 803 497", "M 872 437 L 865 490"
+    ];
+    private string SettlementLayoutLabel => _map.SettlementLayout switch
+    {
+        RandomMapSettlementLayout.Fortified => "Enceinte fortifiée",
+        RandomMapSettlementLayout.Clustered => "Bourg groupé",
+        RandomMapSettlementLayout.Dispersed => "Habitat dispersé",
+        _ => "Village-rue"
+    };
+    private bool IsPalisadedSettlement => _map.SettlementType == "Bourg";
+    private bool ShowsSettlementWall => _map.SettlementLayout == RandomMapSettlementLayout.Fortified || IsPalisadedSettlement;
+    private int SettlementWallOuterWidth => IsPalisadedSettlement ? 10 : 18;
+    private int SettlementWallInnerWidth => IsPalisadedSettlement ? 6 : 11;
+    private string SettlementWallFill => IsPalisadedSettlement ? "#72563c" : "#918571";
+    private string SettlementWallPath => _map.SettlementBoundary.Count >= 3
+        ? SmoothClosedPath(_map.SettlementBoundary)
+        : IsPalisadedSettlement
+            ? "M 146 154 Q 476 62 816 166 Q 900 320 812 493 Q 480 584 142 486 Q 65 320 146 154 Z"
+            : "M 112 134 Q 476 38 850 147 Q 925 320 844 518 Q 476 608 108 505 Q 33 318 112 134 Z";
+    private IReadOnlyList<SettlementTower> SettlementTowers => _map.SettlementBoundary.Count >= 6
+        ? _map.SettlementBoundary
+            .Where((_, index) => index % (IsPalisadedSettlement ? 4 : 3) == 0)
+            .Select(point => new SettlementTower(point.X, point.Y, IsPalisadedSettlement ? 10 : 15))
+            .ToList()
+        : IsPalisadedSettlement
+            ? [new(146, 154, 10), new(816, 166, 10), new(812, 493, 10), new(142, 486, 10)]
+            :
+            [
+                new(112, 134, 15), new(480, 82, 15), new(850, 147, 15), new(884, 324, 15),
+                new(844, 518, 15), new(476, 562, 15), new(108, 505, 15), new(70, 320, 15)
+            ];
+    private (double X, double Y) SettlementCenter => _map.Districts.FirstOrDefault(district => district.Kind == RandomMapDistrictKind.Market) is { } market
+        ? (market.CenterX, market.CenterY)
+        : (480, 320);
+    private double MarketRadiusX => _map.SettlementType switch
+    {
+        "Cité" or "Ville" => 47,
+        "Bourg" => 40,
+        _ => 34
+    };
+    private double MarketRadiusY => _map.SettlementType switch
+    {
+        "Cité" or "Ville" => 34,
+        "Bourg" => 28,
+        _ => 24
+    };
+    private string VillageStreamPath
+    {
+        get
+        {
+            var offset = _map.Seed % 83 - 41;
+            return $"M -30 {F(105 + offset)} C 180 {F(35 + offset)} 305 {F(185 + offset)} 505 {F(108 + offset)} S 785 {F(60 + offset)} 990 {F(132 + offset)}";
+        }
+    }
+    private double VillageBridgeY => 108 + _map.Seed % 83 - 41;
+    private string CanvasClass => _pointerAction == PointerAction.None
+        ? "dungeon-editor__canvas"
+        : "dungeon-editor__canvas dungeon-editor__canvas--dragging";
+
+    private void GenerateMap()
+    {
+        var settlement = _kind == RandomMapKind.Village ? SelectedSettlement : null;
+        var footprint = CurrentFootprintPercent;
+        var density = CurrentDensityPercent;
+        var streetWidth = CurrentStreetWidthPercent;
+        var form = _map.Kind == RandomMapKind.Village ? (RandomMapSettlementForm?)_map.SettlementForm : null;
+        var hasRiver = CurrentHasRiver;
+        var hasCoast = CurrentHasCoast;
+        var hasForest = CurrentHasForest;
+        _map = RandomDungeonMapGenerator.Generate(_kind, _areaCount, _loops, Math.Max(1, _seed), settlement);
+        if (_kind == RandomMapKind.Village)
+        {
+            _map.SettlementFootprintPercent = footprint;
+            _map.SettlementDensityPercent = density;
+            _map.SettlementStreetWidthPercent = streetWidth;
+            _map.SettlementForm = form;
+            _map.SettlementHasRiver = hasRiver;
+            _map.SettlementHasCoast = hasCoast;
+            _map.SettlementHasForest = hasForest;
+            _map.SettlementLandscape = hasCoast ? RandomMapSettlementLandscape.Port : hasRiver ? RandomMapSettlementLandscape.River : RandomMapSettlementLandscape.Countryside;
+            ConstrainSettlementPlacesAndCache();
+        }
+        _history.Clear();
+        _selectedAreaId = _map.Kind == RandomMapKind.Village ? null : _map.Areas[0].Id;
+        _selectedFeatureId = null;
+        ClearPassageSelection();
+        _linkSourceId = null;
+        ResetPointerAction();
+    }
+
+    private void GenerateSurprise()
+    {
+        _seed = Random.Shared.Next(1, int.MaxValue);
+        GenerateMap();
+    }
+
+    private void OnKindChanged(RandomMapKind kind)
+    {
+        _kind = kind;
+        _showGrid = kind == RandomMapKind.Cave;
+        _showFeatures = kind != RandomMapKind.Village;
+        GenerateMap();
+    }
+
+    private void OnShowFeaturesChanged(bool show)
+    {
+        _showFeatures = show;
+        if (!show)
+            _selectedFeatureId = null;
+    }
+
+    private void OnSettlementChanged(string value)
+    {
+        _selectedSettlementName = value ?? string.Empty;
+        if (SelectedSettlement is not null)
+        {
+            _areaCount = RandomDungeonMapGenerator.RecommendedAreaCount(SelectedSettlement);
+            _seed = RandomDungeonMapGenerator.SettlementSeed(SelectedSettlement);
+            _loops = SelectedSettlement.Type switch
+            {
+                "Ville" or "Cité" => 6,
+                "Bourg" => 4,
+                _ => 2
+            };
+        }
+        GenerateMap();
+    }
+
+    private void UpdateFootprint(int value) => UpdateSettlementGeometry(() => _map.SettlementFootprintPercent = value, true);
+    private void UpdateDensity(int value) => UpdateSettlementGeometry(() => _map.SettlementDensityPercent = value);
+    private void UpdateStreetWidth(int value) => UpdateSettlementGeometry(() => _map.SettlementStreetWidthPercent = value);
+    private void UpdateSettlementForm(RandomMapSettlementForm form) => UpdateSettlementGeometry(() => _map.SettlementForm = form, true);
+
+    private void UpdateSettlementGeometry(Action update, bool relocatePlaces = false)
+    {
+        SaveSnapshot();
+        update();
+        if (relocatePlaces) ConstrainSettlementPlacesAndCache();
+    }
+
+    private void ConstrainSettlementPlacesAndCache()
+    {
+        var plan = SettlementAtlas.Generate(_map);
+        SettlementAtlas.ConstrainPlaces(_map, plan);
+        _atlasPlan = plan;
+        _atlasPlanKey = SettlementPlanKey;
+    }
+
+    private void SetHasRiver(bool value) => UpdateSettlementEnvironment(() => _map.SettlementHasRiver = value, true);
+    private void SetHasCoast(bool value) => UpdateSettlementEnvironment(() => _map.SettlementHasCoast = value, true);
+    private void SetHasForest(bool value) => UpdateSettlementEnvironment(() => _map.SettlementHasForest = value);
+
+    private void UpdateSettlementEnvironment(Action update, bool relocatePlaces = false)
+    {
+        SaveSnapshot();
+        _map.SettlementHasRiver ??= CurrentHasRiver;
+        _map.SettlementHasCoast ??= CurrentHasCoast;
+        _map.SettlementHasForest ??= CurrentHasForest;
+        update();
+        _map.SettlementLandscape = CurrentHasCoast ? RandomMapSettlementLandscape.Port : CurrentHasRiver ? RandomMapSettlementLandscape.River : RandomMapSettlementLandscape.Countryside;
+        if (relocatePlaces) ConstrainSettlementPlacesAndCache();
+    }
+
+    private void SaveSnapshot()
+    {
+        PushSnapshot(_map.Clone());
+    }
+
+    private void PushSnapshot(RandomDungeonMap snapshot)
+    {
+        _history.Push(snapshot);
+        while (_history.Count > 40)
+        {
+            var retained = _history.Take(40).Reverse().ToArray();
+            _history.Clear();
+            foreach (var item in retained) _history.Push(item);
+        }
+    }
+
+    private void Undo()
+    {
+        if (_history.Count == 0) return;
+        _map = _history.Pop();
+        _kind = _map.Kind;
+        if (_selectedAreaId is not null && AreaById(_selectedAreaId.Value) is null)
+            _selectedAreaId = null;
+        if (_selectedFeatureId is not null && SelectedFeature is null)
+            _selectedFeatureId = null;
+        ClearPassageSelection();
+        _linkSourceId = null;
+        ResetPointerAction();
+    }
+
+    private void SelectArea(int id)
+    {
+        if (_linkSourceId is not null && _linkSourceId != id)
+        {
+            if (!HasPassage(_linkSourceId.Value, id))
+            {
+                SaveSnapshot();
+                _map.Passages.Add(new RandomMapPassage
+                {
+                    FromAreaId = Math.Min(_linkSourceId.Value, id),
+                    ToAreaId = Math.Max(_linkSourceId.Value, id),
+                    Routing = _map.Kind != RandomMapKind.Cave
+                        ? RandomMapPassageRouting.HorizontalFirst
+                        : RandomMapPassageRouting.Direct
+                });
+            }
+            _linkSourceId = null;
+        }
+        _selectedAreaId = id;
+        _selectedFeatureId = null;
+        ClearPassageSelection();
+    }
+
+    private void ClearSelection()
+    {
+        if (_linkSourceId is null)
+        {
+            _selectedAreaId = null;
+            _selectedFeatureId = null;
+            ClearPassageSelection();
+        }
+    }
+
+    private void SelectFeature(int id)
+    {
+        var feature = _map.Features.FirstOrDefault(item => item.Id == id);
+        if (feature is null) return;
+        _selectedFeatureId = id;
+        _selectedAreaId = feature.AreaId;
+        _linkSourceId = null;
+        ClearPassageSelection();
+    }
+
+    private void SelectPassage(RandomMapPassage passage)
+    {
+        _selectedPassageFromId = passage.FromAreaId;
+        _selectedPassageToId = passage.ToAreaId;
+        _selectedAreaId = null;
+        _selectedFeatureId = null;
+        _linkSourceId = null;
+    }
+
+    private bool IsSelectedPassage(RandomMapPassage passage) =>
+        passage.FromAreaId == _selectedPassageFromId && passage.ToAreaId == _selectedPassageToId;
+
+    private void ClearPassageSelection()
+    {
+        _selectedPassageFromId = null;
+        _selectedPassageToId = null;
+    }
+
+    private void BeginLink()
+    {
+        if (_selectedAreaId is not null)
+            _linkSourceId = _selectedAreaId;
+    }
+
+    private void CancelLink() => _linkSourceId = null;
+
+    private void AddArea()
+    {
+        if (_map.Areas.Count >= 30) return;
+        SaveSnapshot();
+        var random = new Random(_map.Seed ^ (_map.Areas.Count + 1) * 7919);
+        var width = _map.Kind switch
+        {
+            RandomMapKind.Cave => 135d,
+            RandomMapKind.Village => 100d,
+            _ => 110d
+        };
+        var height = _map.Kind switch
+        {
+            RandomMapKind.Cave => 105d,
+            RandomMapKind.Village => 70d,
+            _ => 80d
+        };
+        var x = 420d;
+        var y = 280d;
+
+        for (var attempt = 0; attempt < 120; attempt++)
+        {
+            var candidateX = 36 + random.NextDouble() * (RandomDungeonMap.CanvasWidth - 72 - width);
+            var candidateY = 36 + random.NextDouble() * (RandomDungeonMap.CanvasHeight - 72 - height);
+            if (_map.Areas.All(area => !Intersects(area, candidateX, candidateY, width, height)))
+            {
+                x = candidateX;
+                y = candidateY;
+                break;
+            }
+        }
+
+        var previousSelection = SelectedArea;
+        var id = _map.Areas.Count == 0 ? 1 : _map.Areas.Max(area => area.Id) + 1;
+        var area = new RandomMapArea
+        {
+            Id = id,
+            X = x,
+            Y = y,
+            Width = width,
+            Height = height,
+            Rotation = _map.Kind == RandomMapKind.Village ? random.NextDouble() * 24 - 12 : 0,
+            ShapeSeed = random.Next(1, int.MaxValue),
+            Name = _map.Kind switch
+            {
+                RandomMapKind.Cave => $"Nouvelle cavité {id}",
+                RandomMapKind.Inn => $"Nouvelle pièce {id}",
+                RandomMapKind.Village => $"Nouveau bâtiment {id}",
+                _ => $"Nouvelle salle {id}"
+            },
+            Purpose = RandomMapAreaPurpose.Chamber
+        };
+        _map.Areas.Add(area);
+        if (_map.Kind == RandomMapKind.Village) ConstrainSettlementPlacesAndCache();
+        if (previousSelection is not null)
+        {
+            _map.Passages.Add(new RandomMapPassage
+            {
+                FromAreaId = Math.Min(previousSelection.Id, id),
+                ToAreaId = Math.Max(previousSelection.Id, id),
+                Routing = _map.Kind != RandomMapKind.Cave
+                    ? RandomMapPassageRouting.HorizontalFirst
+                    : RandomMapPassageRouting.Direct
+            });
+        }
+        _selectedAreaId = id;
+        _selectedFeatureId = null;
+        ClearPassageSelection();
+    }
+
+    private void DeleteSelected()
+    {
+        if (SelectedArea is null || _map.Areas.Count <= 4) return;
+        SaveSnapshot();
+        var id = SelectedArea.Id;
+        _map.Areas.RemoveAll(area => area.Id == id);
+        _map.Passages.RemoveAll(passage => passage.FromAreaId == id || passage.ToAreaId == id);
+        _map.Features.RemoveAll(feature => feature.AreaId == id);
+        _selectedAreaId = null;
+        _selectedFeatureId = null;
+        ClearPassageSelection();
+        _linkSourceId = null;
+    }
+
+    private void MoveSelected(double deltaX, double deltaY)
+    {
+        if (SelectedArea is null) return;
+        SaveSnapshot();
+        MoveAreaAndFeatures(SelectedArea, deltaX, deltaY);
+    }
+
+    private void CenterSelected()
+    {
+        if (SelectedArea is null) return;
+        SaveSnapshot();
+        var targetX = (RandomDungeonMap.CanvasWidth - SelectedArea.Width) / 2;
+        var targetY = (RandomDungeonMap.CanvasHeight - SelectedArea.Height) / 2;
+        MoveAreaAndFeatures(SelectedArea, targetX - SelectedArea.X, targetY - SelectedArea.Y);
+    }
+
+    private void MoveAreaAndFeatures(RandomMapArea area, double deltaX, double deltaY)
+    {
+        var oldX = area.X;
+        var oldY = area.Y;
+        area.X = Math.Clamp(area.X + deltaX, 12, RandomDungeonMap.CanvasWidth - area.Width - 12);
+        area.Y = Math.Clamp(area.Y + deltaY, 12, RandomDungeonMap.CanvasHeight - area.Height - 12);
+        var appliedX = area.X - oldX;
+        var appliedY = area.Y - oldY;
+        foreach (var feature in _map.Features.Where(feature => feature.AreaId == area.Id))
+        {
+            feature.X += appliedX;
+            feature.Y += appliedY;
+        }
+    }
+
+    private async Task StartAreaDrag(int areaId, MouseEventArgs args)
+    {
+        if (_linkSourceId is not null) return;
+        SelectArea(areaId);
+        await StartPointerAction(PointerAction.MoveArea, areaId, args);
+    }
+
+    private async Task StartAreaResize(int areaId, MouseEventArgs args)
+    {
+        SelectArea(areaId);
+        await StartPointerAction(PointerAction.ResizeArea, areaId, args);
+    }
+
+    private async Task StartFeatureDrag(int featureId, MouseEventArgs args)
+    {
+        SelectFeature(featureId);
+        await StartPointerAction(PointerAction.MoveFeature, featureId, args);
+    }
+
+    private async Task StartPointerAction(PointerAction action, int targetId, MouseEventArgs args)
+    {
+        var scale = await JS.InvokeAsync<double[]>("wfrp4DungeonMap.measure", SvgId);
+        _svgScaleX = scale.Length > 0 && scale[0] > 0 ? scale[0] : 1;
+        _svgScaleY = scale.Length > 1 && scale[1] > 0 ? scale[1] : _svgScaleX;
+        _pointerAction = action;
+        _pointerTargetId = targetId;
+        _lastClientX = args.ClientX;
+        _lastClientY = args.ClientY;
+        _pointerChanged = false;
+        _pointerSnapshot = _map.Clone();
+    }
+
+    private void OnCanvasMouseMove(MouseEventArgs args)
+    {
+        if (_pointerAction == PointerAction.None) return;
+        var deltaX = (args.ClientX - _lastClientX) / _svgScaleX;
+        var deltaY = (args.ClientY - _lastClientY) / _svgScaleY;
+        _lastClientX = args.ClientX;
+        _lastClientY = args.ClientY;
+        if (Math.Abs(deltaX) < 0.01 && Math.Abs(deltaY) < 0.01) return;
+
+        if (!_pointerChanged && _pointerSnapshot is not null)
+        {
+            PushSnapshot(_pointerSnapshot);
+            _pointerChanged = true;
+        }
+
+        switch (_pointerAction)
+        {
+            case PointerAction.MoveArea:
+                var area = AreaById(_pointerTargetId);
+                if (area is not null) MoveAreaAndFeatures(area, deltaX, deltaY);
+                break;
+            case PointerAction.ResizeArea:
+                ResizeArea(_pointerTargetId, deltaX, deltaY);
+                break;
+            case PointerAction.MoveFeature:
+                MoveFeature(_pointerTargetId, deltaX, deltaY);
+                break;
+        }
+    }
+
+    private void ResizeArea(int areaId, double deltaX, double deltaY)
+    {
+        var area = AreaById(areaId);
+        if (area is null) return;
+        area.Width = Math.Clamp(area.Width + deltaX, 60, RandomDungeonMap.CanvasWidth - area.X - 12);
+        area.Height = Math.Clamp(area.Height + deltaY, 44, RandomDungeonMap.CanvasHeight - area.Y - 12);
+        foreach (var feature in _map.Features.Where(feature => feature.AreaId == areaId))
+            ClampFeatureToArea(feature, area);
+    }
+
+    private void MoveFeature(int featureId, double deltaX, double deltaY)
+    {
+        var feature = _map.Features.FirstOrDefault(item => item.Id == featureId);
+        var area = feature is null ? null : AreaById(feature.AreaId);
+        if (feature is null || area is null) return;
+        feature.X += deltaX;
+        feature.Y += deltaY;
+        ClampFeatureToArea(feature, area);
+    }
+
+    private static void ClampFeatureToArea(RandomMapFeature feature, RandomMapArea area)
+    {
+        const double padding = 14;
+        var minX = Math.Min(area.CenterX, area.X + padding);
+        var maxX = Math.Max(area.CenterX, area.X + area.Width - padding);
+        var minY = Math.Min(area.CenterY, area.Y + padding);
+        var maxY = Math.Max(area.CenterY, area.Y + area.Height - padding);
+        feature.X = Math.Clamp(feature.X, minX, maxX);
+        feature.Y = Math.Clamp(feature.Y, minY, maxY);
+    }
+
+    private void EndPointerAction(MouseEventArgs args) => ResetPointerAction();
+
+    private void ResetPointerAction()
+    {
+        _pointerAction = PointerAction.None;
+        _pointerTargetId = 0;
+        _pointerChanged = false;
+        _pointerSnapshot = null;
+    }
+
+    private void UpdateMapName(string value)
+    {
+        value = string.IsNullOrWhiteSpace(value) ? "Plan sans nom" : value.Trim();
+        if (_map.Name == value) return;
+        SaveSnapshot();
+        _map.Name = value;
+    }
+
+    private void UpdateAreaName(string value)
+    {
+        if (SelectedArea is null) return;
+        value = string.IsNullOrWhiteSpace(value) ? $"Zone {SelectedArea.Id}" : value.Trim();
+        if (SelectedArea.Name == value) return;
+        SaveSnapshot();
+        SelectedArea.Name = value;
+    }
+
+    private void UpdateAreaPurpose(RandomMapAreaPurpose purpose)
+    {
+        if (SelectedArea is null || SelectedArea.Purpose == purpose) return;
+        SaveSnapshot();
+        SelectedArea.Purpose = purpose;
+    }
+
+    private void AddFeature()
+    {
+        if (SelectedArea is null) return;
+        SaveSnapshot();
+        var localCount = _map.Features.Count(feature => feature.AreaId == SelectedArea.Id);
+        var angle = localCount * Math.PI * 0.72;
+        var radius = Math.Min(26, 7 + localCount * 4);
+        var feature = new RandomMapFeature
+        {
+            Id = _map.Features.Count == 0 ? 1 : _map.Features.Max(item => item.Id) + 1,
+            AreaId = SelectedArea.Id,
+            X = SelectedArea.CenterX + Math.Cos(angle) * radius,
+            Y = SelectedArea.CenterY + Math.Sin(angle) * radius,
+            Kind = _newFeatureKind
+        };
+        ClampFeatureToArea(feature, SelectedArea);
+        _map.Features.Add(feature);
+        SelectFeature(feature.Id);
+    }
+
+    private void UpdateFeatureKind(RandomMapFeatureKind kind)
+    {
+        if (SelectedFeature is null || SelectedFeature.Kind == kind) return;
+        SaveSnapshot();
+        SelectedFeature.Kind = kind;
+    }
+
+    private void RemoveFeature(RandomMapFeature feature)
+    {
+        SaveSnapshot();
+        _map.Features.Remove(feature);
+        if (_selectedFeatureId == feature.Id)
+            _selectedFeatureId = null;
+    }
+
+    private void DeleteSelectedFeature()
+    {
+        if (SelectedFeature is not null)
+            RemoveFeature(SelectedFeature);
+    }
+
+    private void ToggleSecret(RandomMapPassage passage)
+    {
+        SaveSnapshot();
+        passage.Secret = !passage.Secret;
+    }
+
+    private void RemovePassage(RandomMapPassage passage)
+    {
+        SaveSnapshot();
+        _map.Passages.Remove(passage);
+        if (IsSelectedPassage(passage))
+            ClearPassageSelection();
+    }
+
+    private void UpdatePassageRouting(RandomMapPassageRouting routing)
+    {
+        if (SelectedPassage is null || SelectedPassage.Routing == routing) return;
+        SaveSnapshot();
+        SelectedPassage.Routing = routing;
+    }
+
+    private void UpdateSelectedPassageSecret(bool secret)
+    {
+        if (SelectedPassage is null || SelectedPassage.Secret == secret) return;
+        SaveSnapshot();
+        SelectedPassage.Secret = secret;
+    }
+
+    private void DeleteSelectedPassage()
+    {
+        if (SelectedPassage is not null)
+            RemovePassage(SelectedPassage);
+    }
+
+    private RandomMapArea? OtherArea(RandomMapPassage passage)
+    {
+        if (_selectedAreaId is null) return null;
+        return AreaById(passage.FromAreaId == _selectedAreaId ? passage.ToAreaId : passage.FromAreaId);
+    }
+
+    private RandomMapArea? AreaById(int id) => _map.Areas.FirstOrDefault(area => area.Id == id);
+    private bool HasPassage(int left, int right) => _map.Passages.Any(passage =>
+        passage.FromAreaId == Math.Min(left, right) && passage.ToAreaId == Math.Max(left, right));
+
+    private string PassagePath(RandomMapArea from, RandomMapArea to, RandomMapPassage passage)
+    {
+        if (_map.Kind == RandomMapKind.Village)
+        {
+            var middleX = (from.CenterX + to.CenterX) / 2;
+            var middleY = (from.CenterY + to.CenterY) / 2;
+            var bend = ((from.Id * 37 + to.Id * 19 + _map.Seed) % 55) - 27;
+            return passage.Routing switch
+            {
+                RandomMapPassageRouting.HorizontalFirst => $"M {F(from.CenterX)} {F(from.CenterY)} C {F(middleX)} {F(from.CenterY + bend)} {F(middleX)} {F(to.CenterY - bend)} {F(to.CenterX)} {F(to.CenterY)}",
+                RandomMapPassageRouting.VerticalFirst => $"M {F(from.CenterX)} {F(from.CenterY)} C {F(from.CenterX + bend)} {F(middleY)} {F(to.CenterX - bend)} {F(middleY)} {F(to.CenterX)} {F(to.CenterY)}",
+                _ => $"M {F(from.CenterX)} {F(from.CenterY)} Q {F(middleX + bend)} {F(middleY - bend)} {F(to.CenterX)} {F(to.CenterY)}"
+            };
+        }
+
+        if (_map.Kind == RandomMapKind.Dungeon)
+        {
+            var ratio = 0.32 + ((from.Id * 17 + to.Id * 29 + _map.Seed) % 37) / 100d;
+            var bendX = from.CenterX + (to.CenterX - from.CenterX) * ratio;
+            var bendY = from.CenterY + (to.CenterY - from.CenterY) * (1 - ratio);
+            return passage.Routing switch
+            {
+                RandomMapPassageRouting.VerticalFirst =>
+                    $"M {F(from.CenterX)} {F(from.CenterY)} V {F(bendY)} H {F(to.CenterX)} V {F(to.CenterY)}",
+                RandomMapPassageRouting.HorizontalFirst =>
+                    $"M {F(from.CenterX)} {F(from.CenterY)} H {F(bendX)} V {F(to.CenterY)} H {F(to.CenterX)}",
+                _ when (from.Id + to.Id + _map.Seed) % 2 == 0 =>
+                    $"M {F(from.CenterX)} {F(from.CenterY)} H {F(bendX)} V {F(bendY)} H {F(to.CenterX)} V {F(to.CenterY)}",
+                _ =>
+                    $"M {F(from.CenterX)} {F(from.CenterY)} V {F(bendY)} H {F(bendX)} V {F(to.CenterY)} H {F(to.CenterX)}"
+            };
+        }
+
+        if (_map.Kind != RandomMapKind.Cave)
+        {
+            return passage.Routing switch
+            {
+                RandomMapPassageRouting.Direct => $"M {F(from.CenterX)} {F(from.CenterY)} L {F(to.CenterX)} {F(to.CenterY)}",
+                RandomMapPassageRouting.VerticalFirst => $"M {F(from.CenterX)} {F(from.CenterY)} V {F(to.CenterY)} H {F(to.CenterX)}",
+                _ => $"M {F(from.CenterX)} {F(from.CenterY)} H {F(to.CenterX)} V {F(to.CenterY)}"
+            };
+        }
+
+        return passage.Routing switch
+        {
+            RandomMapPassageRouting.Direct => $"M {F(from.CenterX)} {F(from.CenterY)} L {F(to.CenterX)} {F(to.CenterY)}",
+            RandomMapPassageRouting.HorizontalFirst => $"M {F(from.CenterX)} {F(from.CenterY)} Q {F(to.CenterX)} {F(from.CenterY)} {F(to.CenterX)} {F(to.CenterY)}",
+            _ => $"M {F(from.CenterX)} {F(from.CenterY)} Q {F(from.CenterX)} {F(to.CenterY)} {F(to.CenterX)} {F(to.CenterY)}"
+        };
+    }
+
+    private static string CavePath(RandomMapArea area)
+    {
+        var random = new Random(area.ShapeSeed);
+        const int count = 12;
+        var points = new List<(double X, double Y)>(count);
+        for (var index = 0; index < count; index++)
+        {
+            var angle = Math.PI * 2 * index / count;
+            var radius = 0.82 + random.NextDouble() * 0.25;
+            points.Add((
+                area.CenterX + Math.Cos(angle) * area.Width / 2 * radius,
+                area.CenterY + Math.Sin(angle) * area.Height / 2 * radius));
+        }
+
+        var builder = new StringBuilder();
+        var start = Midpoint(points[^1], points[0]);
+        builder.Append("M ").Append(F(start.X)).Append(' ').Append(F(start.Y));
+        for (var index = 0; index < points.Count; index++)
+        {
+            var next = points[(index + 1) % points.Count];
+            var middle = Midpoint(points[index], next);
+            builder.Append(" Q ").Append(F(points[index].X)).Append(' ').Append(F(points[index].Y))
+                .Append(' ').Append(F(middle.X)).Append(' ').Append(F(middle.Y));
+        }
+        return builder.Append(" Z").ToString();
+    }
+
+    private static string DungeonRoomPath(RandomMapArea area)
+    {
+        var random = new Random(area.ShapeSeed);
+        var topLeft = 2 + random.NextDouble() * 5;
+        var topMiddle = Jitter(random, 3);
+        var topRight = 2 + random.NextDouble() * 5;
+        var rightMiddle = Jitter(random, 3);
+        var bottomRight = 2 + random.NextDouble() * 5;
+        var bottomMiddle = Jitter(random, 3);
+        var bottomLeft = 2 + random.NextDouble() * 5;
+        var leftMiddle = Jitter(random, 3);
+        return $"M {F(area.X + topLeft)} {F(area.Y + 2)} " +
+               $"L {F(area.CenterX)} {F(area.Y + topMiddle)} " +
+               $"L {F(area.X + area.Width - 2)} {F(area.Y + topRight)} " +
+               $"L {F(area.X + area.Width + rightMiddle)} {F(area.CenterY)} " +
+               $"L {F(area.X + area.Width - bottomRight)} {F(area.Y + area.Height - 2)} " +
+               $"L {F(area.CenterX)} {F(area.Y + area.Height + bottomMiddle)} " +
+               $"L {F(area.X + bottomLeft)} {F(area.Y + area.Height - 2)} " +
+               $"L {F(area.X + leftMiddle)} {F(area.CenterY)} Z";
+    }
+
+    private static string DungeonInnerWallPath(RandomMapArea area) =>
+        $"M {F(area.X + 9)} {F(area.Y + 10)} L {F(area.X + area.Width - 10)} {F(area.Y + 8)} " +
+        $"L {F(area.X + area.Width - 8)} {F(area.Y + area.Height - 10)} L {F(area.X + 10)} {F(area.Y + area.Height - 8)} Z";
+
+    private static string DungeonRoomCrackPath(RandomMapArea area)
+    {
+        var random = new Random(area.ShapeSeed ^ 0x5f3759df);
+        var startX = area.X + 12 + random.NextDouble() * Math.Max(1, area.Width - 30);
+        var startY = area.Y + 8;
+        return $"M {F(startX)} {F(startY)} l {F(Jitter(random, 8))} 9 l {F(Jitter(random, 9))} 8 l {F(Jitter(random, 7))} 7";
+    }
+
+    private string DungeonCrackPath(int index)
+    {
+        var random = new Random(_map.Seed ^ ((index + 1) * 104729));
+        var x = 60 + random.NextDouble() * 820;
+        var y = 45 + random.NextDouble() * 520;
+        return $"M {F(x)} {F(y)} l {F(Jitter(random, 22))} {F(18 + random.NextDouble() * 22)} " +
+               $"l {F(Jitter(random, 26))} {F(16 + random.NextDouble() * 26)} l {F(Jitter(random, 20))} {F(12 + random.NextDouble() * 20)}";
+    }
+
+    private static double Jitter(Random random, double amplitude) =>
+        (random.NextDouble() * 2 - 1) * amplitude;
+
+    private static (double X, double Y) Midpoint((double X, double Y) left, (double X, double Y) right) =>
+        ((left.X + right.X) / 2, (left.Y + right.Y) / 2);
+
+    private IReadOnlyList<VillageBuildingGlyph> VillageBuildings(RandomMapArea area)
+    {
+        var landmark = area.Purpose != RandomMapAreaPurpose.Chamber;
+        var primaryWidth = Math.Clamp(area.Width * (landmark ? 0.52 : 0.36), 24, landmark ? 52 : 38);
+        var primaryHeight = Math.Clamp(area.Height * (landmark ? 0.5 : 0.34), 16, landmark ? 38 : 27);
+        return
+        [
+            new VillageBuildingGlyph(
+            area.CenterX - primaryWidth / 2,
+            area.CenterY - primaryHeight / 2,
+            primaryWidth,
+            primaryHeight,
+            area.Rotation,
+            area.ShapeSeed,
+            true)
+        ];
+    }
+
+    private IReadOnlyList<VillageBuildingGlyph> SettlementInfillBuildings()
+    {
+        var desiredCount = _map.SettlementType switch
+        {
+            "Cité" => 96,
+            "Ville" => 68,
+            "Bourg" => 40,
+            _ => 22
+        };
+        var random = new Random(_map.Seed ^ 0x63b7a1);
+        var buildings = new List<VillageBuildingGlyph>(desiredCount);
+        var districts = _map.Districts
+            .Where(district => district.Kind is not (RandomMapDistrictKind.Market or RandomMapDistrictKind.Green))
+            .ToList();
+        if (districts.Count == 0) return buildings;
+
+        for (var attempt = 0; attempt < desiredCount * 90 && buildings.Count < desiredCount; attempt++)
+        {
+            var district = districts[random.Next(districts.Count)];
+            var block = InsetDistrictPoints(district, DistrictBuildingInset);
+            var minX = block.Min(point => point.X);
+            var maxX = block.Max(point => point.X);
+            var minY = block.Min(point => point.Y);
+            var maxY = block.Max(point => point.Y);
+            var centerX = minX + random.NextDouble() * (maxX - minX);
+            var centerY = minY + random.NextDouble() * (maxY - minY);
+            if (!PointInPolygon(centerX, centerY, block)) continue;
+
+            var dense = _map.SettlementType is "Ville" or "Cité";
+            var width = (dense ? 14 : 17) + random.NextDouble() * (dense ? 10 : 12);
+            var height = (dense ? 9 : 11) + random.NextDouble() * (dense ? 7 : 9);
+
+            var x = centerX - width / 2;
+            var y = centerY - height / 2;
+            if (!BuildingFitsBlock(x, y, width, height, block)) continue;
+            if (_map.Areas.Any(area => Intersects(area, x, y, width, height))) continue;
+            if (district.Kind is RandomMapDistrictKind.Temple or RandomMapDistrictKind.Military or
+                    RandomMapDistrictKind.Noble &&
+                Math.Pow(centerX - district.CenterX, 2) + Math.Pow(centerY - district.CenterY, 2) < 900)
+                continue;
+            if (buildings.Any(building =>
+                    building.X - 3 < x + width && building.X + building.Width + 3 > x &&
+                    building.Y - 3 < y + height && building.Y + building.Height + 3 > y))
+                continue;
+
+            buildings.Add(new VillageBuildingGlyph(
+                x,
+                y,
+                width,
+                height,
+                DistrictOrientation(district) + Jitter(random, 5),
+                random.Next(1, int.MaxValue),
+                false));
+        }
+
+        return buildings;
+    }
+
+    private double DistrictBlockInset => _map.SettlementType switch
+    {
+        "Cité" => 0.89,
+        "Ville" => 0.87,
+        "Bourg" => 0.84,
+        _ => 0.8
+    };
+
+    private double DistrictBuildingInset => Math.Max(0.62, DistrictBlockInset - 0.1);
+
+    private string InsetDistrictPath(RandomMapDistrict district, double? factor = null) =>
+        PolygonPath(InsetDistrictPoints(district, factor ?? DistrictBlockInset));
+
+    private static List<RandomMapPoint> InsetDistrictPoints(RandomMapDistrict district, double factor) =>
+        district.Boundary
+            .Select(point => new RandomMapPoint
+            {
+                X = district.CenterX + (point.X - district.CenterX) * factor,
+                Y = district.CenterY + (point.Y - district.CenterY) * factor
+            })
+            .ToList();
+
+    private static bool BuildingFitsBlock(
+        double x,
+        double y,
+        double width,
+        double height,
+        IReadOnlyList<RandomMapPoint> block)
+    {
+        const double margin = 2;
+        return PointInPolygon(x - margin, y - margin, block) &&
+               PointInPolygon(x + width + margin, y - margin, block) &&
+               PointInPolygon(x + width + margin, y + height + margin, block) &&
+               PointInPolygon(x - margin, y + height + margin, block);
+    }
+
+    private static double DistrictOrientation(RandomMapDistrict district)
+    {
+        if (district.Boundary.Count < 2) return 0;
+        var longest = district.Boundary
+            .Select((point, index) =>
+            {
+                var next = district.Boundary[(index + 1) % district.Boundary.Count];
+                var dx = next.X - point.X;
+                var dy = next.Y - point.Y;
+                return (Dx: dx, Dy: dy, Length: dx * dx + dy * dy);
+            })
+            .MaxBy(edge => edge.Length);
+        return Math.Atan2(longest.Dy, longest.Dx) * 180 / Math.PI;
+    }
+
+    private IReadOnlyList<string> BuildSettlementApproachPaths()
+    {
+        if (_map.SettlementBoundary.Count < 3) return [];
+        var west = _map.SettlementBoundary.MinBy(point => point.X)!;
+        var east = _map.SettlementBoundary.MaxBy(point => point.X)!;
+        var paths = new List<string>
+        {
+            $"M -24 {F(west.Y)} C {F(west.X * 0.45)} {F(west.Y - 8)} {F(west.X * 0.78)} {F(west.Y + 5)} {F(west.X + 2)} {F(west.Y)}"
+        };
+        if (!ShowHarbor)
+        {
+            paths.Add($"M 984 {F(east.Y)} C {F(960 - (960 - east.X) * 0.45)} {F(east.Y + 7)} {F(960 - (960 - east.X) * 0.78)} {F(east.Y - 4)} {F(east.X - 2)} {F(east.Y)}");
+        }
+        return paths;
+    }
+
+    private IReadOnlyList<DistrictLandmarkGlyph> BuildDistrictLandmarks()
+    {
+        if (_map.SettlementType is not ("Bourg" or "Ville" or "Cité")) return [];
+        return _map.Districts
+            .Where(district => district.Kind is RandomMapDistrictKind.Temple or RandomMapDistrictKind.Military or
+                RandomMapDistrictKind.Green or RandomMapDistrictKind.Noble)
+            .GroupBy(district => district.Kind)
+            .Select(group => group.First())
+            .Select(district => new DistrictLandmarkGlyph(district.CenterX, district.CenterY, district.Kind))
+            .ToList();
+    }
+
+    private static double GateRotation(RandomMapEdge edge) => edge is RandomMapEdge.East or RandomMapEdge.West ? 90 : 0;
+
+    private IEnumerable<LandscapePatch> CountrysideFieldPatches()
+    {
+        var random = new Random(_map.Seed ^ 0x42f197);
+        var fills = new[] { "#b7ad70", "#8fa064", "#c4b983", "#7f9660", "#b69a63" };
+        for (var index = 0; index < 9; index++)
+        {
+            var x = -55 + random.NextDouble() * 940;
+            var y = -45 + random.NextDouble() * 590;
+            var width = 150 + random.NextDouble() * 250;
+            var height = 90 + random.NextDouble() * 150;
+            var skew = -35 + random.NextDouble() * 70;
+            yield return new LandscapePatch(
+                $"M {F(x)} {F(y)} L {F(x + width)} {F(y + skew)} L {F(x + width - 18)} {F(y + height + skew)} L {F(x - 12)} {F(y + height)} Z",
+                fills[index % fills.Length]);
+        }
+    }
+
+    private bool ShouldShowAreaLabel(RandomMapArea area)
+    {
+        if (!_showLabels) return false;
+        if (_map.Kind != RandomMapKind.Village) return true;
+        return area.Id == _selectedAreaId;
+    }
+
+    private string FeatureTransform(RandomMapFeature feature)
+    {
+        var scale = _map.Kind == RandomMapKind.Village ? 0.72 : 1;
+        return $"translate({F(feature.X)} {F(feature.Y)}) scale({F(scale)})";
+    }
+
+    private static string BuildingRoofPath(VillageBuildingGlyph building) =>
+        $"M {F(building.X + 5)} {F(building.CenterY)} H {F(building.X + building.Width - 5)} M {F(building.CenterX)} {F(building.Y + 5)} V {F(building.Y + building.Height - 5)}";
+
+    private static string BuildingRotation(VillageBuildingGlyph building) =>
+        $"rotate({F(building.Rotation)} {F(building.CenterX)} {F(building.CenterY)})";
+
+    private static string VillageBuildingPath(VillageBuildingGlyph building)
+    {
+        var random = new Random(building.ShapeSeed);
+        var topLeft = 2 + random.NextDouble() * 5;
+        var topRight = 2 + random.NextDouble() * 6;
+        var bottomRight = 2 + random.NextDouble() * 5;
+        var bottomLeft = 2 + random.NextDouble() * 6;
+        return $"M {F(building.X + topLeft)} {F(building.Y + 2)} " +
+               $"L {F(building.X + building.Width - 2)} {F(building.Y + topRight)} " +
+               $"L {F(building.X + building.Width - bottomRight)} {F(building.Y + building.Height - 2)} " +
+               $"L {F(building.X + 2)} {F(building.Y + building.Height - bottomLeft)} Z";
+    }
+
+    private static string PolygonPath(IReadOnlyList<RandomMapPoint> points)
+    {
+        if (points.Count == 0) return string.Empty;
+        var builder = new StringBuilder($"M {F(points[0].X)} {F(points[0].Y)}");
+        foreach (var point in points.Skip(1))
+            builder.Append(" L ").Append(F(point.X)).Append(' ').Append(F(point.Y));
+        return builder.Append(" Z").ToString();
+    }
+
+    private static string SmoothClosedPath(IReadOnlyList<RandomMapPoint> points)
+    {
+        if (points.Count < 3) return PolygonPath(points);
+        var start = Midpoint((points[^1].X, points[^1].Y), (points[0].X, points[0].Y));
+        var builder = new StringBuilder($"M {F(start.X)} {F(start.Y)}");
+        for (var index = 0; index < points.Count; index++)
+        {
+            var next = points[(index + 1) % points.Count];
+            var midpoint = Midpoint((points[index].X, points[index].Y), (next.X, next.Y));
+            builder.Append(" Q ").Append(F(points[index].X)).Append(' ').Append(F(points[index].Y))
+                .Append(' ').Append(F(midpoint.X)).Append(' ').Append(F(midpoint.Y));
+        }
+        return builder.Append(" Z").ToString();
+    }
+
+    private bool ShouldShowDistrictLabel(RandomMapDistrict district)
+    {
+        if (_map.Districts.Count <= 6)
+            return district.Kind is RandomMapDistrictKind.Market or RandomMapDistrictKind.Temple or RandomMapDistrictKind.Green;
+        if (district.Kind is RandomMapDistrictKind.Market or RandomMapDistrictKind.Temple or
+            RandomMapDistrictKind.Military or RandomMapDistrictKind.Noble) return true;
+        return district.Id % 4 == 0;
+    }
+
+    private static string DistrictBlockFill(RandomMapDistrictKind kind) => kind switch
+    {
+        RandomMapDistrictKind.Market => "#d5c28f",
+        RandomMapDistrictKind.Craftsmen => "#b5a68c",
+        RandomMapDistrictKind.Merchant => "#c2b28f",
+        RandomMapDistrictKind.Residential => "#b9b395",
+        RandomMapDistrictKind.Temple => "#b7ad9c",
+        RandomMapDistrictKind.Military => "#aaa691",
+        RandomMapDistrictKind.Noble => "#c4b5a0",
+        RandomMapDistrictKind.Poor => "#aa9c83",
+        RandomMapDistrictKind.Green => "#91a27b",
+        _ => "#b8aa8d"
+    };
+
+    private static bool PointInPolygon(double x, double y, IReadOnlyList<RandomMapPoint> polygon)
+    {
+        var inside = false;
+        for (var index = 0; index < polygon.Count; index++)
+        {
+            var current = polygon[index];
+            var previous = polygon[(index + polygon.Count - 1) % polygon.Count];
+            if ((current.Y > y) == (previous.Y > y)) continue;
+            var crossingX = (previous.X - current.X) * (y - current.Y) / (previous.Y - current.Y) + current.X;
+            if (x < crossingX) inside = !inside;
+        }
+        return inside;
+    }
+
+    private async Task ExportMap(string format)
+    {
+        await JS.InvokeVoidAsync("wfrp4DungeonMap.export", SvgId, ProjectFileName(), format);
+    }
+
+    private async Task SaveProject()
+    {
+        var project = new RandomDungeonMapProject
+        {
+            Map = _map.Clone(),
+            AreaCount = _areaCount,
+            Loops = _loops,
+            ShowGrid = _showGrid,
+            ShowLabels = _showLabels,
+            ShowFeatures = _showFeatures
+        };
+        var json = RandomDungeonMapProjectSerializer.Serialize(project);
+        await JS.InvokeVoidAsync("wfrp4DungeonMap.downloadText", json, $"{ProjectFileName()}.wfrp-map.json");
+        _projectLoadFailed = false;
+        _projectMessage = "Projet sauvegardé. Vous pourrez le rouvrir pour poursuivre l’édition.";
+    }
+
+    private async Task OpenProject(InputFileChangeEventArgs args)
+    {
+        _projectMessage = null;
+        _projectLoadFailed = false;
+        try
+        {
+            var file = args.File;
+            if (file.Size > RandomDungeonMapProjectSerializer.MaxProjectBytes)
+            {
+                ShowProjectError("Le fichier de projet dépasse la taille maximale de 1 Mio.");
+                return;
+            }
+
+            await using var stream = file.OpenReadStream(RandomDungeonMapProjectSerializer.MaxProjectBytes);
+            using var reader = new StreamReader(stream);
+            var json = await reader.ReadToEndAsync();
+            if (!RandomDungeonMapProjectSerializer.TryDeserialize(json, out var project, out var error) || project is null)
+            {
+                ShowProjectError(error);
+                return;
+            }
+
+            _map = project.Map.Clone();
+            if (_map.Kind == RandomMapKind.Village) ConstrainSettlementPlacesAndCache();
+            _kind = _map.Kind;
+            _seed = _map.Seed;
+            _areaCount = project.AreaCount;
+            _loops = project.Loops;
+            _showGrid = project.ShowGrid;
+            _showLabels = project.ShowLabels;
+            _showFeatures = project.ShowFeatures;
+            _selectedSettlementName = _map.Kind == RandomMapKind.Village &&
+                                      Settlements.Any(settlement => settlement.Name == _map.Name)
+                ? _map.Name
+                : string.Empty;
+            _history.Clear();
+            _selectedAreaId = _map.Areas[0].Id;
+            _selectedFeatureId = null;
+            ClearPassageSelection();
+            _linkSourceId = null;
+            ResetPointerAction();
+            _projectMessage = $"Projet « {_map.Name} » ouvert : {_map.Areas.Count} zones éditables restaurées.";
+        }
+        catch (IOException)
+        {
+            ShowProjectError("Le projet n’a pas pu être lu. Vérifiez le fichier puis réessayez.");
+        }
+        finally
+        {
+            _projectFileInputKey++;
+        }
+    }
+
+    private void ShowProjectError(string error)
+    {
+        _projectLoadFailed = true;
+        _projectMessage = error;
+    }
+
+    private string ProjectFileName()
+    {
+        var fileName = string.Join('-', _map.Name.ToLowerInvariant()
+            .Select(character => char.IsLetterOrDigit(character) ? character : '-'));
+        while (fileName.Contains("--", StringComparison.Ordinal)) fileName = fileName.Replace("--", "-", StringComparison.Ordinal);
+        fileName = fileName.Trim('-');
+        return fileName.Length == 0 ? "plan" : fileName;
+    }
+
+    private static bool Intersects(RandomMapArea area, double x, double y, double width, double height) =>
+        area.X - 12 < x + width && area.X + area.Width + 12 > x && area.Y - 12 < y + height && area.Y + area.Height + 12 > y;
+
+    private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+    private static string ShortName(string value) => value.Length <= 22 ? value : value[..20] + "…";
+
+    private static string SettlementTerrainFill(string? region)
+    {
+        if (string.IsNullOrWhiteSpace(region)) return "#91a16f";
+        if (region.Contains("Sylvanie", StringComparison.OrdinalIgnoreCase) ||
+            region.Contains("Terre des morts", StringComparison.OrdinalIgnoreCase)) return "#737762";
+        if (region.Contains("Kislev", StringComparison.OrdinalIgnoreCase) ||
+            region.Contains("Norsca", StringComparison.OrdinalIgnoreCase)) return "#87958c";
+        if (region.Contains("Averland", StringComparison.OrdinalIgnoreCase)) return "#a6a06b";
+        if (region.Contains("Wastelands", StringComparison.OrdinalIgnoreCase)) return "#819681";
+        if (region.Contains("Bretonnie", StringComparison.OrdinalIgnoreCase)) return "#88a46f";
+        return "#91a16f";
+    }
+
+    private string SettlementLandscapeFill() => CurrentSettlementLandscape switch
+    {
+        RandomMapSettlementLandscape.River => "#879a78",
+        RandomMapSettlementLandscape.Port => "#aa9f76",
+        _ => SettlementTerrainFill(_map.SettlementRegion)
+    };
+
+    private static string AreaFill(RandomMapAreaPurpose purpose) => purpose switch
+    {
+        RandomMapAreaPurpose.Entrance => "#a8b493",
+        RandomMapAreaPurpose.Hazard => "#c79a83",
+        RandomMapAreaPurpose.Treasure => "#d5bd72",
+        RandomMapAreaPurpose.Shrine => "#a99bbd",
+        RandomMapAreaPurpose.Exit => "#8fa7ad",
+        _ => "#d4c6a6"
+    };
+
+    private static string DungeonRoomFill(RandomMapAreaPurpose purpose) => purpose switch
+    {
+        RandomMapAreaPurpose.Entrance => "#8e907e",
+        RandomMapAreaPurpose.Hazard => "#8c6d62",
+        RandomMapAreaPurpose.Treasure => "#a48c58",
+        RandomMapAreaPurpose.Shrine => "#777083",
+        RandomMapAreaPurpose.Exit => "#718187",
+        _ => "#9a907d"
+    };
+
+    private static string VillageBuildingFill(RandomMapAreaPurpose purpose, VillageBuildingGlyph building)
+    {
+        if (building.IsPrimary && purpose != RandomMapAreaPurpose.Chamber)
+        {
+            return purpose switch
+            {
+                RandomMapAreaPurpose.Entrance => "#9d7653",
+                RandomMapAreaPurpose.Hazard => "#79584a",
+                RandomMapAreaPurpose.Treasure => "#b08b4e",
+                RandomMapAreaPurpose.Shrine => "#79717f",
+                RandomMapAreaPurpose.Exit => "#8a735d",
+                _ => "#a86f4d"
+            };
+        }
+
+        string[] roofs = ["#8f5d49", "#a76d50", "#6f7b78", "#806454", "#9b7956"];
+        return roofs[(int)((uint)building.ShapeSeed % roofs.Length)];
+    }
+
+    private static string PurposeColor(RandomMapAreaPurpose purpose) => purpose switch
+    {
+        RandomMapAreaPurpose.Entrance => "#49633e",
+        RandomMapAreaPurpose.Hazard => "#9a3428",
+        RandomMapAreaPurpose.Treasure => "#9a7420",
+        RandomMapAreaPurpose.Shrine => "#5d467d",
+        RandomMapAreaPurpose.Exit => "#355f6b",
+        _ => "#54483a"
+    };
+
+    private static string PurposeLabel(RandomMapAreaPurpose purpose) => purpose switch
+    {
+        RandomMapAreaPurpose.Entrance => "Entrée",
+        RandomMapAreaPurpose.Chamber => "Salle",
+        RandomMapAreaPurpose.Hazard => "Danger",
+        RandomMapAreaPurpose.Treasure => "Trésor",
+        RandomMapAreaPurpose.Shrine => "Sanctuaire",
+        RandomMapAreaPurpose.Exit => "Sortie",
+        _ => purpose.ToString()
+    };
+
+    private static string FeatureLabel(RandomMapFeatureKind kind) => kind switch
+    {
+        RandomMapFeatureKind.Chest => "Coffre",
+        RandomMapFeatureKind.Npc => "PNJ",
+        RandomMapFeatureKind.Light => "Lumière",
+        RandomMapFeatureKind.Well => "Puits",
+        RandomMapFeatureKind.Trap => "Piège",
+        RandomMapFeatureKind.Altar => "Autel",
+        RandomMapFeatureKind.Stairs => "Escalier",
+        RandomMapFeatureKind.Campfire => "Feu de camp",
+        RandomMapFeatureKind.Table => "Table",
+        RandomMapFeatureKind.Bed => "Lit",
+        RandomMapFeatureKind.Barrel => "Tonneau",
+        RandomMapFeatureKind.Forge => "Forge",
+        RandomMapFeatureKind.Tree => "Arbre",
+        RandomMapFeatureKind.Wagon => "Chariot",
+        RandomMapFeatureKind.Brazier => "Brasero",
+        RandomMapFeatureKind.Sarcophagus => "Sarcophage",
+        RandomMapFeatureKind.Rubble => "Gravats",
+        RandomMapFeatureKind.Statue => "Statue",
+        _ => kind.ToString()
+    };
+
+    private enum PointerAction
+    {
+        None,
+        MoveArea,
+        ResizeArea,
+        MoveFeature
+    }
+
+    private sealed record VillageBuildingGlyph(
+        double X,
+        double Y,
+        double Width,
+        double Height,
+        double Rotation,
+        int ShapeSeed,
+        bool IsPrimary)
+    {
+        public double CenterX => X + Width / 2;
+        public double CenterY => Y + Height / 2;
+    }
+
+    private sealed record LandscapePatch(string Path, string Fill);
+    private sealed record SettlementTower(double X, double Y, double Radius);
+    private sealed record DistrictLandmarkGlyph(double X, double Y, RandomMapDistrictKind Kind);
+}

@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "splash",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", ".", "-p", "8765", "-c-1"],
+      "port": 8765
+    },
+    {
+      "name": "blazor",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "app/src/Wfrp4.Server/Wfrp4.Server.csproj"],
+      "port": 5142,
+      "url": "http://localhost:5142"
+    }
+  ]
+}

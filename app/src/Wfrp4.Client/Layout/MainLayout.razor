@@ -1,0 +1,126 @@
+@inherits LayoutComponentBase
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Wfrp4.Client.Theme
+@using Wfrp4.Client.Components
+@inject NavigationManager Nav
+@inject UserThemeService ThemeService
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+
+<MudLayout Class="old-world-layout">
+    <MudAppBar Elevation="@ThemeService.ActivePreset.AppBarElevation" Class="old-world-appbar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@ToggleDrawer" />
+        <div class="old-world-brand">
+            <MudText Class="old-world-kicker">Registre du Reikland</MudText>
+            <MudText Typo="Typo.h5" Class="old-world-brand__title">WFRP4 — Gestion de Personnages</MudText>
+        </div>
+        <MudSpacer />
+        <div style="flex:none;width:170px;margin-right:8px">
+            <MudSelect T="string" Value="@ThemeService.ActivePreset.Id"
+                       ValueChanged="OnPresetChanged"
+                       Variant="Variant.Text" Margin="Margin.Dense" Dense="true"
+                       Class="old-world-appbar-theme-select"
+                       AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                @foreach (var p in ThemeService.AllPresets)
+                {
+                    <MudSelectItem T="string" Value="@p.Id">@p.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+        <MudIconButton Icon="@Icons.Material.Filled.Palette" Color="Color.Inherit"
+                       Class="old-world-header-button mr-2"
+                       OnClick="ToggleThemePanel" />
+        <MudIconButton Icon="@(_themeIcon)" Color="Color.Inherit"
+                       Class="old-world-header-button mr-2"
+                       OnClick="ToggleDarkMode" />
+        <AuthorizeView Context="authState">
+            <Authorized>
+                <MudMenu Class="old-world-profile-menu" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <ActivatorContent Context="menuCtx">
+                        <div class="old-world-user-chip old-world-profile-trigger" @onclick="@(e => menuCtx.ToggleAsync(e))">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Small" Class="mr-1" />
+                            <span>@GetLogin(authState.User)</span>
+                        </div>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <div class="px-4 pt-1 pb-2">
+                            <MudText Typo="Typo.subtitle2">@GetLogin(authState.User)</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@authState.User.FindFirst("email")?.Value</MudText>
+                        </div>
+                        <MudDivider />
+                        <MudMenuItem Href="@PasswordUrl" Icon="@Icons.Material.Filled.Lock">Changer mon mot de passe</MudMenuItem>
+                        <MudMenuItem OnClick="Logout" Icon="@Icons.Material.Filled.Logout">Déconnexion</MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit"
+                           Class="old-world-header-button mr-2"
+                           Href="inscription">Créer un compte</MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit"
+                           Class="old-world-header-button"
+                           Href="authentication/login">Connexion</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="@ThemeService.ActivePreset.DrawerElevation"
+               ClipMode="@ThemeService.ActivePreset.DrawerClipMode" Class="old-world-drawer">
+        <div class="old-world-drawer__inner">
+            <div class="old-world-nav-head">
+                <MudText Class="old-world-kicker">Campagne</MudText>
+                <MudText Typo="Typo.h6">Livre de bord</MudText>
+                <MudText Typo="Typo.body2">Vos personnages, vos références, vos partages.</MudText>
+            </div>
+            <NavMenu />
+        </div>
+    </MudDrawer>
+
+    <MudDrawer Open="@_themePanelOpen" OpenChanged="OnThemePanelChanged"
+               Anchor="Anchor.End" Variant="DrawerVariant.Temporary"
+               Elevation="4" Width="480px" Class="theme-manager-drawer">
+        <ThemeManagerPanel OnCloseRequested="CloseThemePanel" />
+    </MudDrawer>
+
+    <MudMainContent Class="old-world-main">
+        <div class="old-world-content-shell">
+            @Body
+        </div>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _themePanelOpen;
+
+    // Le mot de passe n'est jamais manipulé par l'application : on redirige vers la console de compte Keycloak.
+    private string PasswordUrl =>
+        $"{Configuration["Keycloak:Authority"]?.TrimEnd('/')}/account/#/security/signingin";
+
+    private string _themeIcon => ThemeService.IsDarkMode
+        ? Icons.Material.Filled.LightMode
+        : Icons.Material.Filled.DarkMode;
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void ToggleThemePanel() => _themePanelOpen = !_themePanelOpen;
+
+    private void CloseThemePanel() => _themePanelOpen = false;
+
+    private void OnThemePanelChanged(bool open) => _themePanelOpen = open;
+
+    private async Task ToggleDarkMode() => await ThemeService.ToggleDarkModeAsync();
+
+    private async Task OnPresetChanged(string presetId)
+    {
+        if (!string.IsNullOrEmpty(presetId))
+            await ThemeService.SelectPresetAsync(presetId);
+    }
+
+    private void Logout() => Nav.NavigateToLogout("authentication/logout", "authentication/logged-out");
+
+    // L'application n'affiche que le nom d'utilisateur et l'e-mail, jamais prénom ni nom.
+    private static string? GetLogin(ClaimsPrincipal user) =>
+        user.FindFirst("preferred_username")?.Value ?? user.Identity?.Name;
+}

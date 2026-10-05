@@ -1,0 +1,156 @@
+@page "/parties"
+@attribute [Authorize]
+@inject Wfrp4ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+
+<PageTitle>Mes parties — WFRP4</PageTitle>
+
+<section class="old-world-hero mb-6">
+    <div>
+        <MudText Class="old-world-kicker">Compagnie d'aventuriers</MudText>
+        <MudText Typo="Typo.h2" Class="old-world-hero__title">Mes parties</MudText>
+        <MudText Class="old-world-hero__text">Les aventures et campagnes auxquelles un maître de jeu vous a convié, et le personnage qu'il a retenu pour vous.</MudText>
+    </div>
+</section>
+
+@if (_erreur is not null)
+{
+    <MudAlert Severity="Severity.Error">@_erreur</MudAlert>
+}
+else if (_participations is null)
+{
+    <div class="old-world-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else if (_participations.Count == 0)
+{
+    <MudPaper Class="old-world-empty pa-6">
+        <MudText Class="old-world-kicker">En attente d'une convocation</MudText>
+        <MudText Typo="Typo.h4" Class="mb-2">Aucune partie pour l'instant</MudText>
+        <MudText>Lorsqu'un maître de jeu vous ajoutera à sa table, la partie apparaîtra ici.</MudText>
+    </MudPaper>
+}
+else
+{
+    <MudGrid>
+        @foreach (var p in _participations)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="0" Class="h-100 old-world-card">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Class="old-world-kicker">@PartieLibelles.Type(p.Type) · MJ : @p.MjNom</MudText>
+                            <MudText Typo="Typo.h5">@p.PartieNom</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudChip T="string" Size="Size.Small" Color="@PartieLibelles.CouleurStatut(p.Statut)">@PartieLibelles.Statut(p.Statut)</MudChip>
+                        @if (!string.IsNullOrWhiteSpace(p.Description))
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-1" Style="white-space:pre-line">@p.Description</MudText>
+                        }
+                        <MudSelect T="int?" Value="p.PersonnageId" Label="Mon personnage pour cette partie" Dense="true" Class="mt-3"
+                                   Disabled="_occupe" @key="@((p.PartieId, _version))"
+                                   ValueChanged="@(v => ProposerPersonnage(p, v))">
+                            <MudSelectItem T="int?" Value="null">— Aucun —</MudSelectItem>
+                            @foreach (var perso in _mesPersonnages)
+                            {
+                                <MudSelectItem T="int?" Value="@perso.Id">@perso.Nom (@perso.EspeceNom)</MudSelectItem>
+                            }
+                            @if (p.PersonnageId is { } choisi && _mesPersonnages.All(x => x.Id != choisi))
+                            {
+                                <MudSelectItem T="int?" Value="@p.PersonnageId">@p.PersonnageNom (inactif)</MudSelectItem>
+                            }
+                        </MudSelect>
+                        @if (p.PersonnageId is { } pid)
+                        {
+                            <MudLink Href="@($"/personnage/{pid}")" Typo="Typo.body2">Ouvrir la fiche</MudLink>
+                        }
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">
+                            Le MJ obtient un partage XP sur ce personnage (lecture et octroi d'XP) et peut changer ce choix.
+                        </MudText>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Filled.ExitToApp"
+                                   Disabled="_occupe" OnClick="@(() => Quitter(p))">Quitter la partie</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    private List<ParticipationDto>? _participations;
+    private List<PersonnageSummaryDto> _mesPersonnages = new();
+    private string? _erreur;
+    private bool _occupe;
+    private int _version;
+
+    protected override Task OnInitializedAsync() => Charger();
+
+    private async Task Charger()
+    {
+        try
+        {
+            _participations = await Api.GetParticipationsAsync() ?? new();
+            _mesPersonnages = (await Api.GetMesPersonnagesAsync() ?? new()).Where(p => p.EstActif).OrderBy(p => p.Nom).ToList();
+            _erreur = null;
+        }
+        catch (HttpRequestException)
+        {
+            _erreur = "Impossible de charger vos parties.";
+        }
+        finally
+        {
+            // Recrée les sélecteurs pour refléter l'état réel, y compris après un refus.
+            _version++;
+        }
+    }
+
+    private async Task ProposerPersonnage(ParticipationDto p, int? personnageId)
+    {
+        _occupe = true;
+        try
+        {
+            await Api.ProposerPersonnageAsync(p.PartieId, personnageId);
+            Snackbar.Add(personnageId is null ? "Personnage retiré de la partie." : "Personnage proposé au MJ.", Severity.Success);
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _occupe = false;
+            await Charger();
+        }
+    }
+
+    private async Task Quitter(ParticipationDto p)
+    {
+        var ok = await Dialog.ShowMessageBoxAsync("Quitter la partie",
+            $"Quitter « {p.PartieNom} » ? Le MJ perdra l'accès accordé par cette partie à votre personnage.",
+            yesText: "Quitter", cancelText: "Annuler");
+        if (ok != true)
+            return;
+
+        _occupe = true;
+        try
+        {
+            await Api.QuitterPartieAsync(p.PartieId);
+            Snackbar.Add("Vous avez quitté la partie.", Severity.Success);
+            await Charger();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _occupe = false;
+        }
+    }
+}

@@ -1,0 +1,27 @@
+{
+  "alias": "yahoo",
+  "displayName": "Yahoo",
+  "providerId": "oidc",
+  "enabled": true,
+  "trustEmail": true,
+  "storeToken": false,
+  "addReadTokenRoleOnCreate": false,
+  "authenticateByDefault": false,
+  "linkOnly": false,
+  "firstBrokerLoginFlowAlias": "first broker login",
+  "config": {
+    "clientId": "${WFRP4_YAHOO_CLIENT_ID:}",
+    "clientSecret": "${WFRP4_YAHOO_CLIENT_SECRET:}",
+    "authorizationUrl": "https://api.login.yahoo.com/oauth2/request_auth",
+    "tokenUrl": "https://api.login.yahoo.com/oauth2/get_token",
+    "userInfoUrl": "https://api.login.yahoo.com/openid/v1/userinfo",
+    "issuer": "https://api.login.yahoo.com",
+    "jwksUrl": "https://api.login.yahoo.com/openid/v1/certs",
+    "clientAuthMethod": "client_secret_basic",
+    "defaultScope": "openid profile email",
+    "syncMode": "IMPORT",
+    "validateSignature": "true",
+    "useJwksUrl": "true",
+    "backchannelSupported": "false"
+  }
+}

@@ -1,0 +1,16 @@
+bin/
+obj/
+.vs/
+TestResults/
+coverage/
+node_modules/
+graphify-out/
+
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+docs/
+documentation/
